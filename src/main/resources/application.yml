@@ -1,0 +1,20 @@
+spring:
+  profiles:
+    default: local  # 기본 프로필 설정
+
+  application:
+    name: seeyouagain-be
+
+  # JPA 공통 설정
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+    open-in-view: false
+
+# 로깅 설정 (공통)
+logging:
+  level:
+    org.hibernate.SQL: info
+    tetoandeggens.seeyouagainbe: info
