@@ -2,6 +2,20 @@ spring:
   profiles:
     default: local
 
+  application:
+    name: seeyouagain-be
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: info
+    tetoandeggens.seeyouagainbe: info
+
 management:
   endpoints:
     web:
