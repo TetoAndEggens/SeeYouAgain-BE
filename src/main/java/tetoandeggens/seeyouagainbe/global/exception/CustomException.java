@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.global.exception;
 
 import lombok.Getter;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.ErrorCode;
 
 @Getter
 public class CustomException extends RuntimeException {
