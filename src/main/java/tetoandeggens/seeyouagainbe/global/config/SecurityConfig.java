@@ -16,7 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.CustomLogoutFilter;
-import tetoandeggens.seeyouagainbe.auth.filter.CustomUserLoginFilter;
+import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
@@ -70,11 +70,11 @@ public class SecurityConfig {
                         .requestMatchers(ADMINLIST).authenticated()
                         .anyRequest().authenticated())
                 .addFilterAt(
-                        new CustomUserLoginFilter(authenticationManager, tokenProvider, objectMapper),
+                        new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(
                         new JwtAuthenticationFilter(tokenProvider, USERLIST, ADMINLIST, objectMapper),
-                        CustomUserLoginFilter.class)
+                        CustomLoginFilter.class)
                 .addFilterBefore(
                         new CustomLogoutFilter(tokenProvider, objectMapper),
                         LogoutFilter.class)
