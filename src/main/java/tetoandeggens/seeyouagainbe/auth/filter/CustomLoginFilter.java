@@ -18,30 +18,35 @@ import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
+import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
-public class CustomUserLoginFilter extends UsernamePasswordAuthenticationFilter {
+public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
 
-    public CustomUserLoginFilter(AuthenticationManager authenticationManager,
-                                 TokenProvider tokenProvider,
-                                 ObjectMapper objectMapper) {
+    public CustomLoginFilter(AuthenticationManager authenticationManager, TokenProvider tokenProvider, ObjectMapper objectMapper) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
         this.objectMapper = objectMapper;
-        setFilterProcessesUrl("/auth/login");
+        setFilterProcessesUrl(AuthConstants.LOGIN_URI);
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+    public Authentication attemptAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws AuthenticationException {
+
+        if (!AuthConstants.LOGIN_URI.equals(request.getRequestURI()) || !AuthConstants.POST_METHOD.equals(request.getMethod())) {
+            throw new IllegalArgumentException("Invalid login request");
+        }
 
         LoginRequest loginRequest;
         try {
@@ -74,7 +79,6 @@ public class CustomUserLoginFilter extends UsernamePasswordAuthenticationFilter 
 
         UserTokenResponse loginToken = tokenProvider.createLoginToken(uuid, userDetails.getRole());
 
-        // RefreshToken을 쿠키에 저장
         tokenProvider.setRefreshTokenCookie(response, loginToken.refreshToken());
 
         LoginResponse loginResponse = LoginResponse.builder()
