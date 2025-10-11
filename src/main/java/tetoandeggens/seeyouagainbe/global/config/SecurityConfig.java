@@ -33,20 +33,16 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    private static final String[] WHITELIST = {
+    private static final String[] USERLIST = {
+            "/auth/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/webjars/**",
-            "/actuator/**",
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/reissue"
+            "/webjars/**"
     };
 
-    private static final String[] BLACKLIST = {
-            "/api/auth/logout",
-            "/api/auth/withdraw"
+    private static final String[] ADMINLIST = {
+            "/api/admin/**"
     };
 
     @Bean
@@ -55,8 +51,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 
     @Bean
@@ -70,14 +66,14 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/**").hasAuthority(Role.ADMIN.getRole())
-                        .requestMatchers(WHITELIST).permitAll()
-                        .requestMatchers(BLACKLIST).authenticated()
+                        .requestMatchers(USERLIST).permitAll()
+                        .requestMatchers(ADMINLIST).authenticated()
                         .anyRequest().authenticated())
                 .addFilterAt(
                         new CustomUserLoginFilter(authenticationManager, tokenProvider, objectMapper),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(
-                        new JwtAuthenticationFilter(tokenProvider, WHITELIST, BLACKLIST, objectMapper),
+                        new JwtAuthenticationFilter(tokenProvider, USERLIST, ADMINLIST, objectMapper),
                         CustomUserLoginFilter.class)
                 .addFilterBefore(
                         new CustomLogoutFilter(tokenProvider, objectMapper),
