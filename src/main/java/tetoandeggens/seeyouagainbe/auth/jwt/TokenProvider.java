@@ -2,7 +2,11 @@ package tetoandeggens.seeyouagainbe.auth.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,59 +14,67 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class TokenProvider {
-    private final SecretKey secretKey;
-    private final long accessTokenExpirationMs;
-    private final long refreshTokenExpirationMs;
     private final RedisTemplate<String, String> redisTemplate;
 
-    public TokenProvider(
-            @Value("${jwt.secret}") String secret,
-            @Value("${jwt.access-token-expiration}") long accessTokenExpirationMs,
-            @Value("${jwt.refresh-token-expiration}") long refreshTokenExpirationMs,
-            RedisTemplate<String, String> redisTemplate
-    ) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.accessTokenExpirationMs = accessTokenExpirationMs;
-        this.refreshTokenExpirationMs = refreshTokenExpirationMs;
-        this.redisTemplate = redisTemplate;
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.access-token-expiration}")
+    private Long accessTokenExpirationMs;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private Long refreshTokenExpirationMs;
+
+    private SecretKey secretKey;
+
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = Base64.getDecoder().decode(secret);
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createAccessToken(String userId, String role) {
-        return createToken(userId, role, accessTokenExpirationMs);
-    }
-
-    public String createRefreshToken(String userId, String role) {
-        String refreshToken = createToken(userId, role, refreshTokenExpirationMs);
-        saveRefreshToken(userId, refreshToken);
-        return refreshToken;
-    }
-
-    public UserTokenResponse createLoginToken(String userId, String role) {
-        String accessToken = createAccessToken(userId, role);
-        String refreshToken = createRefreshToken(userId, role);
+    public UserTokenResponse createLoginToken(String uuid, Role role) {
+        String accessToken = createAccessToken(uuid, role.getRole());
+        String refreshToken = createRefreshToken(uuid, role.getRole());
+        saveRefreshToken(uuid, refreshToken);
         return new UserTokenResponse(accessToken, refreshToken);
     }
 
-    private String createToken(String userId, String role, long expirationMs) {
+    public String createAccessToken(String uuid, String role) {
         Date now = new Date();
-        Date validity = new Date(now.getTime() + expirationMs);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpirationMs);
 
         return Jwts.builder()
-                .subject(userId)
+                .subject(uuid)
                 .claim(AuthConstants.ROLE_CLAIM, role)
                 .issuedAt(now)
-                .expiration(validity)
-                .signWith(secretKey)
+                .expiration(expiryDate)
+                .signWith(secretKey, Jwts.SIG.HS512)
+                .compact();
+    }
+
+    public String createRefreshToken(String uuid, String role) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpirationMs);
+
+        return Jwts.builder()
+                .subject(uuid)
+                .claim(AuthConstants.ROLE_CLAIM, role)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(secretKey, Jwts.SIG.HS512)
                 .compact();
     }
 
@@ -88,10 +100,10 @@ public class TokenProvider {
 
     public Authentication getAuthenticationByAccessToken(String accessToken) {
         Claims claims = getClaimsFromToken(accessToken);
-        String userId = claims.getSubject();
+        String uuid = claims.getSubject();
         String role = claims.get(AuthConstants.ROLE_CLAIM, String.class);
 
-        CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(userId, role);
+        CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(uuid, role);
         return new UsernamePasswordAuthenticationToken(customUserDetails, null, customUserDetails.getAuthorities());
     }
 
@@ -119,17 +131,38 @@ public class TokenProvider {
         return null;
     }
 
-    public void deleteRefreshToken(String userId) {
-        redisTemplate.delete(userId);
+    public String resolveRefreshToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (AuthConstants.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
-    private void saveRefreshToken(String userId, String refreshToken) {
-        redisTemplate.opsForValue().set(
-                userId,
-                refreshToken,
-                refreshTokenExpirationMs,
-                TimeUnit.MILLISECONDS
-        );
+    public void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie cookie = new Cookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge((int) (refreshTokenExpirationMs / 1000));
+        response.addCookie(cookie);
+    }
+
+    public void deleteRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME, null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+    }
+
+    public void deleteRefreshToken(String uuid) {
+        redisTemplate.delete(uuid);
     }
 
     public String reissueAccessToken(String refreshToken) {
@@ -138,14 +171,23 @@ public class TokenProvider {
         }
 
         Claims claims = getClaimsFromToken(refreshToken);
-        String userId = claims.getSubject();
+        String uuid = claims.getSubject();
         String role = claims.get(AuthConstants.ROLE_CLAIM, String.class);
 
-        String storedRefreshToken = redisTemplate.opsForValue().get(userId);
+        String storedRefreshToken = redisTemplate.opsForValue().get(uuid);
         if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new IllegalArgumentException("Redis에 저장된 Refresh Token과 일치하지 않습니다.");
         }
 
-        return createAccessToken(userId, role);
+        return createAccessToken(uuid, role);
+    }
+
+    private void saveRefreshToken(String uuid, String refreshToken) {
+        redisTemplate.opsForValue().set(
+                uuid,
+                refreshToken,
+                refreshTokenExpirationMs,
+                TimeUnit.MILLISECONDS
+        );
     }
 }
