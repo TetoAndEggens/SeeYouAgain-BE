@@ -27,7 +27,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest registerRequest) {
         authService.register(registerRequest);
-        return ApiResponse.created(null);
+        return ApiResponse.created();
     }
 
     @Operation(
@@ -48,18 +48,8 @@ public class AuthController {
             description = "로그인 아이디 중복 확인"
     )
     @GetMapping("/check/loginId")
-    public ApiResponse<Boolean> checkLoginId(@RequestParam String loginId) {
-        boolean available = authService.checkLoginIdAvailable(loginId);
-        return ApiResponse.ok(available);
-    }
-
-    @Operation(
-            summary = "phoneNumber 중복 체크",
-            description = "휴대폰 번호 중복 확인"
-    )
-    @GetMapping("/check/phone")
-    public ApiResponse<Boolean> checkPhoneNumber(@RequestParam String phoneNumber) {
-        boolean available = authService.checkPhoneNumberAvailable(phoneNumber);
-        return ApiResponse.ok(available);
+    public ApiResponse<Void> checkLoginId(@RequestParam String loginId) {
+        authService.checkLoginIdAvailable(loginId);
+        return ApiResponse.noContent();
     }
 }
