@@ -61,11 +61,9 @@ public class AuthService {
                 .build();
     }
 
-    public boolean checkLoginIdAvailable(String loginId) {
-        return !memberRepository.existsByLoginIdAndIsDeletedFalse(loginId);
-    }
-
-    public boolean checkPhoneNumberAvailable(String phoneNumber) {
-        return !memberRepository.existsByPhoneNumberAndIsDeletedFalse(phoneNumber);
+    public void checkLoginIdAvailable(String loginId) {
+        if (memberRepository.existsByLoginIdAndIsDeletedFalse(loginId)) {
+            throw new CustomException(AuthErrorCode.DUPLICATED_LOGIN_ID);
+        }
     }
 }
