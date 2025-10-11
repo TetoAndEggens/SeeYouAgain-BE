@@ -15,7 +15,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.exception.AuthErrorCode;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,8 +24,8 @@ import java.util.Arrays;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
-    private final String[] whiteList;
-    private final String[] blackList;
+    private final String[] applyFilterList;
+    private final String[] ignoreFilterList;
     private final ObjectMapper objectMapper;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -68,14 +68,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
 
-        boolean isInBlackList = Arrays.stream(blackList)
+        boolean isInIgnoreFilterList = Arrays.stream(ignoreFilterList)
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
 
-        if (isInBlackList) {
+        if (isInIgnoreFilterList) {
             return false;
         }
 
-        return Arrays.stream(whiteList)
+        return Arrays.stream(applyFilterList)
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
     }
 }
