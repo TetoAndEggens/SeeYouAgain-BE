@@ -8,7 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.exception.AuthErrorCode;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
 

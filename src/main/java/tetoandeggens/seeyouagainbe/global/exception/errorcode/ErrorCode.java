@@ -1,9 +1,9 @@
-package tetoandeggens.seeyouagainbe.global.exception;
+package tetoandeggens.seeyouagainbe.global.exception.errorcode;
 
 import org.springframework.http.HttpStatus;
 
 public interface ErrorCode {
-    HttpStatus getHttpStatus();
     String getCode();
     String getMessage();
+    HttpStatus getHttpStatus();
 }

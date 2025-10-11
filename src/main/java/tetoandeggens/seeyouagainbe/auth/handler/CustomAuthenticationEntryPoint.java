@@ -8,7 +8,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.exception.AuthErrorCode;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
 
