@@ -24,7 +24,7 @@ public class Member extends BaseEntity {
     @Column(name = "login_id", unique = true)
     private String loginId;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password")
     private String password;
 
     @Column(name = "nick_name", nullable = false)
@@ -38,70 +38,54 @@ public class Member extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private Role role;
+    private Role role = Role.USER;
 
     @Column(name = "uuid", unique = true, nullable = false)
     private String uuid;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Column(name = "type")
     private SocialType type;
 
     @Column(name = "social_id")
     private String socialId;
 
     @Column(name = "violated_count", nullable = false)
-    private Long violatedCount;
+    private Long violatedCount = 0L;
 
     @Column(name = "is_push_enabled", nullable = false)
-    private Boolean isPushEnabled;
+    private Boolean isPushEnabled = false;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
     @Builder
-    public static Member createLocal(String loginId, String password, String nickName, String phoneNumber) {
-        Member member = new Member();
-        member.loginId = loginId;
-        member.password = password;
-        member.nickName = nickName;
-        member.phoneNumber = phoneNumber;
-        member.role = Role.USER;
-        member.uuid = UUID.randomUUID().toString();
-        member.type = SocialType.LOCAL;
-        member.violatedCount = 0L;
-        member.isPushEnabled = true;
-        return member;
+    public Member(String loginId, String password, String nickName, String phoneNumber,
+                  String socialId, SocialType type) {
+        this.loginId = loginId;
+        this.password = password;
+        this.nickName = nickName;
+        this.phoneNumber = phoneNumber;
+        this.socialId = socialId;
+        this.type = type;
+        this.uuid = UUID.randomUUID().toString();
     }
 
-    @Builder(builderMethodName = "createSocialMember")
-    public static Member createSocial(String socialId, SocialType socialType, String nickName, String phoneNumber) {
-        Member member = new Member();
-        member.socialId = socialId;
-        member.type = socialType;
-        member.nickName = nickName;
-        member.phoneNumber = phoneNumber;
-        member.role = Role.USER;
-        member.uuid = UUID.randomUUID().toString();
-        member.violatedCount = 0L;
-        member.isPushEnabled = true;
-        return member;
+    public void updateDeleteStatus() {
+        this.isDeleted = true;
     }
 
-    public void updatePassword(String newPassword) {
-        this.password = newPassword;
+    public void updatePushEnabled(Boolean isPushEnabled) {
+        this.isPushEnabled = isPushEnabled;
     }
 
-    public void updateProfile(String profileUrl) {
-        this.profile = profileUrl;
+    public void updateSocialInfo(String socialId, SocialType type) {
+        this.socialId = socialId;
+        this.type = type;
     }
 
-    public void updateNickName(String newNickName) {
-        this.nickName = newNickName;
-    }
-
-    public void increaseViolatedCount() {
-        this.violatedCount++;
-    }
-
-    public void togglePushNotification() {
-        this.isPushEnabled = !this.isPushEnabled;
+    public void deleteOAuthInfo() {
+        this.socialId = null;
+        this.type = null;
     }
 }
