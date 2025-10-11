@@ -2,23 +2,20 @@ package tetoandeggens.seeyouagainbe.domain.member.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import tetoandeggens.seeyouagainbe.domain.member.entity.Member;
-import tetoandeggens.seeyouagainbe.domain.member.entity.SocialType;
 
 import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
-    Optional<Member> findByLoginId(String loginId);
+    Optional<Member> findByLoginIdAndIsDeletedFalse(String loginId);
 
-    Optional<Member> findBySocialIdAndType(String socialId, SocialType type);
+    Optional<Member> findByPhoneNumberAndIsDeletedFalse(String phoneNumber);
 
-    Optional<Member> findByUuid(String uuid);
+    Optional<Member> findByIdAndIsDeletedFalse(Long id);
 
-    Optional<Member> findByPhoneNumber(String phoneNumber);
+    Optional<Member> findByUuidAndIsDeletedFalse(String uuid);
 
-    boolean existsByLoginId(String loginId);
+    boolean existsByLoginIdAndIsDeletedFalse(String loginId);
 
-    boolean existsByPhoneNumber(String phoneNumber);
-
-    boolean existsBySocialIdAndType(String socialId, SocialType type);
+    boolean existsByPhoneNumberAndIsDeletedFalse(String phoneNumber);
 }
