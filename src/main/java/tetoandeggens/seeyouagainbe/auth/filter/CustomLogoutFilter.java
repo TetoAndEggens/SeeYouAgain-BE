@@ -8,39 +8,51 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.filter.OncePerRequestFilter;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
 
 import java.io.IOException;
 
 @RequiredArgsConstructor
-public class CustomLogoutFilter extends GenericFilter {
-
-    private static final String LOGOUT_URL = "/api/auth/logout";
+public class CustomLogoutFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-        doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
-    }
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-    private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws IOException, ServletException {
+        String requestURI = request.getRequestURI();
+        String requestMethod = request.getMethod();
 
-        if (!request.getRequestURI().equals(LOGOUT_URL) || !HttpMethod.POST.matches(request.getMethod())) {
+        if (!"/auth/logout".equals(requestURI) || !"POST".equals(requestMethod)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String accessToken = tokenProvider.resolveAccessToken(request);
-        Claims claims = tokenProvider.getClaimsFromToken(accessToken);
-        String userId = claims.getSubject();
+        String refreshToken = tokenProvider.resolveRefreshToken(request);
 
-        tokenProvider.deleteRefreshToken(userId);
+        if (accessToken == null || refreshToken == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
 
-        ResponseUtil.writeNoContent(response, objectMapper, HttpStatus.OK);
+        try {
+            Claims claims = tokenProvider.getClaimsFromToken(accessToken);
+            String uuid = claims.getSubject();
+
+            // Redis에서 RefreshToken 삭제
+            tokenProvider.deleteRefreshToken(uuid);
+
+            // 쿠키에서 RefreshToken 삭제
+            tokenProvider.deleteRefreshTokenCookie(response);
+
+            ResponseUtil.writeSuccessResponse(response, objectMapper, "로그아웃 성공", HttpStatus.OK);
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
     }
 }
