@@ -16,6 +16,8 @@ import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import javax.crypto.SecretKey;
 import java.util.Base64;
@@ -87,15 +89,17 @@ public class TokenProvider {
             return true;
         } catch (SecurityException | MalformedJwtException e) {
             log.error("잘못된 JWT 서명입니다.");
+            throw new CustomException(AuthErrorCode.INVALID_JWT_SIGNATURE);
         } catch (ExpiredJwtException e) {
             log.error("만료된 JWT 토큰입니다.");
-            throw e;
+            throw e;  // JwtAuthenticationFilter에서 처리
         } catch (UnsupportedJwtException e) {
             log.error("지원되지 않는 JWT 토큰입니다.");
+            throw new CustomException(AuthErrorCode.UNSUPPORTED_JWT);
         } catch (IllegalArgumentException e) {
             log.error("JWT 클레임 문자열이 비어 있습니다.");
+            throw new CustomException(AuthErrorCode.EMPTY_JWT_CLAIMS);
         }
-        return false;
     }
 
     public Authentication getAuthenticationByAccessToken(String accessToken) {
@@ -119,7 +123,7 @@ public class TokenProvider {
             return e.getClaims();
         } catch (JwtException e) {
             log.error("잘못된 JWT 토큰입니다. {}", e.getMessage());
-            throw new IllegalArgumentException("잘못된 JWT 토큰입니다.");
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }
     }
 
@@ -149,7 +153,7 @@ public class TokenProvider {
 
     public String reissueAccessToken(String refreshToken) {
         if (!validateToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }
 
         Claims claims = getClaimsFromToken(refreshToken);
@@ -157,8 +161,12 @@ public class TokenProvider {
         String role = claims.get(AuthConstants.ROLE_CLAIM, String.class);
 
         String storedRefreshToken = redisTemplate.opsForValue().get(uuid);
-        if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
-            throw new IllegalArgumentException("Redis에 저장된 Refresh Token과 일치하지 않습니다.");
+        if (storedRefreshToken == null) {
+            throw new CustomException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        }
+
+        if (!storedRefreshToken.equals(refreshToken)) {
+            throw new CustomException(AuthErrorCode.REFRESH_TOKEN_MISMATCH);
         }
 
         return createAccessToken(uuid, role);
