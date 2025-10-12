@@ -19,6 +19,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             throws AuthenticationException {
 
         if (!AuthConstants.LOGIN_URI.equals(request.getRequestURI()) || !AuthConstants.POST_METHOD.equals(request.getMethod())) {
-            throw new IllegalArgumentException("Invalid login request");
+            throw new CustomException(AuthErrorCode.INVALID_LOGIN_REQUEST);
         }
 
         LoginRequest loginRequest;
@@ -53,7 +54,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             String messageBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
             loginRequest = objectMapper.readValue(messageBody, LoginRequest.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CustomException(AuthErrorCode.INVALID_LOGIN_REQUEST);
         }
 
         UsernamePasswordAuthenticationToken authToken =
@@ -75,7 +76,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
         String role = authorities.stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
-                .orElseThrow(() -> new RuntimeException("권한이 식별되지 않은 사용자입니다: " + uuid));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.ACCESS_DENIED));
 
         UserTokenResponse loginToken = tokenProvider.createLoginToken(uuid, userDetails.getRole());
 
