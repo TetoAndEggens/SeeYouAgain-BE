@@ -17,22 +17,22 @@ public class MemberService {
 
     public Member findByLoginId(String loginId) {
         return memberRepository.findByLoginIdAndIsDeletedFalse(loginId)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.Member_NOT_FOUND));
     }
 
     public Member findByPhoneNumber(String phoneNumber) {
         return memberRepository.findByPhoneNumberAndIsDeletedFalse(phoneNumber)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.Member_NOT_FOUND));
     }
 
     public Member findByUuid(String uuid) {
         return memberRepository.findByUuidAndIsDeletedFalse(uuid)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.Member_NOT_FOUND));
     }
 
     public Member findById(Long memberId) {
         return memberRepository.findByIdAndIsDeletedFalse(memberId)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.Member_NOT_FOUND));
     }
 
     @Transactional
