@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         } catch (UsernameNotFoundException e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.USER_NOT_FOUND);
+            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.Member_NOT_FOUND);
             return;
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
