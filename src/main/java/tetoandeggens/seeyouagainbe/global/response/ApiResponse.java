@@ -29,12 +29,10 @@ public class ApiResponse<T> {
         return new ApiResponse<>(data, 201, "CREATED");
     }
 
-    // 오버로딩으로 데이터 없이 201 반환
     public static ApiResponse<Void> created() {
         return new ApiResponse<>(null, 201, "CREATED");
     }
 
-    // 프론트에게 응답값을 줄 필요없을 때를 (수정이나 삭제시 204)
     public static ApiResponse<Void> noContent() {
         return new ApiResponse<>(null, 204, "NO_CONTENT");
     }
