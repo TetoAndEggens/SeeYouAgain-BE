@@ -12,9 +12,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
-/**
- * 필터 체인에서 발생하는 모든 예외를 GlobalExceptionHandler로 위임하는 필터
- */
 @Slf4j
 @Component
 public class FilterExceptionHandler extends OncePerRequestFilter {

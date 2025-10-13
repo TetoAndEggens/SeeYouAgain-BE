@@ -18,7 +18,6 @@ public class CustomUserDetails implements UserDetails {
     private final String password;
     private final Role role;
 
-    // 일반 로그인용 생성자
     public CustomUserDetails(Member member) {
         this.uuid = member.getUuid();
         this.loginId = member.getLoginId();
@@ -26,7 +25,6 @@ public class CustomUserDetails implements UserDetails {
         this.role = member.getRole();
     }
 
-    // JWT Claims에서 CustomUserDetails 생성
     public static CustomUserDetails fromClaims(String uuid, String role) {
         return new CustomUserDetails(uuid, null, null, Role.valueOf(role));
     }
@@ -66,7 +64,6 @@ public class CustomUserDetails implements UserDetails {
         return true;
     }
 
-    // JWT Claims에서 복원용 생성자
     private CustomUserDetails(String uuid, String loginId, String password, Role role) {
         this.uuid = uuid;
         this.loginId = loginId;

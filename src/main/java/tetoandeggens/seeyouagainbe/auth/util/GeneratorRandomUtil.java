@@ -9,8 +9,4 @@ public class GeneratorRandomUtil {
         int num = random.nextInt(900000) + 100000;
         return String.valueOf(num);
     }
-//
-//    private GeneratorRandomUtil() {
-//        throw new UnsupportedOperationException("This is a utility class");
-//    }
 }
