@@ -27,9 +27,8 @@ public class CustomUserDetails implements UserDetails {
     }
 
     // JWT Claims에서 CustomUserDetails 생성
-    public static CustomUserDetails fromClaims(String uuid, String roleStr) {
-        Role role = Role.fromString(roleStr);
-        return new CustomUserDetails(uuid, null, null, role);
+    public static CustomUserDetails fromClaims(String uuid, String role) {
+        return new CustomUserDetails(uuid, null, null, Role.valueOf(role));
     }
 
     @Override
