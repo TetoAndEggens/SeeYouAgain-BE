@@ -11,11 +11,6 @@ spring:
         highlight_sql: true
     open-in-view: false
 
-logging:
-  level:
-    org.hibernate.SQL: info
-    tetoandeggens.seeyouagainbe: info
-
 management:
   endpoints:
     web:
@@ -28,3 +23,8 @@ management:
   health:
     db:
       enabled: true
+
+logging:
+  level:
+    org.hibernate.SQL: info
+    tetoandeggens.seeyouagainbe: info
