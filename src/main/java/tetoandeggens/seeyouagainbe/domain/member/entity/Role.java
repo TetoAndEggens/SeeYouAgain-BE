@@ -10,13 +10,4 @@ public enum Role {
     ADMIN("ROLE_ADMIN");
 
     private final String role;
-
-    public static Role fromString(String roleStr) {
-        for (Role role : Role.values()) {
-            if (role.getRole().equals(roleStr)) {
-                return role;
-            }
-        }
-        throw new IllegalArgumentException("Invalid role: " + roleStr);
-    }
 }
