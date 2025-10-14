@@ -51,6 +51,19 @@ public class ResponseUtil {
         response.getWriter().write(jsonResponse);
     }
 
+    public static void writeNoContent(
+            HttpServletResponse response,
+            ObjectMapper objectMapper,
+            HttpStatus status
+    ) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+
+        String jsonResponse = objectMapper.writeValueAsString(ApiResponse.noContent());
+        response.getWriter().write(jsonResponse);
+    }
+
     public static void writeErrorResponse(
             HttpServletResponse response,
             ObjectMapper objectMapper,
