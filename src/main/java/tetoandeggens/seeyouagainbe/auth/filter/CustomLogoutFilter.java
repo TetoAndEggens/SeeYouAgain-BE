@@ -19,8 +19,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class CustomLogoutFilter extends OncePerRequestFilter {
 
-    private static final String LOGOUT_SUCCESS_MESSAGE = "로그아웃 성공";
-
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
 
@@ -51,7 +49,7 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
             tokenProvider.deleteRefreshToken(uuid);
             tokenProvider.deleteRefreshTokenCookie(response);
 
-            ResponseUtil.writeSuccessResponse(response, objectMapper, LOGOUT_SUCCESS_MESSAGE, HttpStatus.OK);
+            ResponseUtil.writeNoContent(response, objectMapper, HttpStatus.NO_CONTENT);
         } catch (Exception e) {
             ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.INVALID_TOKEN);
         }
