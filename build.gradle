@@ -80,7 +80,6 @@ dependencies {
 
     // 휴대폰 인증
     implementation 'org.springframework.boot:spring-boot-starter-mail'
-    implementation 'com.sun.mail:jakarta.mail:2.0.1'
 }
 
 dependencyManagement {
