@@ -92,7 +92,7 @@ public class TokenProvider {
             throw new CustomException(AuthErrorCode.INVALID_JWT_SIGNATURE);
         } catch (ExpiredJwtException e) {
             log.error("만료된 JWT 토큰입니다.");
-            throw e;  // JwtAuthenticationFilter에서 처리
+            throw e;
         } catch (UnsupportedJwtException e) {
             log.error("지원되지 않는 JWT 토큰입니다.");
             throw new CustomException(AuthErrorCode.UNSUPPORTED_JWT);
