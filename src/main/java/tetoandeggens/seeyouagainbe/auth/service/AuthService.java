@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 
 import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
 
-@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
