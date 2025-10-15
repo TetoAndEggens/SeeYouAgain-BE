@@ -72,7 +72,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
 
         if (isInIgnoreFilterList) {
-            return false;
+            return true;
         }
 
         return Arrays.stream(applyFilterList)
