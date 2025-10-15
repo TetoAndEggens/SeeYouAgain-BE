@@ -36,21 +36,6 @@ public class ResponseUtil {
         response.getWriter().write(jsonResponse);
     }
 
-    public static void writeSuccessResponse(
-            HttpServletResponse response,
-            ObjectMapper objectMapper,
-            String message,
-            HttpStatus status
-    ) throws IOException {
-        response.setStatus(status.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-
-        ApiResponse<String> apiResponse = ApiResponse.ok(message);
-        String jsonResponse = objectMapper.writeValueAsString(apiResponse);
-        response.getWriter().write(jsonResponse);
-    }
-
     public static void writeNoContent(
             HttpServletResponse response,
             ObjectMapper objectMapper,
