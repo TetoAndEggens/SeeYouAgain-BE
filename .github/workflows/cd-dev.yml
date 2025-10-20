@@ -1,0 +1,113 @@
+name: CD-Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_type:
+        description: '배포 유형'
+        required: true
+        default: 'latest_successful'
+        type: choice
+        options:
+          - latest_successful
+          - specific_version
+      specific_image_tag:
+        description: '특정 이미지 태그 (롤백용)'
+        required: false
+      deploy_message:
+        description: '배포 메시지'
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine Image Tag
+        run: |
+          DEPLOYMENT_TYPE="${{ github.event.inputs.deployment_type }}"
+          
+          if [[ "$DEPLOYMENT_TYPE" == "latest_successful" ]]; then
+            DOCKER_IMAGE_TAG="${{ secrets.DEV_LATEST_TAG }}"
+            if [[ -z "$DOCKER_IMAGE_TAG" ]]; then
+              echo "::error::최신 이미지 태그를 찾을 수 없습니다."
+              exit 1
+            fi
+          elif [[ "$DEPLOYMENT_TYPE" == "specific_version" ]]; then
+            DOCKER_IMAGE_TAG="${{ github.event.inputs.specific_image_tag }}"
+            if [[ -z "$DOCKER_IMAGE_TAG" ]]; then
+              echo "::error::특정 버전 배포 시 이미지 태그를 입력해야 합니다."
+              exit 1
+            fi
+          fi
+          
+          echo "DOCKER_IMAGE_TAG=$DOCKER_IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Setup SSH Keys and Config
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Bastion 키 설정
+          echo "${{ secrets.BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
+          chmod 600 ~/.ssh/bastion_key
+          
+          # Private EC2 키 설정
+          echo "${{ secrets.PRIVATE_EC2_SSH_KEY }}" > ~/.ssh/private_key
+          chmod 600 ~/.ssh/private_key
+          
+          # SSH Config 파일 생성
+          cat > ~/.ssh/config <<EOF
+          Host bastion
+              HostName ${{ secrets.BASTION_HOST }}
+              User ${{ secrets.BASTION_USERNAME }}
+              IdentityFile ~/.ssh/bastion_key
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-1
+              HostName ${{ secrets.EC2_PRIVATE_HOST_1 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-2
+              HostName ${{ secrets.EC2_PRIVATE_HOST_2 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          EOF
+          
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy to EC2-1
+        run: |
+          ssh private-ec2-1 "
+            echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+            echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+            echo 'DOCKER_IMAGE_TAG=${{ env.DOCKER_IMAGE_TAG }}' >> ~/app/deploy.env && \
+            cd ~/app && chmod +x deploy.sh && ./deploy.sh
+          "
+
+      - name: Deploy to EC2-2
+        run: |
+          ssh private-ec2-2 "
+            echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+            echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+            echo 'DOCKER_IMAGE_TAG=${{ env.DOCKER_IMAGE_TAG }}' >> ~/app/deploy.env && \
+            cd ~/app && chmod +x deploy.sh && ./deploy.sh
+          "
+
+      - name: Deployment Summary
+        run: |
+          echo "### ✅ 배포 완료" >> $GITHUB_STEP_SUMMARY
+          echo "**배포 유형**: ${{ github.event.inputs.deployment_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "**이미지 태그**: \`${{ env.DOCKER_IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**배포 메시지**: ${{ github.event.inputs.deploy_message }}" >> $GITHUB_STEP_SUMMARY
