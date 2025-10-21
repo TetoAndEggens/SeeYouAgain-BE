@@ -6,15 +6,18 @@ on:
     types:
       - completed
     branches:
-      - develop
+      - main
+  push:
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     if: |
       github.ref == 'refs/heads/main' && 
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Checkout
@@ -79,16 +82,10 @@ jobs:
             -t ${BASE_IMAGE}:${{ env.VERSION }} \
             --push .
 
-      - name: Store Latest Tag in Secrets
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          echo "${{ env.VERSION }}" | gh secret set PROD_LATEST_TAG --repo ${{ github.repository }}
-
       - name: Deploy to EC2 Instances (Parallel)
         run: |
           (
-            ${{ secrets.PROD_EC2_HOST_1_COMMAND }} bash <<'EC2_EOF'
+            ${{ secrets.PROD_API_1_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
@@ -98,14 +95,13 @@ jobs:
           GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}
           ENV_EOF
           cd ~/app && chmod +x deploy.sh && ./deploy.sh
-          EC2_EOF
-          BASTION_EOF
+          ENDSSH
             echo $? > /tmp/ec2-1-status.txt
           ) &
           PID1=$!
-      
+          
           (
-            ${{ secrets.PROD_EC2_HOST_2_COMMAND }} bash <<'EC2_EOF'
+            ${{ secrets.PROD_API_2_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
@@ -115,26 +111,25 @@ jobs:
           GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}
           ENV_EOF
           cd ~/app && chmod +x deploy.sh && ./deploy.sh
-          EC2_EOF
-          BASTION_EOF
+          ENDSSH
             echo $? > /tmp/ec2-2-status.txt
           ) &
           PID2=$!
-      
+          
           wait $PID1
           wait $PID2
-      
+          
           EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
           EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
-      
+          
           echo "EC2-1 배포 상태: $EC2_1_STATUS"
           echo "EC2-2 배포 상태: $EC2_2_STATUS"
-      
+          
           if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
             echo "::error::배포 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
             exit 1
           fi
-      
+          
           echo "모든 EC2 인스턴스 배포 성공"
 
       - name: Send Discord Notification
