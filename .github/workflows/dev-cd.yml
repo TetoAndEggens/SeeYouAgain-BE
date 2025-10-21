@@ -7,6 +7,9 @@ on:
       - completed
     branches:
       - develop
+  push:
+    branches:
+      - develop
 
 jobs:
   build-and-deploy:
@@ -14,7 +17,7 @@ jobs:
 
     if: |
       github.ref == 'refs/heads/develop' && 
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name == 'push' || github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: Checkout
