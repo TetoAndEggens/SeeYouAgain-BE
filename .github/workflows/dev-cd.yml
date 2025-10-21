@@ -1,0 +1,228 @@
+name: Dev-CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: '관련 이슈 번호 (선택사항)'
+        required: false
+      deploy_message:
+        description: '배포 메시지'
+        required: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SUBMODULE_TOKEN }}
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      - name: Generate Version Tag
+        id: generate_tag
+        run: |
+          BUILD_DATE=$(date +'%Y%m%d')
+          SHORT_SHA=${GITHUB_SHA::7}
+          VERSION="${BUILD_DATE}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Generated version: $VERSION"
+
+      - name: Build JAR Artifact
+        run: |
+          mkdir -p ./artifacts
+          cp build/libs/*.jar ./artifacts/app.jar
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        run: |
+          BASE_IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_DEV_IMAGE }}"
+          docker buildx build --platform linux/amd64 \
+            -f Dockerfile-dev \
+            -t ${BASE_IMAGE}:latest \
+            -t ${BASE_IMAGE}:${{ env.VERSION }} \
+            --push .
+
+      - name: Store Latest Tag in Secrets
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          echo "${{ env.VERSION }}" | gh secret set DEV_LATEST_TAG --repo ${{ github.repository }}
+
+      - name: Setup SSH Keys and Config
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          echo "${{ secrets.BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
+          chmod 600 ~/.ssh/bastion_key
+          
+          echo "${{ secrets.PRIVATE_EC2_SSH_KEY }}" > ~/.ssh/private_key
+          chmod 600 ~/.ssh/private_key
+          
+          cat > ~/.ssh/config <<EOF
+          Host bastion
+              HostName ${{ secrets.BASTION_HOST }}
+              User ${{ secrets.BASTION_USERNAME }}
+              IdentityFile ~/.ssh/bastion_key
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-1
+              HostName ${{ secrets.EC2_PRIVATE_HOST_1 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-2
+              HostName ${{ secrets.EC2_PRIVATE_HOST_2 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          EOF
+          
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy to EC2 Instances (Parallel)
+        run: |
+          (
+            ssh private-ec2-1 "
+              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE_TAG=${{ env.VERSION }}' >> ~/app/deploy.env && \
+              echo 'ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
+              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              cd ~/app && chmod +x deploy.sh && ./deploy.sh
+            "
+            echo $? > /tmp/ec2-1-status.txt
+          ) &
+          PID1=$!
+
+          (
+            ssh private-ec2-2 "
+              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE_TAG=${{ env.VERSION }}' >> ~/app/deploy.env && \
+              echo 'ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
+              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              cd ~/app && chmod +x deploy.sh && ./deploy.sh
+            "
+            echo $? > /tmp/ec2-2-status.txt
+          ) &
+          PID2=$!
+
+          wait $PID1
+          wait $PID2
+
+          EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
+          EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
+
+          echo "EC2-1 배포 상태: $EC2_1_STATUS"
+          echo "EC2-2 배포 상태: $EC2_2_STATUS"
+
+          if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
+            echo "::error::배포 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
+            exit 1
+          fi
+
+          echo "모든 EC2 인스턴스 배포 성공"
+
+      - name: Send Discord Notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          STATUS_EMOJI="${{ job.status == 'success' && '✅' || '❌' }}"
+          STATUS_TEXT="${{ job.status == 'success' && '성공' || '실패' }}"
+          STATUS_COLOR="${{ job.status == 'success' && '3066993' || '15158332' }}"
+          
+          ISSUE_LINK=""
+          if [[ -n "${{ github.event.inputs.issue_number }}" ]]; then
+            ISSUE_LINK="https://github.com/${{ github.repository }}/issues/${{ github.event.inputs.issue_number }}"
+          fi
+          
+          WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          MESSAGE=$(cat <<EOF
+          {
+            "embeds": [{
+              "title": "${STATUS_EMOJI} Dev 배포 ${STATUS_TEXT}",
+              "color": ${STATUS_COLOR},
+              "fields": [
+                {
+                  "name": "🏷️ 이미지 태그",
+                  "value": "\`${{ env.VERSION }}\`",
+                  "inline": true
+                },
+                {
+                  "name": "👤 배포자",
+                  "value": "${{ github.actor }}",
+                  "inline": true
+                },
+                {
+                  "name": "📝 배포 메시지",
+                  "value": "${{ github.event.inputs.deploy_message || '없음' }}",
+                  "inline": false
+                }
+                $(if [[ -n "${ISSUE_LINK}" ]]; then echo ",{\"name\": \"🔗 관련 이슈\",\"value\": \"[#${{ github.event.inputs.issue_number }}](${ISSUE_LINK})\",\"inline\": false}"; fi)
+                ,{
+                  "name": "🔗 워크플로우",
+                  "value": "[실행 로그 보기](${WORKFLOW_URL})",
+                  "inline": false
+                }
+              ],
+              "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            }]
+          }
+          EOF
+          )
+          
+          curl -H "Content-Type: application/json" -d "${MESSAGE}" ${DISCORD_WEBHOOK}
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "### 배포 완료" >> $GITHUB_STEP_SUMMARY
+          echo "**상태**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**이미지 태그**: \`${{ env.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**배포 메시지**: ${{ github.event.inputs.deploy_message }}" >> $GITHUB_STEP_SUMMARY

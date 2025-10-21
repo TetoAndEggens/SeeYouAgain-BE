@@ -1,0 +1,192 @@
+name: Dev-Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: '롤백할 이미지 태그 (예: 20250101-123-abc1234)'
+        required: true
+        type: string
+      issue_number:
+        description: '관련 이슈 번호 (선택사항)'
+        required: false
+      rollback_reason:
+        description: '롤백 사유'
+        required: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Image Tag
+        run: |
+          if [[ -z "${{ github.event.inputs.image_tag }}" ]]; then
+            echo "::error::롤백할 이미지 태그를 입력해야 합니다."
+            exit 1
+          fi
+          echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify Image Exists
+        run: |
+          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_DEV_IMAGE }}:${{ env.IMAGE_TAG }}"
+          if ! docker manifest inspect ${IMAGE} > /dev/null 2>&1; then
+            echo "::error::이미지 ${IMAGE}를 찾을 수 없습니다."
+            exit 1
+          fi
+          echo "이미지 확인 완료: ${IMAGE}"
+
+      - name: Setup SSH Keys and Config
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          echo "${{ secrets.BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
+          chmod 600 ~/.ssh/bastion_key
+          
+          echo "${{ secrets.PRIVATE_EC2_SSH_KEY }}" > ~/.ssh/private_key
+          chmod 600 ~/.ssh/private_key
+          
+          cat > ~/.ssh/config <<EOF
+          Host bastion
+              HostName ${{ secrets.BASTION_HOST }}
+              User ${{ secrets.BASTION_USERNAME }}
+              IdentityFile ~/.ssh/bastion_key
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-1
+              HostName ${{ secrets.EC2_PRIVATE_HOST_1 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          
+          Host private-ec2-2
+              HostName ${{ secrets.EC2_PRIVATE_HOST_2 }}
+              User ${{ secrets.EC2_PRIVATE_USERNAME }}
+              IdentityFile ~/.ssh/private_key
+              ProxyJump bastion
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          EOF
+          
+          chmod 600 ~/.ssh/config
+
+      - name: Rollback EC2 Instances (Parallel)
+        run: |
+          (
+            ssh private-ec2-1 "
+              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}' >> ~/app/deploy.env && \
+              echo 'ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
+              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              cd ~/app && chmod +x deploy.sh && ./deploy.sh
+            "
+            echo $? > /tmp/ec2-1-status.txt
+          ) &
+          PID1=$!
+
+          (
+            ssh private-ec2-2 "
+              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}' >> ~/app/deploy.env && \
+              echo 'DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}' >> ~/app/deploy.env && \
+              echo 'ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
+              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
+              cd ~/app && chmod +x deploy.sh && ./deploy.sh
+            "
+            echo $? > /tmp/ec2-2-status.txt
+          ) &
+          PID2=$!
+
+          wait $PID1
+          wait $PID2
+
+          EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
+          EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
+
+          echo "EC2-1 롤백 상태: $EC2_1_STATUS"
+          echo "EC2-2 롤백 상태: $EC2_2_STATUS"
+
+          if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
+            echo "::error::롤백 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
+            exit 1
+          fi
+
+          echo "모든 EC2 인스턴스 롤백 성공"
+
+      - name: Send Discord Notification
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          STATUS_EMOJI="${{ job.status == 'success' && '✅' || '❌' }}"
+          STATUS_TEXT="${{ job.status == 'success' && '성공' || '실패' }}"
+          STATUS_COLOR="${{ job.status == 'success' && '3066993' || '15158332' }}"
+          
+          ISSUE_LINK=""
+          if [[ -n "${{ github.event.inputs.issue_number }}" ]]; then
+            ISSUE_LINK="https://github.com/${{ github.repository }}/issues/${{ github.event.inputs.issue_number }}"
+          fi
+          
+          WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          MESSAGE=$(cat <<EOF
+          {
+            "embeds": [{
+              "title": "${STATUS_EMOJI} Dev 롤백 ${STATUS_TEXT}",
+              "color": ${STATUS_COLOR},
+              "fields": [
+                {
+                  "name": "🔙 롤백 이미지 태그",
+                  "value": "\`${{ env.IMAGE_TAG }}\`",
+                  "inline": true
+                },
+                {
+                  "name": "👤 롤백 실행자",
+                  "value": "${{ github.actor }}",
+                  "inline": true
+                },
+                {
+                  "name": "📝 롤백 사유",
+                  "value": "${{ github.event.inputs.rollback_reason || '없음' }}",
+                  "inline": false
+                }
+                $(if [[ -n "${ISSUE_LINK}" ]]; then echo ",{\"name\": \"🔗 관련 이슈\",\"value\": \"[#${{ github.event.inputs.issue_number }}](${ISSUE_LINK})\",\"inline\": false}"; fi)
+                ,{
+                  "name": "🔗 워크플로우",
+                  "value": "[실행 로그 보기](${WORKFLOW_URL})",
+                  "inline": false
+                }
+              ],
+              "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            }]
+          }
+          EOF
+          )
+          
+          curl -H "Content-Type: application/json" -d "${MESSAGE}" ${DISCORD_WEBHOOK}
+
+      - name: Rollback Summary
+        if: always()
+        run: |
+          echo "### 롤백 완료" >> $GITHUB_STEP_SUMMARY
+          echo "**상태**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**롤백 이미지 태그**: \`${{ env.IMAGE_TAG }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**롤백 사유**: ${{ github.event.inputs.rollback_reason }}" >> $GITHUB_STEP_SUMMARY
