@@ -3,11 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [ "develop", "main" ]
-    types: [ closed ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
-  build:
-    if: github.event.pull_request.merged == true
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -46,37 +45,10 @@ jobs:
           files: '**/build/test-results/test/TEST-*.xml'
           check_name: "Test Results"
 
-      - name: Build with Gradle
-        run: ./gradlew clean build -x test
-
-      - name: Generate Version Tag
-        id: generate_tag
+      - name: Test Summary
+        if: always()
         run: |
-          BUILD_DATE=$(date +'%Y%m%d')
-          SHORT_SHA=${GITHUB_SHA::7}
-          VERSION="${BUILD_DATE}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-
-      - name: Build JAR Artifact
-        run: |
-          mkdir -p ./artifacts
-          cp build/libs/*.jar ./artifacts/app.jar
-
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-jar-${{ env.VERSION }}
-          path: ./artifacts/app.jar
-          retention-days: 7
-
-      - name: Store Latest Tag in Secrets
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          echo "${{ env.VERSION }}" | gh secret set DEV_LATEST_TAG --repo ${{ github.repository }}
-
-      - name: Build Summary
-        run: |
-          echo "### CI 빌드 성공" >> $GITHUB_STEP_SUMMARY
-          echo "**버전 태그**: \`${{ env.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**아티팩트**: \`app-jar-${{ env.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 테스트 결과" >> $GITHUB_STEP_SUMMARY
+          echo "**상태**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**브랜치**: ${{ github.head_ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "**PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
