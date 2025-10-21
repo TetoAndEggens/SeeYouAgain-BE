@@ -13,7 +13,6 @@ import java.util.UUID;
 @Table(name = "MEMBER")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EntityListeners(AuditingEntityListener.class)
 public class Member extends BaseEntity {
 
     @Id
