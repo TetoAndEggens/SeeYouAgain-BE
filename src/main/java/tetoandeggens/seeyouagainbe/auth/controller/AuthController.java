@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.request.PhoneVerificationRequest;
@@ -27,7 +28,7 @@ public class AuthController {
             description = "로그인 아이디 중복 확인"
     )
     @GetMapping("/check/loginId")
-    public ApiResponse<Void> checkLoginId(@RequestParam String loginId) {
+    public ApiResponse<Void> checkLoginId(@RequestParam @NotBlank(message = "loginId는 비어 있을 수 없습니다.") String loginId) {
         authService.checkLoginIdAvailable(loginId);
         return ApiResponse.noContent();
     }
