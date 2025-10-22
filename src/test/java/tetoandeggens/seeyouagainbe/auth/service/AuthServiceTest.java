@@ -1,8 +1,10 @@
 package tetoandeggens.seeyouagainbe.auth.service;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -18,7 +20,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.request.RegisterRequest;
@@ -30,9 +31,17 @@ import tetoandeggens.seeyouagainbe.domain.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
-@DisplayName("Auth 서비스 테스트")
+@DisplayName("AuthService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
+
+    private static final String VERIFIED = "verified";
+    private static final String PREFIX_VERIFICATION_CODE = "phone:code:";
+    private static final String PREFIX_VERIFICATION_TIME = "phone:time:";
+    private static final String TEST_LOGIN_ID = "testuser123";
+    private static final String TEST_PHONE = "01012345678";
+    private static final String TEST_PASSWORD = "Password123!";
+    private static final String TEST_NICKNAME = "테스트";
 
     @InjectMocks
     private AuthService authService;
@@ -61,276 +70,272 @@ class AuthServiceTest {
     @Mock
     private HttpServletResponse response;
 
-    private static final String VERIFIED = "VERIFIED";
-    private static final String PREFIX_VERIFICATION_CODE = "VC:";
-    private static final String PREFIX_VERIFICATION_TIME = "VT:";
-
     @BeforeEach
     void setUp() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
-    // ============ loginId 중복 체크 테스트 ============
-
     @Test
-    @DisplayName("loginId 중복 체크 - 사용 가능한 아이디")
+    @DisplayName("사용 가능한 loginId - 성공")
     void checkLoginIdAvailable_Success() {
-        // given
-        String loginId = "testuser123";
-        when(memberRepository.existsByLoginIdAndIsDeletedFalse(loginId)).thenReturn(false);
+        given(memberRepository.existsByLoginIdAndIsDeletedFalse(TEST_LOGIN_ID)).willReturn(false);
 
-        // when & then
-        assertDoesNotThrow(() -> authService.checkLoginIdAvailable(loginId));
+        assertThatCode(() -> authService.checkLoginIdAvailable(TEST_LOGIN_ID))
+                .doesNotThrowAnyException();
 
-        verify(memberRepository).existsByLoginIdAndIsDeletedFalse(loginId);
+        verify(memberRepository).existsByLoginIdAndIsDeletedFalse(TEST_LOGIN_ID);
     }
 
     @Test
-    @DisplayName("loginId 중복 체크 - 이미 존재하는 아이디면 예외 발생")
+    @DisplayName("이미 존재하는 loginId - DUPLICATED_LOGIN_ID 예외 발생")
     void checkLoginIdAvailable_ThrowsException_WhenDuplicated() {
-        // given
-        String loginId = "testuser123";
-        when(memberRepository.existsByLoginIdAndIsDeletedFalse(loginId)).thenReturn(true);
+        given(memberRepository.existsByLoginIdAndIsDeletedFalse(TEST_LOGIN_ID)).willReturn(true);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.checkLoginIdAvailable(loginId));
+        assertThatThrownBy(() -> authService.checkLoginIdAvailable(TEST_LOGIN_ID))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.DUPLICATED_LOGIN_ID);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.DUPLICATED_LOGIN_ID);
-        verify(memberRepository).existsByLoginIdAndIsDeletedFalse(loginId);
+        verify(memberRepository).existsByLoginIdAndIsDeletedFalse(TEST_LOGIN_ID);
     }
 
-    // ============ 휴대폰 번호 중복 체크 테스트 ============
-
     @Test
-    @DisplayName("휴대폰 번호 중복 체크 - 사용 가능한 번호")
+    @DisplayName("사용 가능한 휴대폰 번호 - 성공")
     void checkPhoneNumberDuplicate_Success() {
-        // given
-        String phone = "01012345678";
-        when(memberRepository.existsByPhoneNumberAndIsDeletedFalse(phone)).thenReturn(false);
+        given(memberRepository.existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE)).willReturn(false);
 
-        // when & then
-        assertDoesNotThrow(() -> authService.checkPhoneNumberDuplicate(phone));
+        assertThatCode(() -> authService.checkPhoneNumberDuplicate(TEST_PHONE))
+                .doesNotThrowAnyException();
 
-        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(phone);
+        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE);
     }
 
     @Test
-    @DisplayName("휴대폰 번호 중복 체크 - 이미 존재하는 번호면 예외 발생")
+    @DisplayName("이미 존재하는 휴대폰 번호 - PHONE_NUMBER_DUPLICATED 예외 발생")
     void checkPhoneNumberDuplicate_ThrowsException_WhenDuplicated() {
-        // given
-        String phone = "01012345678";
-        when(memberRepository.existsByPhoneNumberAndIsDeletedFalse(phone)).thenReturn(true);
+        given(memberRepository.existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE)).willReturn(true);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.checkPhoneNumberDuplicate(phone));
+        assertThatThrownBy(() -> authService.checkPhoneNumberDuplicate(TEST_PHONE))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NUMBER_DUPLICATED);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.PHONE_NUMBER_DUPLICATED);
-        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(phone);
+        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE);
     }
 
-    // ============ 휴대폰 인증 코드 전송 테스트 ============
-
     @Test
-    @DisplayName("휴대폰 인증 코드 전송 - 성공")
+    @DisplayName("인증 코드 전송 - 성공")
     void sendPhoneVerificationCode_Success() {
-        // given
-        String phone = "01012345678";
-        String emailAddress = "test@example.com";
+        String emailAddress = "test@seeyouagain.com";
+        given(memberRepository.existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE)).willReturn(false);
+        given(emailService.getServerEmail()).willReturn(emailAddress);
+        willDoNothing().given(valueOperations).set(anyString(), anyString(), any(Duration.class));
 
-        when(memberRepository.existsByPhoneNumberAndIsDeletedFalse(phone)).thenReturn(false);
-        when(emailService.getServerEmail()).thenReturn(emailAddress);
-        doNothing().when(valueOperations).set(anyString(), anyString(), any(Duration.class));
+        PhoneVerificationResultResponse response = authService.sendPhoneVerificationCode(TEST_PHONE);
 
-        // when
-        PhoneVerificationResultResponse response = authService.sendPhoneVerificationCode(phone);
-
-        // then
         assertThat(response).isNotNull();
         assertThat(response.code()).hasSize(6);
+        assertThat(response.code()).matches("\\d{6}");
         assertThat(response.emailAddress()).isEqualTo(emailAddress);
+
         verify(valueOperations, times(2)).set(anyString(), anyString(), any(Duration.class));
-        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(phone);
     }
 
     @Test
-    @DisplayName("휴대폰 인증 코드 전송 - 이미 존재하는 번호면 예외 발생")
-    void sendPhoneVerificationCode_ThrowsException_WhenDuplicated() {
-        // given
-        String phone = "01012345678";
-        when(memberRepository.existsByPhoneNumberAndIsDeletedFalse(phone)).thenReturn(true);
+    @DisplayName("이미 등록된 번호로 인증 시도 - 예외 발생")
+    void sendPhoneVerificationCode_DuplicatedPhone_ThrowsException() {
+        given(memberRepository.existsByPhoneNumberAndIsDeletedFalse(TEST_PHONE)).willReturn(true);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.sendPhoneVerificationCode(phone));
+        assertThatThrownBy(() -> authService.sendPhoneVerificationCode(TEST_PHONE))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NUMBER_DUPLICATED);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.PHONE_NUMBER_DUPLICATED);
-        verify(memberRepository).existsByPhoneNumberAndIsDeletedFalse(phone);
+        verify(emailService, never()).getServerEmail();
+        verify(valueOperations, never()).set(anyString(), anyString(), any(Duration.class));
     }
 
-    // ============ 휴대폰 인증 코드 검증 테스트 ============
-
     @Test
-    @DisplayName("휴대폰 인증 코드 검증 - 성공")
+    @DisplayName("인증 코드 검증 - 성공")
     void verifyPhoneCode_Success() {
-        // given
-        String phone = "01012345678";
         String code = "123456";
         LocalDateTime now = LocalDateTime.now();
 
-        when(valueOperations.get(PREFIX_VERIFICATION_CODE + phone)).thenReturn(code);
-        when(valueOperations.get(PREFIX_VERIFICATION_TIME + phone)).thenReturn(now.toString());
-        when(emailService.extractCodeByPhoneNumber(code, phone, now)).thenReturn(true);
-        doNothing().when(valueOperations).set(eq(phone), eq(VERIFIED), any(Duration.class));
-        when(redisTemplate.delete(PREFIX_VERIFICATION_CODE + phone)).thenReturn(true);
-        when(redisTemplate.delete(PREFIX_VERIFICATION_TIME + phone)).thenReturn(true);
+        given(valueOperations.get(PREFIX_VERIFICATION_CODE + TEST_PHONE)).willReturn(code);
+        given(valueOperations.get(PREFIX_VERIFICATION_TIME + TEST_PHONE)).willReturn(now.toString());
+        given(emailService.extractCodeByPhoneNumber(code, TEST_PHONE, now)).willReturn(true);
+        willDoNothing().given(valueOperations).set(eq(TEST_PHONE), eq(VERIFIED), any(Duration.class));
+        given(redisTemplate.delete(PREFIX_VERIFICATION_CODE + TEST_PHONE)).willReturn(true);
+        given(redisTemplate.delete(PREFIX_VERIFICATION_TIME + TEST_PHONE)).willReturn(true);
 
-        // when & then
-        assertDoesNotThrow(() -> authService.verifyPhoneCode(phone));
+        assertThatCode(() -> authService.verifyPhoneCode(TEST_PHONE))
+                .doesNotThrowAnyException();
 
-        verify(emailService).extractCodeByPhoneNumber(code, phone, now);
-        verify(valueOperations).set(eq(phone), eq(VERIFIED), any(Duration.class));
-        verify(redisTemplate).delete(PREFIX_VERIFICATION_CODE + phone);
-        verify(redisTemplate).delete(PREFIX_VERIFICATION_TIME + phone);
+        verify(emailService).extractCodeByPhoneNumber(code, TEST_PHONE, now);
+        verify(valueOperations).set(eq(TEST_PHONE), eq(VERIFIED), any(Duration.class));
+        verify(redisTemplate).delete(PREFIX_VERIFICATION_CODE + TEST_PHONE);
+        verify(redisTemplate).delete(PREFIX_VERIFICATION_TIME + TEST_PHONE);
     }
 
     @Test
-    @DisplayName("휴대폰 인증 코드 검증 - 코드가 없으면 예외 발생")
-    void verifyPhoneCode_ThrowsException_WhenCodeNotFound() {
-        // given
-        String phone = "01012345678";
-        when(valueOperations.get(PREFIX_VERIFICATION_CODE + phone)).thenReturn(null);
+    @DisplayName("인증 코드가 없으면 - INVALID_VERIFICATION_CODE 예외 발생")
+    void verifyPhoneCode_NoCode_ThrowsException() {
+        given(valueOperations.get(PREFIX_VERIFICATION_CODE + TEST_PHONE)).willReturn(null);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.verifyPhoneCode(phone));
+        assertThatThrownBy(() -> authService.verifyPhoneCode(TEST_PHONE))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.INVALID_VERIFICATION_CODE);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_VERIFICATION_CODE);
+        verify(emailService, never()).extractCodeByPhoneNumber(anyString(), anyString(), any(LocalDateTime.class));
     }
 
     @Test
-    @DisplayName("휴대폰 인증 코드 검증 - 이메일 검증 실패 시 예외 발생")
-    void verifyPhoneCode_ThrowsException_WhenEmailVerificationFailed() {
-        // given
-        String phone = "01012345678";
+    @DisplayName("인증 시간이 없으면 - 예외 발생")
+    void verifyPhoneCode_NoTime_ThrowsException() {
+        String code = "123456";
+        given(valueOperations.get(PREFIX_VERIFICATION_CODE + TEST_PHONE)).willReturn(code);
+        given(valueOperations.get(PREFIX_VERIFICATION_TIME + TEST_PHONE)).willReturn(null);
+
+        assertThatThrownBy(() -> authService.verifyPhoneCode(TEST_PHONE))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("인증 코드가 일치하지 않으면 - 예외 발생")
+    void verifyPhoneCode_InvalidCode_ThrowsException() {
         String code = "123456";
         LocalDateTime now = LocalDateTime.now();
 
-        when(valueOperations.get(PREFIX_VERIFICATION_CODE + phone)).thenReturn(code);
-        when(valueOperations.get(PREFIX_VERIFICATION_TIME + phone)).thenReturn(now.toString());
-        when(emailService.extractCodeByPhoneNumber(code, phone, now)).thenReturn(false);
+        given(valueOperations.get(PREFIX_VERIFICATION_CODE + TEST_PHONE)).willReturn(code);
+        given(valueOperations.get(PREFIX_VERIFICATION_TIME + TEST_PHONE)).willReturn(now.toString());
+        given(emailService.extractCodeByPhoneNumber(code, TEST_PHONE, now)).willReturn(false);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.verifyPhoneCode(phone));
+        assertThatThrownBy(() -> authService.verifyPhoneCode(TEST_PHONE))
+                .isInstanceOf(CustomException.class);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.INVALID_VERIFICATION_CODE);
+        verify(valueOperations, never()).set(eq(TEST_PHONE), eq(VERIFIED), any(Duration.class));
     }
-
-    // ============ 회원가입 테스트 ============
 
     @Test
     @DisplayName("회원가입 - 성공")
     void register_Success() {
-        // given
-        RegisterRequest request = new RegisterRequest(
-                "testuser123",
-                "Password123!",
-                "테스트",
-                "01012345678"
+        RegisterRequest registerRequest = new RegisterRequest(
+                TEST_LOGIN_ID,
+                TEST_PASSWORD,
+                TEST_NICKNAME,
+                TEST_PHONE
         );
 
-        when(valueOperations.get(request.phoneNumber())).thenReturn(VERIFIED);
-        when(memberRepository.existsByLoginIdAndIsDeletedFalse(request.loginId())).thenReturn(false);
-        when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
-        when(memberRepository.save(any(Member.class))).thenReturn(null);
-        when(redisTemplate.delete(request.phoneNumber())).thenReturn(true);
+        given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
+        given(memberRepository.existsByLoginIdAndIsDeletedFalse(registerRequest.loginId())).willReturn(false);
+        given(passwordEncoder.encode(registerRequest.password())).willReturn("encodedPassword");
+        given(memberRepository.save(any(Member.class))).willReturn(null);
+        given(redisTemplate.delete(registerRequest.phoneNumber())).willReturn(true);
 
-        // when & then
-        assertDoesNotThrow(() -> authService.register(request));
+        assertThatCode(() -> authService.register(registerRequest))
+                .doesNotThrowAnyException();
 
         verify(memberRepository).save(any(Member.class));
-        verify(redisTemplate).delete(request.phoneNumber());
-        verify(memberRepository).existsByLoginIdAndIsDeletedFalse(request.loginId());
+        verify(redisTemplate).delete(registerRequest.phoneNumber());
     }
 
     @Test
-    @DisplayName("회원가입 - 휴대폰 인증이 되지 않은 상태면 예외 발생")
-    void register_ThrowsException_WhenPhoneNotVerified() {
-        // given
-        RegisterRequest request = new RegisterRequest(
-                "testuser123",
-                "Password123!",
-                "테스트",
-                "01012345678"
+    @DisplayName("휴대폰 인증이 되지 않은 상태로 회원가입 - PHONE_NOT_VERIFIED 예외 발생")
+    void register_PhoneNotVerified_ThrowsException() {
+        RegisterRequest registerRequest = new RegisterRequest(
+                TEST_LOGIN_ID,
+                TEST_PASSWORD,
+                TEST_NICKNAME,
+                TEST_PHONE
         );
 
-        when(valueOperations.get(request.phoneNumber())).thenReturn(null);
+        given(valueOperations.get(registerRequest.phoneNumber())).willReturn(null);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.register(request));
+        assertThatThrownBy(() -> authService.register(registerRequest))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NOT_VERIFIED);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.PHONE_NOT_VERIFIED);
         verify(memberRepository, never()).save(any(Member.class));
     }
 
     @Test
-    @DisplayName("회원가입 - 휴대폰 인증 값이 올바르지 않으면 예외 발생")
-    void register_ThrowsException_WhenPhoneVerificationWrong() {
-        // given
-        RegisterRequest request = new RegisterRequest(
-                "testuser123",
-                "Password123!",
-                "테스트",
-                "01012345678"
+    @DisplayName("중복된 loginId로 회원가입 시도 - DUPLICATED_LOGIN_ID 예외 발생")
+    void register_DuplicatedLoginId_ThrowsException() {
+        RegisterRequest registerRequest = new RegisterRequest(
+                TEST_LOGIN_ID,
+                TEST_PASSWORD,
+                TEST_NICKNAME,
+                TEST_PHONE
         );
 
-        when(valueOperations.get(request.phoneNumber())).thenReturn("WRONG_VALUE");
+        given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
+        given(memberRepository.existsByLoginIdAndIsDeletedFalse(registerRequest.loginId())).willReturn(true);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.register(request));
+        assertThatThrownBy(() -> authService.register(registerRequest))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.DUPLICATED_LOGIN_ID);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.PHONE_NOT_VERIFIED);
         verify(memberRepository, never()).save(any(Member.class));
     }
 
-    // ============ 토큰 재발급 테스트 ============
+    @Test
+    @DisplayName("회원가입 후 Redis 인증 정보 삭제 확인")
+    void register_ClearsRedisVerificationData() {
+        RegisterRequest registerRequest = new RegisterRequest(
+                TEST_LOGIN_ID,
+                TEST_PASSWORD,
+                TEST_NICKNAME,
+                TEST_PHONE
+        );
+
+        given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
+        given(memberRepository.existsByLoginIdAndIsDeletedFalse(registerRequest.loginId())).willReturn(false);
+        given(passwordEncoder.encode(registerRequest.password())).willReturn("encodedPassword");
+        given(memberRepository.save(any(Member.class))).willReturn(null);
+        given(redisTemplate.delete(registerRequest.phoneNumber())).willReturn(true);
+
+        authService.register(registerRequest);
+
+        verify(redisTemplate).delete(registerRequest.phoneNumber());
+    }
 
     @Test
     @DisplayName("토큰 재발급 - 성공")
     void reissueToken_Success() {
-        // given
         String refreshToken = "valid_refresh_token";
         String newAccessToken = "new_access_token";
 
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-        when(request.getCookies()).thenReturn(new Cookie[]{refreshCookie});
-        when(tokenProvider.resolveRefreshToken(request)).thenReturn(refreshToken);
-        when(tokenProvider.reissueAccessToken(refreshToken)).thenReturn(newAccessToken);
+        given(tokenProvider.resolveRefreshToken(request)).willReturn(refreshToken);
+        given(tokenProvider.reissueAccessToken(refreshToken)).willReturn(newAccessToken);
 
-        // when
         ReissueTokenResponse result = authService.reissueToken(request, response);
 
-        // then
         assertThat(result).isNotNull();
         assertThat(result.accessToken()).isEqualTo(newAccessToken);
+
         verify(tokenProvider).resolveRefreshToken(request);
         verify(tokenProvider).reissueAccessToken(refreshToken);
     }
 
     @Test
-    @DisplayName("토큰 재발급 - Refresh Token이 없으면 예외 발생")
-    void reissueToken_ThrowsException_WhenRefreshTokenNotFound() {
-        // given
-        when(tokenProvider.resolveRefreshToken(request)).thenReturn(null);
+    @DisplayName("Refresh Token이 없으면 - REFRESH_TOKEN_NOT_FOUND 예외 발생")
+    void reissueToken_NoRefreshToken_ThrowsException() {
+        given(tokenProvider.resolveRefreshToken(request)).willReturn(null);
 
-        // when & then
-        CustomException exception = assertThrows(CustomException.class,
-                () -> authService.reissueToken(request, response));
+        assertThatThrownBy(() -> authService.reissueToken(request, response))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
 
-        assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+        verify(tokenProvider, never()).reissueAccessToken(anyString());
+    }
+
+    @Test
+    @DisplayName("유효하지 않은 Refresh Token - 예외 발생")
+    void reissueToken_InvalidRefreshToken_ThrowsException() {
+        String invalidRefreshToken = "invalid_refresh_token";
+        given(tokenProvider.resolveRefreshToken(request)).willReturn(invalidRefreshToken);
+        given(tokenProvider.reissueAccessToken(invalidRefreshToken))
+                .willThrow(new CustomException(AuthErrorCode.INVALID_TOKEN));
+
+        assertThatThrownBy(() -> authService.reissueToken(request, response))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.INVALID_TOKEN);
     }
 }
