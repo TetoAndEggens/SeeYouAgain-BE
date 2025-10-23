@@ -85,23 +85,10 @@ jobs:
         run: |
           echo "${{ env.VERSION }}" | gh secret set DEV_LATEST_TAG --repo ${{ github.repository }}
 
-      - name: Debug - Check current user and SSH config
-        run: |
-          echo "=== Current User ==="
-          whoami
-          echo "=== Home Directory ==="
-          echo $HOME
-          echo "=== SSH Config exists? ==="
-          ls -la ~/.ssh/config || echo "No config found in current user's home"
-          echo "=== Can we access ubuntu's SSH config? ==="
-          ls -la /home/ubuntu/.ssh/config || echo "Cannot access ubuntu's config"
-          echo "=== Test SSH to api-1 ==="
-          ssh api-1 "echo 'Connection successful'" || echo "SSH failed"
-
       - name: Deploy to EC2 Instances (Parallel)
         run: |
           (
-            ${{ secrets.DEV_EC2_HOST_1_COMMAND }} bash <<'EC2_EOF'
+            ${{ secrets.DEV_API_1_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}
@@ -111,13 +98,13 @@ jobs:
           GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}
           ENV_EOF
           cd ~/app && chmod +x deploy.sh && ./deploy.sh
-          EC2_EOF
+          ENDSSH
             echo $? > /tmp/ec2-1-status.txt
           ) &
           PID1=$!
 
           (
-            ${{ secrets.DEV_EC2_HOST_2_COMMAND }} bash <<'EC2_EOF'
+            ${{ secrets.DEV_API_2_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           DOCKER_IMAGE=${{ secrets.DOCKER_DEV_IMAGE }}
@@ -125,7 +112,7 @@ jobs:
           ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}
           BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}
           GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}
-          ENV_EOF
+          ENDSSH
           cd ~/app && chmod +x deploy.sh && ./deploy.sh
           EC2_EOF
             echo $? > /tmp/ec2-2-status.txt
