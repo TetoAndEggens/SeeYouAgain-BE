@@ -4,6 +4,8 @@ on:
   pull_request:
     branches: [ "develop", "main" ]
     types: [ opened, synchronize, reopened ]
+  push:
+    branches: [ "develop", "main" ]
 
 jobs:
   test:
@@ -55,5 +57,7 @@ jobs:
         run: |
           echo "### 테스트 결과" >> $GITHUB_STEP_SUMMARY
           echo "**상태**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "**브랜치**: ${{ github.head_ref }}" >> $GITHUB_STEP_SUMMARY
-          echo "**PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**브랜치**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "**PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          fi

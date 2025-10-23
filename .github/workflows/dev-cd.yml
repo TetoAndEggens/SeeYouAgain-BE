@@ -1,20 +1,20 @@
 name: Dev-CD
 
 on:
-  workflow_dispatch:
-    inputs:
-      issue_number:
-        description: '관련 이슈 번호 (선택사항)'
-        required: false
-      deploy_message:
-        description: '배포 메시지'
-        required: false
+  workflow_run:
+    workflows: [ "CI" ]
+    types:
+      - completed
+    branches:
+      - develop
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    if: github.ref == 'refs/heads/develop'
+    if: |
+      github.ref == 'refs/heads/develop' && 
+      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout
@@ -167,11 +167,10 @@ jobs:
                 },
                 {
                   "name": "📝 배포 메시지",
-                  "value": "${{ github.event.inputs.deploy_message || '없음' }}",
+                  "value": "CI 성공 후 자동 배포",
                   "inline": false
-                }
-                $(if [[ -n "${ISSUE_LINK}" ]]; then echo ",{\"name\": \"🔗 관련 이슈\",\"value\": \"[#${{ github.event.inputs.issue_number }}](${ISSUE_LINK})\",\"inline\": false}"; fi)
-                ,{
+                },
+                {
                   "name": "🔗 워크플로우",
                   "value": "[실행 로그 보기](${WORKFLOW_URL})",
                   "inline": false
@@ -191,4 +190,4 @@ jobs:
           echo "### 배포 완료" >> $GITHUB_STEP_SUMMARY
           echo "**상태**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
           echo "**이미지 태그**: \`${{ env.VERSION }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**배포 메시지**: ${{ github.event.inputs.deploy_message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**배포 메시지**: CI 성공 후 자동 배포" >> $GITHUB_STEP_SUMMARY
