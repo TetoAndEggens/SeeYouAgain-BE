@@ -85,6 +85,19 @@ jobs:
         run: |
           echo "${{ env.VERSION }}" | gh secret set DEV_LATEST_TAG --repo ${{ github.repository }}
 
+      - name: Debug - Check current user and SSH config
+        run: |
+          echo "=== Current User ==="
+          whoami
+          echo "=== Home Directory ==="
+          echo $HOME
+          echo "=== SSH Config exists? ==="
+          ls -la ~/.ssh/config || echo "No config found in current user's home"
+          echo "=== Can we access ubuntu's SSH config? ==="
+          ls -la /home/ubuntu/.ssh/config || echo "Cannot access ubuntu's config"
+          echo "=== Test SSH to api-1 ==="
+          ssh api-1 "echo 'Connection successful'" || echo "SSH failed"
+
       - name: Deploy to EC2 Instances (Parallel)
         run: |
           (
