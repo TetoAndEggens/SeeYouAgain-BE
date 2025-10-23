@@ -79,12 +79,6 @@ jobs:
             -t ${BASE_IMAGE}:${{ env.VERSION }} \
             --push .
 
-      - name: Store Latest Tag in Secrets
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          echo "${{ env.VERSION }}" | gh secret set DEV_LATEST_TAG --repo ${{ github.repository }}
-
       - name: Deploy to EC2 Instances (Parallel)
         run: |
           (
