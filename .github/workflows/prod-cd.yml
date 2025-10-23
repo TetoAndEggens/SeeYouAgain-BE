@@ -57,7 +57,9 @@ jobs:
       - name: Build JAR Artifact
         run: |
           mkdir -p ./artifacts
-          cp build/libs/*.jar ./artifacts/app.jar
+          echo "Generated JAR files:"
+          ls -la build/libs/
+          cp $(ls build/libs/*.jar | grep -v plain) ./artifacts/app.jar
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
