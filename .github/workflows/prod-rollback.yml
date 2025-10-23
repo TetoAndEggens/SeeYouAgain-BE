@@ -47,88 +47,56 @@ jobs:
           fi
           echo "이미지 확인 완료: ${IMAGE}"
 
-      - name: Setup SSH Keys and Config
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          echo "${{ secrets.PROD_BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
-          chmod 600 ~/.ssh/bastion_key
-          
-          echo "${{ secrets.PROD_PRIVATE_EC2_SSH_KEY }}" > ~/.ssh/private_key
-          chmod 600 ~/.ssh/private_key
-          
-          cat > ~/.ssh/config <<EOF
-          Host bastion
-              HostName ${{ secrets.PROD_BASTION_HOST }}
-              User ${{ secrets.PROD_BASTION_USERNAME }}
-              IdentityFile ~/.ssh/bastion_key
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-          
-          Host private-ec2-1
-              HostName ${{ secrets.PROD_EC2_PRIVATE_HOST_1 }}
-              User ${{ secrets.PROD_EC2_PRIVATE_USERNAME }}
-              IdentityFile ~/.ssh/private_key
-              ProxyJump bastion
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-          
-          Host private-ec2-2
-              HostName ${{ secrets.PROD_EC2_PRIVATE_HOST_2 }}
-              User ${{ secrets.PROD_EC2_PRIVATE_USERNAME }}
-              IdentityFile ~/.ssh/private_key
-              ProxyJump bastion
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-          EOF
-          
-          chmod 600 ~/.ssh/config
-
       - name: Rollback EC2 Instances (Parallel)
         run: |
           (
-            ssh private-ec2-1 "
-              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
-              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}' >> ~/app/deploy.env && \
-              echo 'DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}' >> ~/app/deploy.env && \
-              echo 'ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
-              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.PROD_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
-              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
-              cd ~/app && chmod +x deploy.sh && ./deploy.sh
-            "
+            ${{ secrets.PROD_EC2_HOST_1_COMMAND }} bash <<'EC2_EOF'
+          cat > ~/app/deploy.env <<'ENV_EOF'
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
+          DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}
+          ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
+          BLUE_TARGET_GROUP_ARN=${{ secrets.PROD_BLUE_TARGET_GROUP_ARN }}
+          GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}
+          ENV_EOF
+          cd ~/app && chmod +x deploy.sh && ./deploy.sh
+          EC2_EOF
+          BASTION_EOF
             echo $? > /tmp/ec2-1-status.txt
           ) &
           PID1=$!
-
+      
           (
-            ssh private-ec2-2 "
-              echo 'DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}' > ~/app/deploy.env && \
-              echo 'DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}' >> ~/app/deploy.env && \
-              echo 'DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}' >> ~/app/deploy.env && \
-              echo 'ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}' >> ~/app/deploy.env && \
-              echo 'BLUE_TARGET_GROUP_ARN=${{ secrets.PROD_BLUE_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
-              echo 'GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}' >> ~/app/deploy.env && \
-              cd ~/app && chmod +x deploy.sh && ./deploy.sh
-            "
+             ${{ secrets.PROD_EC2_HOST_2_COMMAND }} bash <<'EC2_EOF'
+          cat > ~/app/deploy.env <<'ENV_EOF'
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
+          DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}
+          ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
+          BLUE_TARGET_GROUP_ARN=${{ secrets.PROD_BLUE_TARGET_GROUP_ARN }}
+          GREEN_TARGET_GROUP_ARN=${{ secrets.PROD_GREEN_TARGET_GROUP_ARN }}
+          ENV_EOF
+          cd ~/app && chmod +x deploy.sh && ./deploy.sh
+          EC2_EOF
+          BASTION_EOF
             echo $? > /tmp/ec2-2-status.txt
           ) &
           PID2=$!
-
+      
           wait $PID1
           wait $PID2
-
+      
           EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
           EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
-
+      
           echo "EC2-1 롤백 상태: $EC2_1_STATUS"
           echo "EC2-2 롤백 상태: $EC2_2_STATUS"
-
+      
           if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
             echo "::error::롤백 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
             exit 1
           fi
-
+      
           echo "모든 EC2 인스턴스 롤백 성공"
 
       - name: Send Discord Notification
