@@ -106,9 +106,9 @@ jobs:
           ALB_LISTENER_ARN=${{ secrets.DEV_ALB_LISTENER_ARN }}
           BLUE_TARGET_GROUP_ARN=${{ secrets.DEV_BLUE_TARGET_GROUP_ARN }}
           GREEN_TARGET_GROUP_ARN=${{ secrets.DEV_GREEN_TARGET_GROUP_ARN }}
-          ENDSSH
+          ENV_EOF
           cd ~/app && chmod +x deploy.sh && ./deploy.sh
-          EC2_EOF
+          ENDSSH
             echo $? > /tmp/ec2-2-status.txt
           ) &
           PID2=$!
