@@ -38,16 +38,34 @@ public class EmailService {
     public boolean extractCodeByPhoneNumber(String code, String phone, LocalDateTime since) {
         Store store = null;
         Folder inbox = null;
+        log.info("[IMAP] 인증 시작 - phone: {}, code: {}, since: {}", phone, code, since);
 
         try {
+            log.info("[IMAP] IMAP 연결 시도 - host: {}, port: {}",
+                    imapConnectionProperties.getProperty("mail.imaps.host"),
+                    imapConnectionProperties.getProperty("mail.imaps.port"));
+
             store = connectToEmailStore();
+            log.info("[IMAP] IMAP 연결 성공");
+
             inbox = openInboxFolder(store);
+            log.info("[IMAP] INBOX 열기 성공 - 메시지 수: {}", inbox.getMessageCount());
+
             boolean result = searchTokenInEmails(inbox, code, phone, since);
+            log.info("[IMAP] 검색 완료 - 결과: {}", result);
+
             return result;
+        } catch (MessagingException e) {
+            log.error("[IMAP] MessagingException 발생 - phone: {}, error: {}",
+                    phone, e.getMessage(), e);
+            return false;
         } catch (Exception e) {
+            log.error("[IMAP] Exception 발생 - phone: {}, error: {}",
+                    phone, e.getMessage(), e);
             return false;
         } finally {
             closeConnections(inbox, store);
+            log.info("[IMAP] 연결 종료");
         }
     }
 
@@ -69,6 +87,8 @@ public class EmailService {
         SearchTerm timeTerm = new ReceivedDateTerm(ComparisonTerm.GE, sinceDate);
         Message[] messages = inbox.search(timeTerm);
 
+        log.info("[IMAP] since 이후 메시지 검색 - 총 {}개 발견", messages.length);
+
         Arrays.sort(messages, (a, b) -> {
             try {
                 Date dateA = a.getReceivedDate();
@@ -83,13 +103,31 @@ public class EmailService {
         });
 
         for (Message message : messages) {
-            if (isFromPhoneNumber(message, phone)) {
-                String mailCode = extractCodeFromMessageContent(message);
-                if (mailCode != null && code.equals(mailCode)) {
-                    return true;
+            try {
+                Address[] from = message.getFrom();
+                String fromAddr = (from != null && from.length > 0) ? from[0].toString() : "null";
+                log.info("[IMAP] 메시지 확인 - From: {}, Subject: {}",
+                        fromAddr, message.getSubject());
+
+                if (isFromPhoneNumber(message, phone)) {
+                    log.info("[IMAP] 전화번호 매칭 성공 - From: {}", fromAddr);
+
+                    String mailCode = extractCodeFromMessageContent(message);
+                    log.info("[IMAP] 추출된 코드: {}, 기대 코드: {}", mailCode, code);
+
+                    if (mailCode != null && code.equals(mailCode)) {
+                        log.info("[IMAP] 코드 검증 성공!");
+                        return true;
+                    }
+                } else {
+                    log.debug("[IMAP] 전화번호 불일치 - From: {}, 찾는 번호: {}",
+                            fromAddr, phone);
                 }
+            } catch (Exception e) {
+                log.error("[IMAP] 메시지 처리 중 오류", e);
             }
         }
+        log.warn("[IMAP] 매칭되는 인증 코드를 찾지 못함");
         return false;
     }
 
@@ -100,8 +138,14 @@ public class EmailService {
                 return false;
             }
             String fromAddress = from[0].toString();
-            return fromAddress.contains(phone + AT);
+            boolean matches = fromAddress.contains(phone + AT);
+
+            log.debug("[IMAP] isFromPhoneNumber - fromAddress: {}, phone: {}, matches: {}",
+                    fromAddress, phone, matches);
+
+            return matches;
         } catch (MessagingException e) {
+            log.error("[IMAP] isFromPhoneNumber 오류", e);
             return false;
         }
     }
