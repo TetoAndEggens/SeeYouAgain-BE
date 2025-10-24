@@ -15,6 +15,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import tetoandeggens.seeyouagainbe.auth.filter.CustomLogoutFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
@@ -22,6 +25,8 @@ import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -61,10 +66,30 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOrigins(Arrays.asList(
+                "https://dev-api.seeyouagain.store",
+                "http://localhost:3000"
+        ));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
