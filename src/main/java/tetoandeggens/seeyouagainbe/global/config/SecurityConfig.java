@@ -21,7 +21,7 @@ import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
+import tetoandeggens.seeyouagainbe.member.entity.Role;
 
 @Configuration
 @EnableWebSecurity
@@ -33,16 +33,21 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    private static final String[] USERLIST = {
+    private static final String[] WHITE_LIST = {
             "/auth/**",
+            "/actuator/health",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/webjars/**"
     };
 
+    private static final String[] BLACK_LIST = {
+            "/auth/logout"
+    };
+
     private static final String[] ADMINLIST = {
-            "/api/admin/**"
+            "/admin/**"
     };
 
     @Bean
@@ -65,15 +70,16 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/**").hasAuthority(Role.ADMIN.getRole())
-                        .requestMatchers(USERLIST).permitAll()
-                        .requestMatchers(ADMINLIST).authenticated()
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(BLACK_LIST).authenticated()
+                        .requestMatchers(WHITE_LIST).permitAll()
+                        .requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
                         .anyRequest().authenticated())
                 .addFilterAt(
                         new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(
-                        new JwtAuthenticationFilter(tokenProvider, USERLIST, ADMINLIST, objectMapper),
+                        new JwtAuthenticationFilter(tokenProvider, WHITE_LIST, BLACK_LIST, objectMapper),
                         CustomLoginFilter.class)
                 .addFilterBefore(
                         new CustomLogoutFilter(tokenProvider, objectMapper),

@@ -24,8 +24,8 @@ import java.util.Arrays;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
-    private final String[] applyFilterList;
-    private final String[] ignoreFilterList;
+    private final String[] whiteList;
+    private final String[] blackList;
     private final ObjectMapper objectMapper;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         } catch (UsernameNotFoundException e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.Member_NOT_FOUND);
+            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.MEMBER_NOT_FOUND);
             return;
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
@@ -68,14 +68,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
 
-        boolean isInIgnoreFilterList = Arrays.stream(ignoreFilterList)
+        boolean isInBlackList = Arrays.stream(blackList)
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
 
-        if (isInIgnoreFilterList) {
-            return true;
+        if (isInBlackList) {
+            return false;
         }
 
-        return Arrays.stream(applyFilterList)
+        return Arrays.stream(whiteList)
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
     }
 }
