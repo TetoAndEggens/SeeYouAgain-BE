@@ -28,7 +28,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
+import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
 @DisplayName("TokenProvider 단위 테스트")

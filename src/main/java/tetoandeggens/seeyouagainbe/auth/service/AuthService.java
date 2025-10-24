@@ -3,7 +3,6 @@ package tetoandeggens.seeyouagainbe.auth.service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,9 +12,8 @@ import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResp
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.util.GeneratorRandomUtil;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Member;
-import tetoandeggens.seeyouagainbe.domain.member.entity.SocialType;
-import tetoandeggens.seeyouagainbe.domain.member.repository.MemberRepository;
+import tetoandeggens.seeyouagainbe.member.entity.Member;
+import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
