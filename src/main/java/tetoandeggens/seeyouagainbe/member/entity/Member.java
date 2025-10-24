@@ -1,11 +1,10 @@
-package tetoandeggens.seeyouagainbe.domain.member.entity;
+package tetoandeggens.seeyouagainbe.member.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
 import java.util.UUID;
 

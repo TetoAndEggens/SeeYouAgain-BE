@@ -6,8 +6,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Member;
-import tetoandeggens.seeyouagainbe.domain.member.repository.MemberRepository;
+import tetoandeggens.seeyouagainbe.member.entity.Member;
+import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
@@ -21,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String loginId) {
         Member member = memberRepository.findByLoginIdAndIsDeletedFalse(loginId)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.Member_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(AuthErrorCode.MEMBER_NOT_FOUND));
 
         return new CustomUserDetails(member);
     }

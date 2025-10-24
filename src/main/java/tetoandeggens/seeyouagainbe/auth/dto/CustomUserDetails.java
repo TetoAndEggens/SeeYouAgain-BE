@@ -4,8 +4,8 @@ import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Member;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
+import tetoandeggens.seeyouagainbe.member.entity.Member;
+import tetoandeggens.seeyouagainbe.member.entity.Role;
 
 import java.util.Collection;
 import java.util.List;

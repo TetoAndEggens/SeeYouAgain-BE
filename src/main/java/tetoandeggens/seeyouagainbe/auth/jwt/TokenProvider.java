@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
-import tetoandeggens.seeyouagainbe.domain.member.entity.Role;
+import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
