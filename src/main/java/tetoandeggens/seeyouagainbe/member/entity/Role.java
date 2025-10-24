@@ -1,4 +1,4 @@
-package tetoandeggens.seeyouagainbe.domain.member.entity;
+package tetoandeggens.seeyouagainbe.member.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
