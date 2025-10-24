@@ -72,8 +72,8 @@ logging:
 
 jwt:
   secret: testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest
-  access-token-expiration-ms: 3600000
-  refresh-token-expiration-ms: 1209600000
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
 
 email:
   server: test@seeyouagain.com
