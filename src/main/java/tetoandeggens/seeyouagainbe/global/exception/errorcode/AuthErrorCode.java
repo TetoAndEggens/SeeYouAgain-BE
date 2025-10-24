@@ -11,7 +11,7 @@ public enum AuthErrorCode implements ErrorCode {
     // 로그인/회원 관련
     WRONG_ID_PW("AUTH_001", "아이디 또는 비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED),
     DUPLICATED_LOGIN_ID("AUTH_002", "이미 사용 중인 로그인 아이디입니다.", HttpStatus.CONFLICT),
-    Member_NOT_FOUND("AUTH_003", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    MEMBER_NOT_FOUND("AUTH_003", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
 
     // 휴대폰 인증 관련
     PHONE_NUMBER_DUPLICATED("AUTH_004", "이미 사용 중인 전화번호입니다.", HttpStatus.CONFLICT),
