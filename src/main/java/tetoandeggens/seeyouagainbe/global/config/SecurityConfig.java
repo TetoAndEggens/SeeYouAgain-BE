@@ -35,11 +35,11 @@ public class SecurityConfig {
 
     private static final String[] WHITE_LIST = {
             "/auth/**",
-            "/actuator/health",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/swagger-resources/**",
-            "/webjars/**"
+            "/webjars/**",
+            "/actuator/**"
     };
 
     private static final String[] BLACK_LIST = {
@@ -70,7 +70,6 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(BLACK_LIST).authenticated()
                         .requestMatchers(WHITE_LIST).permitAll()
                         .requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
