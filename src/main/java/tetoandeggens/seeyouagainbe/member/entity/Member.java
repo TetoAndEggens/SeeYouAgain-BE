@@ -41,12 +41,14 @@ public class Member extends BaseEntity {
     @Column(name = "uuid", unique = true, nullable = false)
     private String uuid;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type")
-    private SocialType type;
+    @Column(name = "social_id_kakao", unique = true)
+    private String socialIdKakao;
 
-    @Column(name = "social_id")
-    private String socialId;
+    @Column(name = "social_id_naver", unique = true)
+    private String socialIdNaver;
+
+    @Column(name = "social_id_google", unique = true)
+    private String socialIdGoogle;
 
     @Column(name = "violated_count", nullable = false)
     private Long violatedCount = 0L;
@@ -59,13 +61,14 @@ public class Member extends BaseEntity {
 
     @Builder
     public Member(String loginId, String password, String nickName, String phoneNumber,
-                  String socialId, SocialType type) {
+                  String socialIdKakao, String socialIdNaver, String socialIdGoogle) {
         this.loginId = loginId;
         this.password = password;
         this.nickName = nickName;
         this.phoneNumber = phoneNumber;
-        this.socialId = socialId;
-        this.type = type;
+        this.socialIdKakao = socialIdKakao;
+        this.socialIdNaver = socialIdNaver;
+        this.socialIdGoogle = socialIdGoogle;
         this.uuid = UUID.randomUUID().toString();
     }
 
@@ -77,13 +80,27 @@ public class Member extends BaseEntity {
         this.isPushEnabled = isPushEnabled;
     }
 
-    public void updateSocialInfo(String socialId, SocialType type) {
-        this.socialId = socialId;
-        this.type = type;
+    public void updateKakaoSocialId(String socialIdKakao) {
+        this.socialIdKakao = socialIdKakao;
     }
 
-    public void deleteOAuthInfo() {
-        this.socialId = null;
-        this.type = null;
+    public void updateNaverSocialId(String socialIdNaver) {
+        this.socialIdNaver = socialIdNaver;
+    }
+
+    public void updateGoogleSocialId(String socialIdGoogle) {
+        this.socialIdGoogle = socialIdGoogle;
+    }
+
+    public void deleteKakaoSocialId() {
+        this.socialIdKakao = null;
+    }
+
+    public void deleteNaverSocialId() {
+        this.socialIdNaver = null;
+    }
+
+    public void deleteGoogleSocialId() {
+        this.socialIdGoogle = null;
     }
 }
