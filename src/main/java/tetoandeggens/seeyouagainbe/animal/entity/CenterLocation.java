@@ -36,4 +36,7 @@ public class CenterLocation extends BaseEntity {
 
 	@Column(name = "longitude")
 	private Double longitude;
+
+    @Column(name = "center_no", unique = true)
+    private String centerNo;
 }
