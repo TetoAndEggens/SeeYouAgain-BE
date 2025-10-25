@@ -27,4 +27,7 @@ public class BreedType extends BaseEntity {
 
 	@Column(name = "type")
 	private String type;
+
+    @Column(name = "code", unique = true)
+    private String code;
 }
