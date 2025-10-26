@@ -33,7 +33,14 @@ public enum AuthErrorCode implements ErrorCode {
     ACCESS_DENIED("AUTH_016", "접근 권한이 없습니다.", HttpStatus.FORBIDDEN),
 
     // 요청 관련
-    INVALID_LOGIN_REQUEST("AUTH_017", "잘못된 로그인 요청입니다.", HttpStatus.BAD_REQUEST);
+    INVALID_LOGIN_REQUEST("AUTH_017", "잘못된 로그인 요청입니다.", HttpStatus.BAD_REQUEST),
+
+    // OAuth2 관련
+    UNSUPPORTED_OAUTH2_PROVIDER("AUTH_018", "지원하지 않는 OAuth2 제공자입니다.", HttpStatus.BAD_REQUEST),
+    INVALID_OAUTH2_STATE("AUTH_019", "유효하지 않은 OAuth2 state 토큰입니다.", HttpStatus.UNAUTHORIZED),
+    EXPIRED_OAUTH2_STATE("AUTH_020", "만료된 OAuth2 state 토큰입니다.", HttpStatus.UNAUTHORIZED),
+    OAUTH2_TOKEN_EXCHANGE_FAILED("AUTH_021", "OAuth2 토큰 교환에 실패했습니다.", HttpStatus.BAD_REQUEST),
+    OAUTH2_USER_INFO_FETCH_FAILED("AUTH_022", "OAuth2 사용자 정보 조회에 실패했습니다.", HttpStatus.BAD_REQUEST);
 
 
     private final String code;

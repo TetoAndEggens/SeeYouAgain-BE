@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tetoandeggens.seeyouagainbe.auth.dto.request.RegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
@@ -34,25 +34,50 @@ public class AuthService {
     private final EmailService emailService;
 
     @Transactional
-    public void register(RegisterRequest registerRequest) {
-        String isVerified = redisTemplate.opsForValue().get(registerRequest.phoneNumber());
+    public void unifiedRegister(UnifiedRegisterRequest request) {
+        String verifiedKey = request.hasSocialInfo()
+                ? PREFIX_SOCIAL_VERIFIED + request.phoneNumber()
+                : request.phoneNumber();
+
+        String isVerified = redisTemplate.opsForValue().get(verifiedKey);
 
         if (isVerified == null || !isVerified.equals(VERIFIED)) {
             throw new CustomException(AuthErrorCode.PHONE_NOT_VERIFIED);
         }
 
-        checkLoginIdAvailable(registerRequest.loginId());
+        checkLoginIdAvailable(request.loginId());
+
+        String finalSocialId = request.socialId();
+        String finalProfileImageUrl = request.profileImageUrl();
+        String finalProvider = request.socialProvider();
+
+        if (request.hasSocialInfo() && finalSocialId == null) {
+            finalProvider = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
+            finalSocialId = redisTemplate.opsForValue().get(PREFIX_SOCIAL_ID + request.phoneNumber());
+            finalProfileImageUrl = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROFILE + request.phoneNumber());
+        }
 
         Member member = Member.builder()
-                .loginId(registerRequest.loginId())
-                .password(passwordEncoder.encode(registerRequest.password()))
-                .nickName(registerRequest.nickName())
-                .phoneNumber(registerRequest.phoneNumber())
+                .loginId(request.loginId())
+                .password(passwordEncoder.encode(request.password()))
+                .nickName(request.nickName())
+                .phoneNumber(request.phoneNumber())
+                .profile(finalProfileImageUrl)
+                .socialIdKakao("kakao".equals(finalProvider) ? finalSocialId : null)
+                .socialIdNaver("naver".equals(finalProvider) ? finalSocialId : null)
+                .socialIdGoogle("google".equals(finalProvider) ? finalSocialId : null)
                 .build();
 
         memberRepository.save(member);
 
-        redisTemplate.delete(registerRequest.phoneNumber());
+        if (request.hasSocialInfo()) {
+            redisTemplate.delete(PREFIX_SOCIAL_VERIFIED + request.phoneNumber());
+            redisTemplate.delete(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
+            redisTemplate.delete(PREFIX_SOCIAL_ID + request.phoneNumber());
+            redisTemplate.delete(PREFIX_SOCIAL_PROFILE + request.phoneNumber());
+        } else {
+            redisTemplate.delete(request.phoneNumber());
+        }
     }
 
     public ReissueTokenResponse reissueToken(HttpServletRequest request, HttpServletResponse response) {
