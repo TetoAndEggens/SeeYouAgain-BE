@@ -8,11 +8,12 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import tetoandeggens.seeyouagainbe.auth.dto.request.PhoneVerificationRequest;
-import tetoandeggens.seeyouagainbe.auth.dto.request.RegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.*;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
+import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.service.AuthService;
+import tetoandeggens.seeyouagainbe.auth.service.OAuth2Service;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 
 @Tag(name = "Auth", description = "인증/인가 API")
@@ -22,6 +23,7 @@ import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuth2Service oAuth2Service;
 
     @Operation(
             summary = "loginId 중복 체크",
@@ -65,13 +67,55 @@ public class AuthController {
     }
 
     @Operation(
-            summary = "회원가입",
-            description = "일반 회원가입 (loginId, password, nickName, phoneNumber)"
+            summary = "통합 회원가입",
+            description = "일반 회원가입 (loginId, password, nickName, phoneNumber 필수)\n\n" +
+                    "소셜 로그인으로 시작한 경우에도 이 API를 사용하며, " +
+                    "socialProvider, socialId, profileImageUrl은 자동으로 Redis에서 가져옵니다."
     )
     @PostMapping("/signup")
-    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        authService.register(registerRequest);
+    public ApiResponse<Void> register(@Valid @RequestBody UnifiedRegisterRequest request) {
+        authService.unifiedRegister(request);
         return ApiResponse.created();
+    }
+
+    @Operation(
+            summary = "[소셜] 휴대폰 인증 코드 요청",
+            description = "소셜 로그인 시 휴대폰 인증을 위한 코드 생성. provider, socialId, profileImageUrl 포함"
+    )
+    @PostMapping("/social/phone/send-code")
+    public ApiResponse<PhoneVerificationResultResponse> sendSocialPhoneVerificationCode(
+            @Valid @RequestBody SocialPhoneVerificationRequest request) {
+        PhoneVerificationResultResponse response = oAuth2Service.sendSocialPhoneVerificationCode(
+                request.phone(),
+                request.provider(),
+                request.socialId(),
+                request.profileImageUrl()
+        );
+        return ApiResponse.ok(response);
+    }
+
+    @Operation(
+            summary = "[소셜] 휴대폰 인증 코드 검증",
+            description = "소셜 로그인 시 인증 코드 검증 후 상태 반환 (LOGIN/LINK/SIGNUP)"
+    )
+    @PostMapping("/social/phone/verify-code")
+    public ApiResponse<SocialLoginResultResponse> verifySocialPhoneCode(
+            @Valid @RequestBody PhoneVerificationRequest request,
+            HttpServletResponse response) {
+        SocialLoginResultResponse result = oAuth2Service.verifySocialPhoneCode(request.phone(), response);
+        return ApiResponse.ok(result);
+    }
+
+    @Operation(
+            summary = "[소셜] 기존 계정에 소셜 연동",
+            description = "기존 계정에 소셜 계정 연동"
+    )
+    @PostMapping("/social/link")
+    public ApiResponse<SocialLoginResultResponse> linkSocialAccount(
+            @Valid @RequestBody SocialLinkRequest request,
+            HttpServletResponse response) {
+        SocialLoginResultResponse result = oAuth2Service.linkSocialAccount(request.phoneNumber(), response);
+        return ApiResponse.ok(result);
     }
 
     @Operation(

@@ -61,15 +61,20 @@ public class Member extends BaseEntity {
 
     @Builder
     public Member(String loginId, String password, String nickName, String phoneNumber,
-                  String socialIdKakao, String socialIdNaver, String socialIdGoogle) {
+                  String profile, String socialIdKakao, String socialIdNaver, String socialIdGoogle) {
         this.loginId = loginId;
         this.password = password;
         this.nickName = nickName;
         this.phoneNumber = phoneNumber;
+        this.profile = profile;
         this.socialIdKakao = socialIdKakao;
         this.socialIdNaver = socialIdNaver;
         this.socialIdGoogle = socialIdGoogle;
         this.uuid = UUID.randomUUID().toString();
+    }
+
+    public void updateProfile(String profileImageUrl) {
+        this.profile = profileImageUrl;
     }
 
     public void updateDeleteStatus() {
