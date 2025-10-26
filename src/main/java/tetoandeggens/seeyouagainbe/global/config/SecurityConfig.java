@@ -1,7 +1,7 @@
 package tetoandeggens.seeyouagainbe.global.config;
 
-import java.util.Arrays;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,17 +22,15 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.RequiredArgsConstructor;
-import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.CustomLogoutFilter;
+import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -60,19 +58,19 @@ public class SecurityConfig {
             "/auth/withdrawal"
     };
 
-	private static final String[] ADMINLIST = {
-		"/admin/**"
-	};
+    private static final String[] ADMINLIST = {
+            "/admin/**"
+    };
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
-	}
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
 
     @Bean
     public RestTemplate restTemplate() {
@@ -85,10 +83,9 @@ public class SecurityConfig {
         return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
     }
 
-
     @Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(Arrays.asList(
                 "https://dev-api.seeyouagain.store",
