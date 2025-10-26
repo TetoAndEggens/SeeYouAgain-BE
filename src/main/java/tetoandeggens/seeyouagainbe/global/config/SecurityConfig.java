@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -40,16 +41,16 @@ public class SecurityConfig {
 	private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 	private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-	private static final String[] WHITE_LIST = {
-		"/auth/**",
-		"/swagger-ui/**",
-		"/v3/api-docs/**",
-		"/swagger-resources/**",
-		"/webjars/**",
-		"/actuator/**",
-		"/abandoned-animal/**"
-	};
-
+    private static final String[] WHITE_LIST = {
+            "/auth/**",
+            "/login/oauth2/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/swagger-resources/**",
+            "/webjars/**",
+            "/actuator/**",
+            "/abandoned-animal/**"
+    };
 	private static final String[] BLACK_LIST = {
 		"/auth/logout"
 	};
@@ -68,54 +69,58 @@ public class SecurityConfig {
 		return authConfig.getAuthenticationManager();
 	}
 
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 
-		configuration.setAllowedOrigins(Arrays.asList(
-			"https://dev-api.seeyouagain.store",
-			"http://localhost:3000"
-		));
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
-		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-		configuration.setAllowedHeaders(Arrays.asList("*"));
-		configuration.setAllowCredentials(true);
-		configuration.setMaxAge(3600L);
+        configuration.setAllowedOrigins(Arrays.asList(
+                "https://dev-api.seeyouagain.store",
+                "http://localhost:3000"
+        ));
 
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", configuration);
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
-		return source;
-	}
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
 
-	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws
-		Exception {
-		http
-			.csrf(AbstractHttpConfigurer::disable)
-			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-			.formLogin(AbstractHttpConfigurer::disable)
-			.httpBasic(AbstractHttpConfigurer::disable)
-			.sessionManagement(session ->
-				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(BLACK_LIST).authenticated()
-				.requestMatchers(WHITE_LIST).permitAll()
-				.requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
-				.anyRequest().authenticated())
-			.addFilterAt(
-				new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
-				UsernamePasswordAuthenticationFilter.class)
-			.addFilterAfter(
-				new JwtAuthenticationFilter(tokenProvider, WHITE_LIST, BLACK_LIST, objectMapper),
-				CustomLoginFilter.class)
-			.addFilterBefore(
-				new CustomLogoutFilter(tokenProvider, objectMapper),
-				LogoutFilter.class)
-			.exceptionHandling(exceptions -> exceptions
-				.authenticationEntryPoint(customAuthenticationEntryPoint)
-				.accessDeniedHandler(customAccessDeniedHandler));
+        return source;
+    }
 
-		return http.build();
-	}
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(BLACK_LIST).authenticated()
+                        .requestMatchers(WHITE_LIST).permitAll()
+                        .requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
+                        .anyRequest().authenticated())
+                .addFilterAt(
+                        new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(
+                        new JwtAuthenticationFilter(tokenProvider, WHITE_LIST, BLACK_LIST, objectMapper),
+                        CustomLoginFilter.class)
+                .addFilterBefore(
+                        new CustomLogoutFilter(tokenProvider, objectMapper),
+                        LogoutFilter.class)
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler));
+
+        return http.build();
+    }
 }
