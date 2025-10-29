@@ -5,25 +5,26 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tetoandeggens.seeyouagainbe.auth.dto.request.PhoneVerificationRequest;
-import tetoandeggens.seeyouagainbe.auth.dto.request.RegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.SocialLinkRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.SocialPhoneVerificationRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
+import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.service.AuthService;
+import tetoandeggens.seeyouagainbe.auth.service.OAuth2Service;
 import tetoandeggens.seeyouagainbe.global.ControllerTest;
-import tetoandeggens.seeyouagainbe.global.config.TestSecurityConfig;
 
 @WebMvcTest(controllers = AuthController.class)
 @DisplayName("Auth 컨트롤러 테스트")
@@ -31,6 +32,9 @@ class AuthControllerTest extends ControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private OAuth2Service oAuth2Service;
 
     @Nested
     @DisplayName("loginId 중복 체크 API 테스트")
@@ -217,13 +221,16 @@ class AuthControllerTest extends ControllerTest {
         @Test
         @DisplayName("회원가입 - 성공")
         void register_Success() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "testuser123",
                     "Password123!",
                     "테스트",
-                    "01012345678"
+                    "01012345678",
+                    null,
+                    null,
+                    null
             );
-            doNothing().when(authService).register(any(RegisterRequest.class));
+            doNothing().when(authService).unifiedRegister(any(UnifiedRegisterRequest.class));
 
             mockMvc.perform(post("/auth/signup")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -231,7 +238,7 @@ class AuthControllerTest extends ControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(201));
 
-            verify(authService).register(any(RegisterRequest.class));
+            verify(authService).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
@@ -244,17 +251,20 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
         @DisplayName("회원가입 - loginId가 빈 문자열이면 실패")
         void register_ValidationFail_LoginIdEmpty() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "",
                     "Password123!",
                     "테스트",
-                    "01012345678"
+                    "01012345678",
+                    null,
+                    null,
+                    null
             );
 
             mockMvc.perform(post("/auth/signup")
@@ -262,7 +272,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
@@ -275,17 +285,20 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
         @DisplayName("회원가입 - password가 빈 문자열이면 실패")
         void register_ValidationFail_PasswordEmpty() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "testuser",
                     "",
                     "테스트",
-                    "01012345678"
+                    "01012345678",
+                    null,
+                    null,
+                    null
             );
 
             mockMvc.perform(post("/auth/signup")
@@ -293,7 +306,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
@@ -306,17 +319,20 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
         @DisplayName("회원가입 - nickName이 빈 문자열이면 실패")
         void register_ValidationFail_NickNameEmpty() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "testuser",
                     "Password123!",
                     "",
-                    "01012345678"
+                    "01012345678",
+                    null,
+                    null,
+                    null
             );
 
             mockMvc.perform(post("/auth/signup")
@@ -324,7 +340,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
@@ -337,17 +353,20 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
         @DisplayName("회원가입 - phoneNumber가 빈 문자열이면 실패")
         void register_ValidationFail_PhoneNumberEmpty() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "testuser",
                     "Password123!",
                     "테스트",
-                    ""
+                    "",
+                    null,
+                    null,
+                    null
             );
 
             mockMvc.perform(post("/auth/signup")
@@ -355,17 +374,20 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
 
         @Test
         @DisplayName("회원가입 - phoneNumber가 잘못된 형식이면 실패")
         void register_ValidationFail_PhoneNumberInvalidFormat() throws Exception {
-            RegisterRequest request = new RegisterRequest(
+            UnifiedRegisterRequest request = new UnifiedRegisterRequest(
                     "testuser",
                     "Password123!",
                     "테스트",
-                    "123456"
+                    "123456",
+                    null,
+                    null,
+                    null
             );
 
             mockMvc.perform(post("/auth/signup")
@@ -373,9 +395,123 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).register(any(RegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
         }
     }
+
+    @Nested
+    @DisplayName("소셜 인증 관련 테스트")
+    class SocialAuthTests {
+
+        @Nested
+        @DisplayName("[소셜] 휴대폰 인증 코드 요청")
+        class SocialSendCode {
+
+            @Test
+            @DisplayName("성공 시 200 OK")
+            void sendSocialPhoneVerificationCode_Success() throws Exception {
+                SocialPhoneVerificationRequest request = new SocialPhoneVerificationRequest(
+                        "01012345678", "kakao", "SOC1234", "https://profile.jpg"
+                );
+                PhoneVerificationResultResponse mockResponse =
+                        new PhoneVerificationResultResponse("123456", "server@seeyouagain.com");
+
+                when(oAuth2Service.sendSocialPhoneVerificationCode(
+                        anyString(), anyString(), anyString(), anyString()))
+                        .thenReturn(mockResponse);
+
+                mockMvc.perform(post("/auth/social/phone/send-code")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(request)))
+                        .andExpect(status().isOk());
+
+                verify(oAuth2Service).sendSocialPhoneVerificationCode(
+                        eq("01012345678"), eq("kakao"), eq("SOC1234"), eq("https://profile.jpg"));
+            }
+
+            @Test
+            @DisplayName("잘못된 요청 본문 시 400 반환")
+            void sendSocialPhoneVerificationCode_BadRequest() throws Exception {
+                String invalidJson = """
+                {"provider":"kakao","socialId":"SOC1234","profileImageUrl":"https://p.jpg"}
+                """;
+
+                mockMvc.perform(post("/auth/social/phone/send-code")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidJson))
+                        .andExpect(status().isBadRequest());
+
+                verify(oAuth2Service, never()).sendSocialPhoneVerificationCode(any(), any(), any(), any());
+            }
+        }
+
+        @Nested
+        @DisplayName("[소셜] 휴대폰 인증 코드 검증")
+        class SocialVerifyCode {
+
+            @Test
+            @DisplayName("성공 시 200 OK")
+            void verifySocialPhoneCode_Success() throws Exception {
+                PhoneVerificationRequest request = new PhoneVerificationRequest("01099998888");
+                SocialLoginResultResponse mockResult = new SocialLoginResultResponse("LINK", "소셜 계정 연동 필요", new LoginResponse("a", "r", null));
+
+                when(oAuth2Service.verifySocialPhoneCode(eq("01099998888"), any(HttpServletResponse.class)))
+                        .thenReturn(mockResult);
+
+                mockMvc.perform(post("/auth/social/phone/verify-code")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(request)))
+                        .andExpect(status().isOk());
+
+                verify(oAuth2Service).verifySocialPhoneCode(eq("01099998888"), any(HttpServletResponse.class));
+            }
+
+            @Test
+            @DisplayName("요청 본문 누락 시 400 반환")
+            void verifySocialPhoneCode_BadRequest() throws Exception {
+                mockMvc.perform(post("/auth/social/phone/verify-code")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}"))
+                        .andExpect(status().isBadRequest());
+
+                verify(oAuth2Service, never()).verifySocialPhoneCode(any(), any());
+            }
+        }
+
+        @Nested
+        @DisplayName("[소셜] 기존 계정 연동")
+        class SocialLink {
+
+            @Test
+            @DisplayName("성공 시 200 OK")
+            void linkSocialAccount_Success() throws Exception {
+                SocialLinkRequest request = new SocialLinkRequest("01077776666");
+                SocialLoginResultResponse mockResult = new SocialLoginResultResponse("LINK", "소셜 계정 연동 필요", new LoginResponse("a", "r", null));
+
+                when(oAuth2Service.linkSocialAccount(eq("01077776666"), any(HttpServletResponse.class)))
+                        .thenReturn(mockResult);
+
+                mockMvc.perform(post("/auth/social/link")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(asJsonString(request)))
+                        .andExpect(status().isOk());
+
+                verify(oAuth2Service).linkSocialAccount(eq("01077776666"), any(HttpServletResponse.class));
+            }
+
+            @Test
+            @DisplayName("요청 필드 누락 시 400 반환")
+            void linkSocialAccount_BadRequest() throws Exception {
+                mockMvc.perform(post("/auth/social/link")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}"))
+                        .andExpect(status().isBadRequest());
+
+                verify(oAuth2Service, never()).linkSocialAccount(any(), any());
+            }
+        }
+    }
+
 
     @Nested
     @DisplayName("토큰 재발급 API 테스트")
