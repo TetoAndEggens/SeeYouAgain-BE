@@ -21,7 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import tetoandeggens.seeyouagainbe.auth.dto.request.RegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
@@ -34,9 +34,9 @@ import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 @DisplayName("AuthService 단위 테스트")
 class AuthServiceTest extends ServiceTest {
 
-    private static final String VERIFIED = "verified";
-    private static final String PREFIX_VERIFICATION_CODE = "phone:code:";
-    private static final String PREFIX_VERIFICATION_TIME = "phone:time:";
+    private static final String VERIFIED = "verify:phone:verified:";
+    private static final String PREFIX_VERIFICATION_CODE = "verify:phone:code:";
+    private static final String PREFIX_VERIFICATION_TIME = "verify:phone:time:";
     private static final String TEST_LOGIN_ID = "testuser123";
     private static final String TEST_PHONE = "01012345678";
     private static final String TEST_PASSWORD = "Password123!";
@@ -237,11 +237,14 @@ class AuthServiceTest extends ServiceTest {
         @Test
         @DisplayName("회원가입 - 성공")
         void register_Success() {
-            RegisterRequest registerRequest = new RegisterRequest(
+            UnifiedRegisterRequest registerRequest = new UnifiedRegisterRequest(
                     TEST_LOGIN_ID,
                     TEST_PASSWORD,
                     TEST_NICKNAME,
-                    TEST_PHONE
+                    TEST_PHONE,
+                    null,
+                    null,
+                    null
             );
 
             given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
@@ -250,7 +253,7 @@ class AuthServiceTest extends ServiceTest {
             given(memberRepository.save(any(Member.class))).willReturn(null);
             given(redisTemplate.delete(registerRequest.phoneNumber())).willReturn(true);
 
-            assertThatCode(() -> authService.register(registerRequest))
+            assertThatCode(() -> authService.unifiedRegister(registerRequest))
                     .doesNotThrowAnyException();
 
             verify(memberRepository).save(any(Member.class));
@@ -260,16 +263,19 @@ class AuthServiceTest extends ServiceTest {
         @Test
         @DisplayName("휴대폰 인증이 되지 않은 상태로 회원가입 - PHONE_NOT_VERIFIED 예외 발생")
         void register_PhoneNotVerified_ThrowsException() {
-            RegisterRequest registerRequest = new RegisterRequest(
+            UnifiedRegisterRequest registerRequest = new UnifiedRegisterRequest(
                     TEST_LOGIN_ID,
                     TEST_PASSWORD,
                     TEST_NICKNAME,
-                    TEST_PHONE
+                    TEST_PHONE,
+                    null,
+                    null,
+                    null
             );
 
             given(valueOperations.get(registerRequest.phoneNumber())).willReturn(null);
 
-            assertThatThrownBy(() -> authService.register(registerRequest))
+            assertThatThrownBy(() -> authService.unifiedRegister(registerRequest))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NOT_VERIFIED);
 
@@ -279,17 +285,20 @@ class AuthServiceTest extends ServiceTest {
         @Test
         @DisplayName("중복된 loginId로 회원가입 시도 - DUPLICATED_LOGIN_ID 예외 발생")
         void register_DuplicatedLoginId_ThrowsException() {
-            RegisterRequest registerRequest = new RegisterRequest(
+            UnifiedRegisterRequest registerRequest = new UnifiedRegisterRequest(
                     TEST_LOGIN_ID,
                     TEST_PASSWORD,
                     TEST_NICKNAME,
-                    TEST_PHONE
+                    TEST_PHONE,
+                    null,
+                    null,
+                    null
             );
 
             given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
             given(memberRepository.existsByLoginIdAndIsDeletedFalse(registerRequest.loginId())).willReturn(true);
 
-            assertThatThrownBy(() -> authService.register(registerRequest))
+            assertThatThrownBy(() -> authService.unifiedRegister(registerRequest))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.DUPLICATED_LOGIN_ID);
 
@@ -299,11 +308,14 @@ class AuthServiceTest extends ServiceTest {
         @Test
         @DisplayName("회원가입 후 Redis 인증 정보 삭제 확인")
         void register_ClearsRedisVerificationData() {
-            RegisterRequest registerRequest = new RegisterRequest(
+            UnifiedRegisterRequest registerRequest = new UnifiedRegisterRequest(
                     TEST_LOGIN_ID,
                     TEST_PASSWORD,
                     TEST_NICKNAME,
-                    TEST_PHONE
+                    TEST_PHONE,
+                    null,
+                    null,
+                    null
             );
 
             given(valueOperations.get(registerRequest.phoneNumber())).willReturn(VERIFIED);
@@ -312,7 +324,7 @@ class AuthServiceTest extends ServiceTest {
             given(memberRepository.save(any(Member.class))).willReturn(null);
             given(redisTemplate.delete(registerRequest.phoneNumber())).willReturn(true);
 
-            authService.register(registerRequest);
+            authService.unifiedRegister(registerRequest);
 
             verify(redisTemplate).delete(registerRequest.phoneNumber());
         }
