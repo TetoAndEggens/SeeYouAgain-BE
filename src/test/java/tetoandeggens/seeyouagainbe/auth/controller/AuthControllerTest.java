@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 
-import tetoandeggens.seeyouagainbe.auth.dto.request.PhoneVerificationRequest;
-import tetoandeggens.seeyouagainbe.auth.dto.request.SocialLinkRequest;
-import tetoandeggens.seeyouagainbe.auth.dto.request.SocialPhoneVerificationRequest;
-import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.auth.dto.request.*;
 import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
@@ -543,6 +543,81 @@ class AuthControllerTest extends ControllerTest {
                     .andExpect(status().is5xxServerError());
 
             verify(authService).reissueToken(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴 API 테스트")
+    class WithdrawalTests {
+
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (일반 회원)")
+        void withdrawMember_Success_NormalMember() throws Exception {
+            WithdrawalRequest request = new WithdrawalRequest("Password123!", "서비스 이용 불편");
+
+            CustomUserDetails customUser = CustomUserDetails.fromClaims("test-uuid-123", "ROLE_USER");
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(customUser, null, customUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            doNothing().when(authService).withdrawMember(anyString(), any(WithdrawalRequest.class));
+
+            mockMvc.perform(delete("/auth/withdrawal")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(204));
+
+            verify(authService).withdrawMember(anyString(), any(WithdrawalRequest.class));
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 비밀번호가 null이면 실패")
+        void withdrawMember_ValidationFail_PasswordNull() throws Exception {
+            String requestBody = "{\"password\":null,\"reason\":\"test\"}";
+
+            mockMvc.perform(delete("/auth/withdrawal")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).withdrawMember(anyString(), any(WithdrawalRequest.class));
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 비밀번호가 빈 문자열이면 실패")
+        void withdrawMember_ValidationFail_PasswordEmpty() throws Exception {
+            WithdrawalRequest request = new WithdrawalRequest("", "test");
+
+            mockMvc.perform(delete("/auth/withdrawal")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).withdrawMember(anyString(), any(WithdrawalRequest.class));
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 탈퇴 사유는 선택사항 (null 가능)")
+        void withdrawMember_Success_ReasonOptional() throws Exception {
+            WithdrawalRequest request = new WithdrawalRequest("Password123!", null);
+
+            CustomUserDetails customUser = CustomUserDetails.fromClaims("test-uuid-123", "ROLE_USER");
+
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(customUser, null, customUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            doNothing().when(authService).withdrawMember(anyString(), any(WithdrawalRequest.class));
+
+            mockMvc.perform(delete("/auth/withdrawal")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(204));
+
+            verify(authService).withdrawMember(anyString(), any(WithdrawalRequest.class));
         }
     }
 }
