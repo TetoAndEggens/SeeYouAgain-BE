@@ -51,23 +51,25 @@ public class SecurityConfig {
             "/actuator/**",
             "/abandoned-animal/**"
     };
-	private static final String[] BLACK_LIST = {
-		"/auth/logout"
-	};
 
-	private static final String[] ADMINLIST = {
-		"/admin/**"
-	};
+    private static final String[] BLACK_LIST = {
+            "/auth/logout",
+            "/auth/withdrawal"
+    };
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    private static final String[] ADMINLIST = {
+            "/admin/**"
+    };
 
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
 
     @Bean
     public RestTemplate restTemplate() {

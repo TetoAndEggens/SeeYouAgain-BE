@@ -26,7 +26,8 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public static CustomUserDetails fromClaims(String uuid, String role) {
-        return new CustomUserDetails(uuid, null, null, Role.valueOf(role));
+        String roleValue = role.startsWith("ROLE_") ? role.substring(5) : role;
+        return new CustomUserDetails(uuid, null, null, Role.valueOf(roleValue));
     }
 
     @Override
