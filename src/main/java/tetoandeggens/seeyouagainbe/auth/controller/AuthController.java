@@ -1,13 +1,16 @@
 package tetoandeggens.seeyouagainbe.auth.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.dto.request.*;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
@@ -129,5 +132,19 @@ public class AuthController {
     ) {
         ReissueTokenResponse reissueResponse = authService.reissueToken(request, response);
         return ApiResponse.ok(reissueResponse);
+    }
+
+    @Operation(
+            summary = "회원 탈퇴",
+            description = "회원 탈퇴 처리. 소셜 연동이 있는 경우 자동으로 연동 해제 후 soft delete 수행",
+            security = @SecurityRequirement(name = "jwt")
+    )
+    @DeleteMapping("/withdrawal")
+    public ApiResponse<Void> withdrawMember(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody WithdrawalRequest request
+    ) {
+        authService.withdrawMember(userDetails.getUuid(), request);
+        return ApiResponse.noContent();
     }
 }

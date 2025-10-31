@@ -51,8 +51,10 @@ public class OAuth2Service {
 
         try {
             String accessToken = oAuth2TokenProvider.getAccessToken(provider, code);
-
             String socialId = userInfoProvider.getSocialId(provider, accessToken);
+
+            saveSocialAccessToken(provider, socialId, accessToken);
+
             log.info("[OAuth2Service] 소셜 ID 조회 완료 - socialId: {}", socialId);
 
             loginHandler.handleSocialLoginCallback(provider, socialId, response);
@@ -182,6 +184,12 @@ public class OAuth2Service {
         clearSocialRedisData(phone);
 
         return createLoginResponse(member, response);
+    }
+
+    private void saveSocialAccessToken(String provider, String socialId, String accessToken) {
+        String key = provider.toLowerCase() + ":token:" + socialId;
+        redisTemplate.opsForValue().set(key, accessToken, Duration.ofDays(30));
+        log.info("[OAuth2Service] 소셜 액세스 토큰 저장 - provider: {}, socialId: {}", provider, socialId);
     }
 
     private boolean isAlreadyLinked(Member member, String provider, String socialId) {
