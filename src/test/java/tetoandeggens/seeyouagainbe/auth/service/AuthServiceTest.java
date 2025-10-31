@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,9 +23,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
+import tetoandeggens.seeyouagainbe.auth.dto.request.WithdrawalRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
+import tetoandeggens.seeyouagainbe.auth.provider.OAuth2UnlinkProvider;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.global.ServiceTest;
@@ -41,6 +44,8 @@ class AuthServiceTest extends ServiceTest {
     private static final String TEST_PHONE = "01012345678";
     private static final String TEST_PASSWORD = "Password123!";
     private static final String TEST_NICKNAME = "테스트";
+    private static final String TEST_UUID = "test-uuid-123";
+    private static final String ENCODED_PASSWORD = "encodedPassword123";
 
     @Autowired
     private AuthService authService;
@@ -68,6 +73,9 @@ class AuthServiceTest extends ServiceTest {
 
     @MockitoBean
     private HttpServletResponse response;
+
+    @MockitoBean
+    private OAuth2UnlinkProvider oAuth2UnlinkProvider;
 
     @BeforeEach
     void setUp() { lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);}
@@ -375,6 +383,227 @@ class AuthServiceTest extends ServiceTest {
             assertThatThrownBy(() -> authService.reissueToken(request, response))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.INVALID_TOKEN);
+        }
+    }
+
+    @Nested
+    @DisplayName("회원탈퇴 테스트")
+    class WithdrawalTests {
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (일반 회원, 소셜 연동 없음)")
+        void withdrawMember_Success_NormalMember() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, "서비스 불만족");
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(redisTemplate.delete(TEST_UUID)).willReturn(true);
+
+            assertThatCode(() -> authService.withdrawMember(TEST_UUID, request))
+                    .doesNotThrowAnyException();
+
+            assertThat(member.getIsDeleted()).isTrue();
+            verify(memberRepository).save(member);
+            verify(redisTemplate).delete(TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (카카오 소셜 연동된 회원)")
+        void withdrawMember_Success_WithKakaoLinked() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .socialIdKakao("kakao123")
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(oAuth2UnlinkProvider.unlinkSocialAccount("kakao", "kakao123", null))
+                    .willReturn(true);
+            given(redisTemplate.delete(TEST_UUID)).willReturn(true);
+
+            authService.withdrawMember(TEST_UUID, request);
+
+            assertThat(member.getSocialIdKakao()).isNull();
+            assertThat(member.getIsDeleted()).isTrue();
+            verify(oAuth2UnlinkProvider).unlinkSocialAccount("kakao", "kakao123", null);
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (네이버 소셜 연동된 회원)")
+        void withdrawMember_Success_WithNaverLinked() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .socialIdNaver("naver456")
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, "서비스 종료");
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(oAuth2UnlinkProvider.unlinkSocialAccount("naver", "naver456", null))
+                    .willReturn(true);
+
+            authService.withdrawMember(TEST_UUID, request);
+
+            assertThat(member.getSocialIdNaver()).isNull();
+            assertThat(member.getIsDeleted()).isTrue();
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (구글 소셜 연동된 회원)")
+        void withdrawMember_Success_WithGoogleLinked() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .socialIdGoogle("google789")
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(oAuth2UnlinkProvider.unlinkSocialAccount("google", "google789", null))
+                    .willReturn(true);
+
+            authService.withdrawMember(TEST_UUID, request);
+
+            assertThat(member.getSocialIdGoogle()).isNull();
+            assertThat(member.getIsDeleted()).isTrue();
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 성공 (모든 소셜 계정 연동된 회원)")
+        void withdrawMember_Success_WithAllSocialLinked() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .socialIdKakao("kakao123")
+                    .socialIdNaver("naver456")
+                    .socialIdGoogle("google789")
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, "다중 계정 정리");
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(oAuth2UnlinkProvider.unlinkSocialAccount(anyString(), anyString(), isNull()))
+                    .willReturn(true);
+
+            authService.withdrawMember(TEST_UUID, request);
+
+            assertThat(member.getSocialIdKakao()).isNull();
+            assertThat(member.getSocialIdNaver()).isNull();
+            assertThat(member.getSocialIdGoogle()).isNull();
+            assertThat(member.getIsDeleted()).isTrue();
+
+            verify(oAuth2UnlinkProvider).unlinkSocialAccount("kakao", "kakao123", null);
+            verify(oAuth2UnlinkProvider).unlinkSocialAccount("naver", "naver456", null);
+            verify(oAuth2UnlinkProvider).unlinkSocialAccount("google", "google789", null);
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 실패 (존재하지 않는 회원)")
+        void withdrawMember_Fail_MemberNotFound() {
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.withdrawMember(TEST_UUID, request))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+
+            verify(passwordEncoder, never()).matches(anyString(), anyString());
+            verify(memberRepository, never()).save(any(Member.class));
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 실패 (비밀번호 불일치)")
+        void withdrawMember_Fail_WrongPassword() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest("WrongPassword!", null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches("WrongPassword!", ENCODED_PASSWORD))
+                    .willReturn(false);
+
+            assertThatThrownBy(() -> authService.withdrawMember(TEST_UUID, request))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.WRONG_ID_PW);
+
+            assertThat(member.getIsDeleted()).isFalse();
+            verify(memberRepository, never()).save(any(Member.class));
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - Redis 데이터 삭제 확인")
+        void withdrawMember_ClearsRedisData() {
+            Member member = Member.builder()
+                    .loginId("testuser")
+                    .password(ENCODED_PASSWORD)
+                    .nickName("테스트")
+                    .phoneNumber(TEST_PHONE)
+                    .build();
+
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.of(member));
+            given(passwordEncoder.matches(TEST_PASSWORD, ENCODED_PASSWORD))
+                    .willReturn(true);
+            given(redisTemplate.delete(TEST_UUID)).willReturn(true);
+
+            authService.withdrawMember(TEST_UUID, request);
+
+            verify(redisTemplate).delete(TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("회원탈퇴 - 이미 삭제된 회원은 조회되지 않음")
+        void withdrawMember_Fail_AlreadyDeleted() {
+            WithdrawalRequest request = new WithdrawalRequest(TEST_PASSWORD, null);
+
+            given(memberRepository.findByUuidAndIsDeletedFalse(TEST_UUID))
+                    .willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.withdrawMember(TEST_UUID, request))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
         }
     }
 }
