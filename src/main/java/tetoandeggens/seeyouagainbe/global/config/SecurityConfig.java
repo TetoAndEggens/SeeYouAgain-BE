@@ -30,8 +30,6 @@ import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 
-import java.util.Arrays;
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
