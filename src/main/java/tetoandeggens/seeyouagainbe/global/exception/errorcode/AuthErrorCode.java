@@ -40,7 +40,10 @@ public enum AuthErrorCode implements ErrorCode {
     INVALID_OAUTH2_STATE("AUTH_019", "유효하지 않은 OAuth2 state 토큰입니다.", HttpStatus.UNAUTHORIZED),
     EXPIRED_OAUTH2_STATE("AUTH_020", "만료된 OAuth2 state 토큰입니다.", HttpStatus.UNAUTHORIZED),
     OAUTH2_TOKEN_EXCHANGE_FAILED("AUTH_021", "OAuth2 토큰 교환에 실패했습니다.", HttpStatus.BAD_REQUEST),
-    OAUTH2_USER_INFO_FETCH_FAILED("AUTH_022", "OAuth2 사용자 정보 조회에 실패했습니다.", HttpStatus.BAD_REQUEST);
+    OAUTH2_USER_INFO_FETCH_FAILED("AUTH_022", "OAuth2 사용자 정보 조회에 실패했습니다.", HttpStatus.BAD_REQUEST),
+    REAUTH_TOKEN_NOT_FOUND("AUTH_023", "재인증 토큰이 없습니다. 소셜 로그인을 다시 진행해주세요.", HttpStatus.BAD_REQUEST),
+    SOCIAL_TOKEN_REFRESH_FAILED("AUTH_024", "소셜 로그인 토큰 갱신에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+
 
 
     private final String code;
