@@ -50,6 +50,12 @@ public class Member extends BaseEntity {
     @Column(name = "social_id_google", unique = true)
     private String socialIdGoogle;
 
+    @Column(name = "google_refresh_token")
+    private String googleRefreshToken;
+
+    @Column(name = "naver_refresh_token")
+    private String naverRefreshToken;
+
     @Column(name = "violated_count", nullable = false)
     private Long violatedCount = 0L;
 
@@ -108,4 +114,12 @@ public class Member extends BaseEntity {
     public void deleteGoogleSocialId() {
         this.socialIdGoogle = null;
     }
+
+    public void updateGoogleRefreshToken(String googleRefreshToken) { this.googleRefreshToken = googleRefreshToken; }
+
+    public void updateNaverRefreshToken(String naverRefreshToken) { this.naverRefreshToken = naverRefreshToken; }
+
+    public void deleteGoogleRefreshToken() { this.googleRefreshToken = null; }
+
+    public void deleteNaverRefreshToken() { this.naverRefreshToken = null; }
 }
