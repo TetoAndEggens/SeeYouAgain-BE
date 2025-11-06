@@ -57,11 +57,22 @@ public class AuthService {
         String finalSocialId = request.socialId();
         String finalProfileImageUrl = request.profileImageUrl();
         String finalProvider = request.socialProvider();
+        String finalRefreshToken = null;
 
-        if (request.hasSocialInfo() && finalSocialId == null) {
-            finalProvider = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
-            finalSocialId = redisTemplate.opsForValue().get(PREFIX_SOCIAL_ID + request.phoneNumber());
-            finalProfileImageUrl = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROFILE + request.phoneNumber());
+        if (request.socialProvider() != null && request.socialId() == null) {
+            String provider = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
+            String socialId = redisTemplate.opsForValue().get(PREFIX_SOCIAL_ID + request.phoneNumber());
+            String profileImageUrl = redisTemplate.opsForValue().get(PREFIX_SOCIAL_PROFILE + request.phoneNumber());
+            String refreshToken = redisTemplate.opsForValue().get(PREFIX_SOCIAL_REFRESH_TOKEN + request.phoneNumber());
+
+            if (provider == null || socialId == null) {
+                throw new CustomException(AuthErrorCode.REAUTH_TOKEN_NOT_FOUND);
+            }
+
+            finalProvider = provider;
+            finalSocialId = socialId;
+            finalProfileImageUrl = profileImageUrl;
+            finalRefreshToken = refreshToken;
         }
 
         Member member = Member.builder()
@@ -75,13 +86,22 @@ public class AuthService {
                 .socialIdGoogle("google".equals(finalProvider) ? finalSocialId : null)
                 .build();
 
+        // RefreshToken 저장 (네이버/구글만)
+        if ("naver".equals(finalProvider) && finalRefreshToken != null) {
+            member.updateNaverRefreshToken(finalRefreshToken);
+        } else if ("google".equals(finalProvider) && finalRefreshToken != null) {
+            member.updateGoogleRefreshToken(finalRefreshToken);
+        }
+
         memberRepository.save(member);
 
+        // Redis 정리
         if (request.hasSocialInfo()) {
             redisTemplate.delete(PREFIX_SOCIAL_VERIFIED + request.phoneNumber());
             redisTemplate.delete(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
             redisTemplate.delete(PREFIX_SOCIAL_ID + request.phoneNumber());
             redisTemplate.delete(PREFIX_SOCIAL_PROFILE + request.phoneNumber());
+            redisTemplate.delete(PREFIX_SOCIAL_REFRESH_TOKEN + request.phoneNumber());
         } else {
             redisTemplate.delete(request.phoneNumber());
         }
@@ -151,85 +171,93 @@ public class AuthService {
 
     @Transactional
     public void withdrawMember(String uuid, WithdrawalRequest request) {
-        log.info("[MemberWithdrawalService] 회원 탈퇴 시작 - uuid: {}", uuid);
+        log.info("[Withdrawal] 회원 탈퇴 시작 - uuid: {}", uuid);
+
         Member member = memberRepository.findByUuidAndIsDeletedFalse(uuid)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.MEMBER_NOT_FOUND));
+
+        // 비밀번호 검증
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new CustomException(AuthErrorCode.WRONG_ID_PW);
         }
+
+        // 소셜 연동 해제 (RefreshToken 사용)
         unlinkAllSocialAccounts(member);
+
+        // Redis 데이터 삭제
         clearRedisData(uuid);
-        performSoftDelete(member);
-        log.info("[MemberWithdrawalService] 회원 탈퇴 완료 - memberId: {}", member.getId());
+
+        // Soft Delete
+        member.updateDeleteStatus();
+        memberRepository.save(member);
+
+        log.info("[Withdrawal] 회원 탈퇴 완료 - memberId: {}", member.getId());
     }
 
     private void unlinkAllSocialAccounts(Member member) {
         List<String> failedUnlinks = new ArrayList<>();
 
+        // 1. 카카오 연동 해제 (Admin Key 사용)
         if (member.getSocialIdKakao() != null) {
             try {
-                boolean success = oAuth2UnlinkProvider.unlinkSocialAccount(
-                        "kakao",
-                        member.getSocialIdKakao(),
-                        null // 카카오는 Admin Key 사용
-                );
+                boolean success = oAuth2UnlinkProvider.unlinkKakao(member.getSocialIdKakao());
 
                 if (success) {
                     member.deleteKakaoSocialId();
-                    log.info("[MemberWithdrawalService] 카카오 연동 해제 성공");
+                    log.info("[Withdrawal] 카카오 연동 해제 성공");
                 } else {
                     failedUnlinks.add("kakao");
                 }
             } catch (Exception e) {
-                log.error("[MemberWithdrawalService] 카카오 연동 해제 중 오류", e);
-                failedUnlinks.add("kakao");
+                log.error("[Withdrawal] 카카오 연동 해제 중 오류", e);
+                member.deleteKakaoSocialId(); // DB에서는 제거
             }
         }
 
+        // 2. 네이버 연동 해제 (RefreshToken 사용)
         if (member.getSocialIdNaver() != null) {
             try {
-                boolean success = oAuth2UnlinkProvider.unlinkSocialAccount(
-                        "naver",
-                        member.getSocialIdNaver(),
-                        null  // socialId만 전달, 내부에서 Redis 조회
-                );
+                boolean success = oAuth2UnlinkProvider.unlinkNaver(member);
 
                 if (success) {
                     member.deleteNaverSocialId();
-                    log.info("[MemberWithdrawalService] 네이버 연동 해제 성공");
+                    member.deleteNaverRefreshToken();
+                    log.info("[Withdrawal] 네이버 연동 해제 성공");
                 } else {
-                    log.warn("[MemberWithdrawalService] 네이버 연동 해제 실패 - DB에서만 제거");
+                    log.warn("[Withdrawal] 네이버 연동 해제 실패 - DB에서만 제거");
                     member.deleteNaverSocialId();
+                    member.deleteNaverRefreshToken();
                 }
             } catch (Exception e) {
-                log.error("[MemberWithdrawalService] 네이버 연동 해제 중 오류", e);
+                log.error("[Withdrawal] 네이버 연동 해제 중 오류", e);
                 member.deleteNaverSocialId();
+                member.deleteNaverRefreshToken();
             }
         }
 
+        // 3. 구글 연동 해제 (RefreshToken 사용)
         if (member.getSocialIdGoogle() != null) {
             try {
-                boolean success = oAuth2UnlinkProvider.unlinkSocialAccount(
-                        "google",
-                        member.getSocialIdGoogle(),
-                        null  // socialId만 전달, 내부에서 Redis 조회
-                );
+                boolean success = oAuth2UnlinkProvider.unlinkGoogle(member);
 
                 if (success) {
                     member.deleteGoogleSocialId();
-                    log.info("[AuthService] 구글 연동 해제 성공");
+                    member.deleteGoogleRefreshToken();
+                    log.info("[Withdrawal] 구글 연동 해제 성공");
                 } else {
-                    log.warn("[AuthService] 구글 연동 해제 실패 - DB에서만 제거");
+                    log.warn("[Withdrawal] 구글 연동 해제 실패 - DB에서만 제거");
                     member.deleteGoogleSocialId();
+                    member.deleteGoogleRefreshToken();
                 }
             } catch (Exception e) {
-                log.error("[AuthService] 구글 연동 해제 중 오류", e);
+                log.error("[Withdrawal] 구글 연동 해제 중 오류", e);
                 member.deleteGoogleSocialId();
+                member.deleteGoogleRefreshToken();
             }
         }
 
         if (!failedUnlinks.isEmpty()) {
-            log.warn("[MemberWithdrawalService] 일부 소셜 연동 해제 실패: {}", failedUnlinks);
+            log.warn("[Withdrawal] 일부 소셜 연동 해제 실패: {}", failedUnlinks);
         }
     }
 
@@ -237,12 +265,7 @@ public class AuthService {
         try {
             redisTemplate.delete(uuid);
         } catch (Exception e) {
-            log.error("[MemberWithdrawalService] Redis 데이터 삭제 중 오류", e);
+            log.error("[Withdrawal] Redis 데이터 삭제 중 오류", e);
         }
-    }
-
-    private void performSoftDelete(Member member) {
-        member.updateDeleteStatus();
-        memberRepository.save(member);
     }
 }
