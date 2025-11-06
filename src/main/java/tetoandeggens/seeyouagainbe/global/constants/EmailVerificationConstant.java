@@ -14,6 +14,8 @@ public class EmailVerificationConstant {
     public static final String PREFIX_SOCIAL_PROVIDER = "social:phone:provider:";
     public static final String PREFIX_SOCIAL_ID = "social:phone:socialid:";
     public static final String PREFIX_SOCIAL_PROFILE = "social:phone:profile:";
+    public static final String PREFIX_SOCIAL_REFRESH_TOKEN = "social:phone:refreshtoken:";
+
 
     public static final String IMAP_PROTOCOL = "imaps";
     public static final String INBOX = "INBOX";
