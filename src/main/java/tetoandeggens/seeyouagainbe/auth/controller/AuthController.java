@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
@@ -15,8 +16,11 @@ import tetoandeggens.seeyouagainbe.auth.dto.request.*;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
+import tetoandeggens.seeyouagainbe.auth.dto.response.SocialTempInfoResponse;
 import tetoandeggens.seeyouagainbe.auth.service.AuthService;
 import tetoandeggens.seeyouagainbe.auth.service.OAuth2Service;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 
 @Tag(name = "Auth", description = "인증/인가 API")
@@ -27,6 +31,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final OAuth2Service oAuth2Service;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Operation(
             summary = "loginId 중복 체크",
@@ -79,6 +84,25 @@ public class AuthController {
     public ApiResponse<Void> register(@Valid @RequestBody UnifiedRegisterRequest request) {
         authService.unifiedRegister(request);
         return ApiResponse.created();
+    }
+
+    @Operation(
+            summary = "첫 소셜 회원가입 시, 필요한 정보 획득"
+    )
+    @GetMapping("/social/temp-info")
+    public ApiResponse<SocialTempInfoResponse> getSocialTempInfo(
+            @RequestParam String token) {
+        String data = redisTemplate.opsForValue().get("signup:temp:" + token);
+        if (data == null) {
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
+
+        String[] parts = data.split(":");
+        return ApiResponse.ok(new SocialTempInfoResponse(
+                parts[0], // provider
+                parts[1], // socialId
+                parts[2]  // profileImageUrl
+        ));
     }
 
     @Operation(
@@ -136,7 +160,7 @@ public class AuthController {
 
     @Operation(
             summary = "회원 탈퇴",
-            description = "회원 탈퇴 처리. 소셜 연동이 있는 경우 자동으로 연동 해제 후 soft delete 수행",
+            description = "회원 탈퇴 처리. 소셜 연동이 있는 경우 RefreshToken으로 자동 연동 해제 후 soft delete 수행",
             security = @SecurityRequirement(name = "jwt")
     )
     @DeleteMapping("/withdrawal")
