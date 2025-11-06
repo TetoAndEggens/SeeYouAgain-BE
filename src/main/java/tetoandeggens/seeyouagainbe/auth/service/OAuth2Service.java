@@ -9,18 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
-import tetoandeggens.seeyouagainbe.auth.handler.OAuth2LoginHandler;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
-import tetoandeggens.seeyouagainbe.auth.provider.OAuth2TokenProvider;
-import tetoandeggens.seeyouagainbe.auth.provider.OAuth2UserInfoProvider;
 import tetoandeggens.seeyouagainbe.auth.util.GeneratorRandomUtil;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -36,42 +32,15 @@ public class OAuth2Service {
     private final MemberRepository memberRepository;
     private final TokenProvider tokenProvider;
     private final RedisTemplate<String, String> redisTemplate;
-    private final OAuth2TokenProvider oAuth2TokenProvider;
-    private final OAuth2UserInfoProvider userInfoProvider;
-    private final OAuth2LoginHandler loginHandler;
     private final EmailService emailService;
-
-    @Transactional
-    public void socialLogin(
-            String provider,
-            String code,
-            HttpServletResponse response
-    ) throws IOException {
-        log.info("[OAuth2Service] 소셜 로그인 시작 - provider: {}", provider);
-
-        try {
-            String accessToken = oAuth2TokenProvider.getAccessToken(provider, code);
-            String socialId = userInfoProvider.getSocialId(provider, accessToken);
-
-            saveSocialAccessToken(provider, socialId, accessToken);
-
-            log.info("[OAuth2Service] 소셜 ID 조회 완료 - socialId: {}", socialId);
-
-            loginHandler.handleSocialLoginCallback(provider, socialId, response);
-
-            log.info("[OAuth2Service] 소셜 로그인 성공");
-        } catch (Exception e) {
-            log.error("[OAuth2Service] 소셜 로그인 실패", e);
-            throw e;
-        }
-    }
 
     @Transactional
     public PhoneVerificationResultResponse sendSocialPhoneVerificationCode(
             String phone,
             String provider,
             String socialId,
-            String profileImageUrl) {
+            String profileImageUrl
+    ) {
 
         log.info("[OAuth2Service] 소셜 전화번호 인증 코드 전송 - provider: {}, phone: {}", provider, phone);
 
@@ -173,7 +142,11 @@ public class OAuth2Service {
                     return new CustomException(AuthErrorCode.MEMBER_NOT_FOUND);
                 });
 
-        linkSocialIdToMember(member, provider, socialId);
+        // RefreshToken 가져오기 (OAuth2AuthenticationSuccessHandler에서 임시 저장한 것)
+        String tempKey = "oauth2:refresh:temp:" + provider + ":" + socialId;
+        String refreshToken = redisTemplate.opsForValue().get(tempKey);
+
+        linkSocialIdToMember(member, provider, socialId, refreshToken);
 
         if (profileImageUrl != null && !profileImageUrl.isBlank() && member.getProfile() == null) {
             member.updateProfile(profileImageUrl);
@@ -183,14 +156,14 @@ public class OAuth2Service {
 
         clearSocialRedisData(phone);
 
+        // 임시 저장된 RefreshToken 삭제
+        if (refreshToken != null) {
+            redisTemplate.delete(tempKey);
+        }
+
         return createLoginResponse(member, response);
     }
 
-    private void saveSocialAccessToken(String provider, String socialId, String accessToken) {
-        String key = provider.toLowerCase() + ":token:" + socialId;
-        redisTemplate.opsForValue().set(key, accessToken, Duration.ofDays(30));
-        log.info("[OAuth2Service] 소셜 액세스 토큰 저장 - provider: {}, socialId: {}", provider, socialId);
-    }
 
     private boolean isAlreadyLinked(Member member, String provider, String socialId) {
         return switch (provider.toLowerCase()) {
@@ -201,12 +174,25 @@ public class OAuth2Service {
         };
     }
 
-    private void linkSocialIdToMember(Member member, String provider, String socialId) {
+    private void linkSocialIdToMember(Member member, String provider, String socialId, String refreshToken) {
         switch (provider.toLowerCase()) {
             case "kakao" -> member.updateKakaoSocialId(socialId);
-            case "naver" -> member.updateNaverSocialId(socialId);
-            case "google" -> member.updateGoogleSocialId(socialId);
+            case "naver" -> {
+                member.updateNaverSocialId(socialId);
+                if (refreshToken != null) {
+                    member.updateNaverRefreshToken(refreshToken);
+                    log.info("[OAuth2Service] 네이버 RefreshToken 저장 완료");
+                }
+            }
+            case "google" -> {
+                member.updateGoogleSocialId(socialId);
+                if (refreshToken != null) {
+                    member.updateGoogleRefreshToken(refreshToken);
+                    log.info("[OAuth2Service] 구글 RefreshToken 저장 완료");
+                }
+            }
         }
+        memberRepository.save(member);
     }
 
     private SocialLoginResultResponse createLoginResponse(Member member, HttpServletResponse response) {
@@ -236,6 +222,7 @@ public class OAuth2Service {
         redisTemplate.delete(PREFIX_SOCIAL_PROVIDER + phone);
         redisTemplate.delete(PREFIX_SOCIAL_ID + phone);
         redisTemplate.delete(PREFIX_SOCIAL_PROFILE + phone);
+        redisTemplate.delete(PREFIX_SOCIAL_REFRESH_TOKEN + phone); // ⭐ 추가
         log.info("[OAuth2Service] Redis 소셜 데이터 정리 - phone: {}", phone);
     }
 }
