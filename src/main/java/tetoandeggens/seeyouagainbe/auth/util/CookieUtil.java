@@ -37,5 +37,15 @@ public class CookieUtil {
         response.addCookie(cookie);
     }
 
+    public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
+        Cookie cookie = new Cookie("accessToken", accessToken);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge((int) maxAgeInSeconds);
+        cookie.setAttribute("SameSite", "Lax");
+        response.addCookie(cookie);
+    }
+
     private CookieUtil() {}
 }
