@@ -15,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -94,4 +95,32 @@ public class AbandonedAnimal extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "breed_type_id")
 	private BreedType breedType;
+
+	@Builder
+	public AbandonedAnimal(String desertionNo, LocalDate happenDate, String happenPlace, String city,
+		String town, Species species, String color, String birth, String weight, String noticeNo,
+		String noticeStartDate, String noticeEndDate, String processState, Sex sex, NeuteredState neuteredState,
+		String specialMark, String centerPhone, LocalDateTime finalUpdatedAt, CenterLocation centerLocation,
+		BreedType breedType) {
+		this.desertionNo = desertionNo;
+		this.happenDate = happenDate;
+		this.happenPlace = happenPlace;
+		this.city = city;
+		this.town = town;
+		this.species = species;
+		this.color = color;
+		this.birth = birth;
+		this.weight = weight;
+		this.noticeNo = noticeNo;
+		this.noticeStartDate = noticeStartDate;
+		this.noticeEndDate = noticeEndDate;
+		this.processState = processState;
+		this.sex = sex;
+		this.neuteredState = neuteredState;
+		this.specialMark = specialMark;
+		this.centerPhone = centerPhone;
+		this.finalUpdatedAt = finalUpdatedAt;
+		this.centerLocation = centerLocation;
+		this.breedType = breedType;
+	}
 }
