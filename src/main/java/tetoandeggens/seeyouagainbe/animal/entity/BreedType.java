@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -30,4 +31,11 @@ public class BreedType extends BaseEntity {
 
     @Column(name = "code", unique = true)
     private String code;
+
+	@Builder
+	public BreedType(String name, String type, String code) {
+		this.name = name;
+		this.type = type;
+		this.code = code;
+	}
 }

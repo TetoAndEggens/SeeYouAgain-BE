@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.common.enums.ImageType;
@@ -38,4 +39,11 @@ public class AbandonedAnimalS3Profile extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "abandoned_animal_id")
 	private AbandonedAnimal abandonedAnimal;
+
+	@Builder
+	public AbandonedAnimalS3Profile(String profile, ImageType imageType, AbandonedAnimal abandonedAnimal) {
+		this.profile = profile;
+		this.imageType = imageType;
+		this.abandonedAnimal = abandonedAnimal;
+	}
 }
