@@ -1,5 +1,6 @@
 package tetoandeggens.seeyouagainbe.auth.handler;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -71,10 +72,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         OAuth2User oAuth2User = oAuth2Token.getPrincipal();
 
-        // ⭐ provider 추출 (registrationId 사용)
+        // provider 추출 (registrationId 사용)
         String provider = oAuth2Token.getAuthorizedClientRegistrationId();
 
-        // ⭐ socialId, profileImageUrl 추출 (OIDC와 일반 OAuth2 모두 지원)
+        // socialId, profileImageUrl 추출 (OIDC와 일반 OAuth2 모두 지원)
         String socialId = extractSocialId(oAuth2User, provider);
         String profileImageUrl = extractProfileImageUrl(oAuth2User, provider);
 
@@ -96,7 +97,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     /**
-     * ⭐ socialId 추출 (OIDC와 일반 OAuth2 모두 지원)
+     * socialId 추출 (OIDC와 일반 OAuth2 모두 지원)
      */
     private String extractSocialId(OAuth2User oAuth2User, String provider) {
         if (oAuth2User instanceof OidcUser oidcUser) {
@@ -121,7 +122,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     /**
-     * ⭐ profileImageUrl 추출 (OIDC와 일반 OAuth2 모두 지원)
+     * profileImageUrl 추출 (OIDC와 일반 OAuth2 모두 지원)
      */
     private String extractProfileImageUrl(OAuth2User oAuth2User, String provider) {
         if (oAuth2User instanceof OidcUser oidcUser) {
@@ -130,21 +131,79 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         } else if (oAuth2User instanceof CustomOAuth2User customUser) {
             // CustomOAuth2User (카카오, 네이버)
             return customUser.getProfileImageUrl();
-        } else {
-            // 일반 OAuth2User
-            Map<String, Object> attributes = oAuth2User.getAttributes();
-            return switch (provider.toLowerCase()) {
-                case "kakao" -> {
-                    Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
-                    yield (String) properties.get("profile_image");
+        }
+
+        // 일반 OAuth2User 처리
+        Map<String, Object> attributes = oAuth2User.getAttributes();
+
+        return switch (provider.toLowerCase()) {
+            case "kakao" -> extractKakaoProfileImage(attributes);
+            case "naver" -> extractNaverProfileImage(attributes);
+            case "google" -> (String) attributes.get("picture");
+            default -> {
+                log.warn("[OAuth2Success] 지원하지 않는 provider: {}", provider);
+                yield null;
+            }
+        };
+    }
+
+    /**
+     * 카카오 프로필 이미지 추출 (우선순위: kakao_account > properties)
+     */
+    private String extractKakaoProfileImage(Map<String, Object> attributes) {
+        try {
+            // 1. kakao_account.profile.profile_image_url 시도
+            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            if (kakaoAccount != null) {
+                Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+                if (profile != null) {
+                    String profileImageUrl = (String) profile.get("profile_image_url");
+                    if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+                        log.debug("[OAuth2Success] 카카오 프로필 이미지 (kakao_account): {}", profileImageUrl);
+                        return profileImageUrl;
+                    }
                 }
-                case "naver" -> {
-                    Map<String, Object> response = (Map<String, Object>) attributes.get("response");
-                    yield (String) response.get("profile_image");
+            }
+
+            // 2. properties.profile_image 시도
+            Map<String, Object> properties = (Map<String, Object>) attributes.get("properties");
+            if (properties != null) {
+                String profileImage = (String) properties.get("profile_image");
+                if (profileImage != null && !profileImage.isBlank()) {
+                    log.debug("[OAuth2Success] 카카오 프로필 이미지 (properties): {}", profileImage);
+                    return profileImage;
                 }
-                case "google" -> (String) attributes.get("picture");
-                default -> null;
-            };
+            }
+
+            log.warn("[OAuth2Success] 카카오 프로필 이미지 없음");
+            return null;
+
+        } catch (Exception e) {
+            log.error("[OAuth2Success] 카카오 프로필 이미지 추출 실패", e);
+            return null;
+        }
+    }
+
+    /**
+     * 네이버 프로필 이미지 추출
+     */
+    private String extractNaverProfileImage(Map<String, Object> attributes) {
+        try {
+            Object responseObj = attributes.get("response");
+            if (responseObj instanceof Map<?, ?> response) {
+                String profileImage = (String) response.get("profile_image");
+                if (profileImage != null && !profileImage.isBlank()) {
+                    log.debug("[OAuth2Success] 네이버 프로필 이미지: {}", profileImage);
+                    return profileImage;
+                }
+            }
+
+            log.warn("[OAuth2Success] 네이버 프로필 이미지 없음");
+            return null;
+
+        } catch (Exception e) {
+            log.error("[OAuth2Success] 네이버 프로필 이미지 추출 실패", e);
+            return null;
         }
     }
 
@@ -173,7 +232,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 return;
             }
 
-            // 1. AccessToken 저장 (Redis - 연동 해제용, 30일 TTL)
+            // 1. AccessToken 저장 (Redis - 연동 해제용, 5분 TTL)
             OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
             if (accessToken != null) {
                 String accessTokenValue = accessToken.getTokenValue();
@@ -182,7 +241,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 redisTemplate.opsForValue().set(
                         redisKey,
                         accessTokenValue,
-                        Duration.ofDays(30)
+                        Duration.ofMinutes(5)
                 );
 
                 log.info("[OAuth2Success] {} OAuth2 AccessToken Redis 저장 완료", provider);
@@ -200,7 +259,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         Duration.ofMinutes(5)
                 );
 
-                log.info("[OAuth2Success] {} RefreshToken 임시 저장 완료 (5분 TTL)", provider);
+                log.info("[OAuth2Success] {} RefreshToken 임시 저장 완료", provider);
             } else {
                 log.warn("[OAuth2Success] {} RefreshToken이 null입니다 (최초 1회만 제공될 수 있음)", provider);
             }
@@ -290,7 +349,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     /**
-     * 신규 회원 처리: 회원가입 페이지로 리다이렉트 (JWT 발급 안 함!)
+     * 신규 회원 처리: 임시 토큰을 쿠키로 저장 후 회원가입 페이지로 리다이렉트
      */
     private void handleNewMember(
             String provider,
@@ -298,19 +357,46 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String profileImageUrl,
             HttpServletResponse response
     ) throws IOException {
+        log.info("[OAuth2Success] 신규 회원 감지 - provider: {}, socialId: {}", provider, socialId);
+
+        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+            log.info("[OAuth2Success] 프로필 이미지: {}", profileImageUrl.substring(0, Math.min(50, profileImageUrl.length())) + "...");
+        } else {
+            log.warn("[OAuth2Success] 프로필 이미지 없음");
+        }
+
+        // 임시 토큰 생성 (5분 유효)
         String tempToken = UUID.randomUUID().toString();
 
-        // Redis에 5분간 임시 저장
+        String data = String.format("%s:::%s:::%s",
+                provider,
+                socialId,
+                profileImageUrl != null && !profileImageUrl.isBlank() ? profileImageUrl : ""
+        );
+
         redisTemplate.opsForValue().set(
                 "signup:temp:" + tempToken,
-                provider + ":" + socialId + ":" + profileImageUrl,
+                data,
                 Duration.ofMinutes(5)
         );
 
-        String redirectUrl = String.format(
-                "%s/auth/social-signup?token=%s",
-                frontendUrl, tempToken
-        );
+        log.info("[OAuth2Success] 임시 토큰 생성 완료 - token: {}", tempToken);
+
+        // 임시 토큰을 쿠키에 저장 (5분 유효)
+        Cookie tempTokenCookie = new Cookie("socialTempToken", tempToken);
+        tempTokenCookie.setHttpOnly(true);
+        tempTokenCookie.setSecure(true); // HTTPS에서만 전송
+        tempTokenCookie.setPath("/");
+        tempTokenCookie.setMaxAge(5 * 60); // 5분
+        tempTokenCookie.setAttribute("SameSite", "Lax");
+        response.addCookie(tempTokenCookie);
+
+        log.info("[OAuth2Success] 임시 토큰 쿠키 저장 완료");
+
+        // 회원가입 폼으로 리다이렉트 (URL에 민감정보 없음)
+        String redirectUrl = frontendUrl + "/auth/social-signup";
+
+        log.info("[OAuth2Success] 회원가입 페이지 리다이렉트 - url: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
     }
 

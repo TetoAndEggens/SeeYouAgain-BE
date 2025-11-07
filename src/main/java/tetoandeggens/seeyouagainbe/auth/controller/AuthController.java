@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
@@ -19,8 +18,6 @@ import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialTempInfoResponse;
 import tetoandeggens.seeyouagainbe.auth.service.AuthService;
 import tetoandeggens.seeyouagainbe.auth.service.OAuth2Service;
-import tetoandeggens.seeyouagainbe.global.exception.CustomException;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 
 @Tag(name = "Auth", description = "인증/인가 API")
@@ -31,7 +28,6 @@ public class AuthController {
 
     private final AuthService authService;
     private final OAuth2Service oAuth2Service;
-    private final RedisTemplate<String, String> redisTemplate;
 
     @Operation(
             summary = "loginId 중복 체크",
@@ -86,23 +82,11 @@ public class AuthController {
         return ApiResponse.created();
     }
 
-    @Operation(
-            summary = "첫 소셜 회원가입 시, 필요한 정보 획득"
-    )
+    @Operation(summary = "첫 소셜 회원가입 시, 필요한 정보 획득")
     @GetMapping("/social/temp-info")
-    public ApiResponse<SocialTempInfoResponse> getSocialTempInfo(
-            @RequestParam String token) {
-        String data = redisTemplate.opsForValue().get("signup:temp:" + token);
-        if (data == null) {
-            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
-        }
-
-        String[] parts = data.split(":");
-        return ApiResponse.ok(new SocialTempInfoResponse(
-                parts[0], // provider
-                parts[1], // socialId
-                parts[2]  // profileImageUrl
-        ));
+    public ApiResponse<SocialTempInfoResponse> getSocialTempInfo(@RequestParam String token) {
+        SocialTempInfoResponse response = oAuth2Service.getSocialTempInfo(token);
+        return ApiResponse.ok(response);
     }
 
     @Operation(
