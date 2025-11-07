@@ -10,14 +10,17 @@ import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.QAbandonedAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.QCenterLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -57,7 +60,7 @@ public class AbandonedAnimalRepositoryCustomImpl implements AbandonedAnimalRepos
 			: abandonedAnimal.id.asc();
 
 		QBreedType bt = QBreedType.breedType;
-		QAbandonedAnimalS3Profile profile = QAbandonedAnimalS3Profile.abandonedAnimalS3Profile;
+		QAbandonedAnimalS3Profile profileEntity = QAbandonedAnimalS3Profile.abandonedAnimalS3Profile;
 		QAbandonedAnimalS3Profile subProfile = new QAbandonedAnimalS3Profile("subProfile");
 
 		return queryFactory
@@ -72,13 +75,13 @@ public class AbandonedAnimalRepositoryCustomImpl implements AbandonedAnimalRepos
 				abandonedAnimal.town,
 				abandonedAnimal.sex,
 				abandonedAnimal.processState,
-				profile.profile
+				profileEntity.profile
 			))
 			.from(abandonedAnimal)
 			.leftJoin(abandonedAnimal.breedType, bt)
-			.leftJoin(profile).on(
-				profile.abandonedAnimal.eq(abandonedAnimal),
-				profile.id.eq(
+			.leftJoin(profileEntity).on(
+				profileEntity.abandonedAnimal.eq(abandonedAnimal),
+				profileEntity.id.eq(
 					JPAExpressions.select(subProfile.id.min())
 						.from(subProfile)
 						.where(subProfile.abandonedAnimal.eq(abandonedAnimal))
@@ -102,6 +105,50 @@ public class AbandonedAnimalRepositoryCustomImpl implements AbandonedAnimalRepos
 			.from(abandonedAnimal)
 			.leftJoin(abandonedAnimal.breedType, QBreedType.breedType)
 			.where(builder)
+			.fetchOne();
+	}
+
+	@Override
+	public AbandonedAnimalDetailResponse getAbandonedAnimal(Long abandonedAnimalId) {
+		QBreedType bt = QBreedType.breedType;
+		QCenterLocation cl = QCenterLocation.centerLocation;
+		QAbandonedAnimalS3Profile profileEntity = QAbandonedAnimalS3Profile.abandonedAnimalS3Profile;
+
+		List<String> profiles = queryFactory
+			.select(profileEntity.profile)
+			.from(profileEntity)
+			.where(profileEntity.abandonedAnimal.id.eq(abandonedAnimalId))
+			.orderBy(profileEntity.id.asc())
+			.limit(3)
+			.fetch();
+
+		return queryFactory
+			.select(Projections.constructor(
+				AbandonedAnimalDetailResponse.class,
+				abandonedAnimal.id,
+				abandonedAnimal.happenDate,
+				abandonedAnimal.species,
+				bt.name,
+				abandonedAnimal.birth,
+				abandonedAnimal.happenPlace,
+				abandonedAnimal.sex,
+				abandonedAnimal.processState,
+				Expressions.constant(profiles),
+				abandonedAnimal.color,
+				abandonedAnimal.noticeNo,
+				abandonedAnimal.noticeStartDate,
+				abandonedAnimal.noticeEndDate,
+				abandonedAnimal.specialMark,
+				abandonedAnimal.weight,
+				abandonedAnimal.neuteredState,
+				cl.name,
+				cl.address,
+				abandonedAnimal.centerPhone
+			))
+			.from(abandonedAnimal)
+			.leftJoin(abandonedAnimal.breedType, bt)
+			.leftJoin(abandonedAnimal.centerLocation, cl)
+			.where(abandonedAnimal.id.eq(abandonedAnimalId))
 			.fetchOne();
 	}
 

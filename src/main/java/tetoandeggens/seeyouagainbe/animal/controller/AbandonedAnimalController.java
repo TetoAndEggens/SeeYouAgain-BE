@@ -2,6 +2,7 @@ package tetoandeggens.seeyouagainbe.animal.controller;
 
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalListResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
@@ -45,6 +47,18 @@ public class AbandonedAnimalController {
 	) {
 		AbandonedAnimalListResponse response = abandonedAnimalService.getAbandonedAnimalList(request, sortDirection,
 			startDate, endDate, species, breedType, neuteredState, sex, city, town);
+
+		return ApiResponse.ok(response);
+	}
+
+	@GetMapping("/{abandonedAnimalId}")
+	@Operation(
+		summary = "유기 동물 조회 API",
+		description = "유기 동물 조회")
+	public ApiResponse<AbandonedAnimalDetailResponse> getAbandonedAnimal(
+		@PathVariable Long abandonedAnimalId
+	) {
+		AbandonedAnimalDetailResponse response = abandonedAnimalService.getAbandonedAnimal(abandonedAnimalId);
 
 		return ApiResponse.ok(response);
 	}
