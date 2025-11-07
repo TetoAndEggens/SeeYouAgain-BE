@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalListResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
@@ -15,6 +16,8 @@ import tetoandeggens.seeyouagainbe.animal.repository.AbandonedAnimalRepository;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AbandonedAnimalErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -41,5 +44,16 @@ public class AbandonedAnimalService {
 			neuteredState, sex, city, town);
 
 		return AbandonedAnimalListResponse.of(totalCount.intValue(), cursorPage);
+	}
+
+	@Transactional(readOnly = true)
+	public AbandonedAnimalDetailResponse getAbandonedAnimal(Long abandonedAnimalId) {
+		AbandonedAnimalDetailResponse response = abandonedAnimalRepository.getAbandonedAnimal(abandonedAnimalId);
+
+		if (response == null) {
+			throw new CustomException(AbandonedAnimalErrorCode.ABANDONED_ANIMAL_NOT_FOUND);
+		}
+
+		return response;
 	}
 }

@@ -2,6 +2,7 @@ package tetoandeggens.seeyouagainbe.animal.repository.custom;
 
 import java.util.List;
 
+import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
@@ -19,4 +20,6 @@ public interface AbandonedAnimalRepositoryCustom {
 	Long getAbandonedAnimalsCount(String startDate, String endDate, Species species, String breedType,
 		NeuteredState neuteredState,
 		Sex sex, String city, String town);
+
+	AbandonedAnimalDetailResponse getAbandonedAnimal(Long abandonedAnimalId);
 }

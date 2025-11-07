@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -39,4 +40,15 @@ public class CenterLocation extends BaseEntity {
 
 	@Column(name = "center_no", unique = true)
 	private String centerNo;
+
+	@Builder
+	public CenterLocation(String name, String address, String detailAddress, Double latitude, Double longitude,
+		String centerNo) {
+		this.name = name;
+		this.address = address;
+		this.detailAddress = detailAddress;
+		this.latitude = latitude;
+		this.longitude = longitude;
+		this.centerNo = centerNo;
+	}
 }
