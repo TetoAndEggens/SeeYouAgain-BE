@@ -24,6 +24,7 @@ import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.global.ControllerTest;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AbandonedAnimalErrorCode;
 
 @WebMvcTest(controllers = AbandonedAnimalController.class)
 @DisplayName("AbandonedAnimal 컨트롤러 테스트")
@@ -287,6 +288,89 @@ class AbandonedAnimalControllerTest extends ControllerTest {
 				any(),
 				any()
 			);
+		}
+	}
+
+	@Nested
+	@DisplayName("유기 동물 상세 조회 API 테스트")
+	class GetAbandonedAnimalTests {
+
+		@Test
+		@DisplayName("유기 동물 상세 조회 - 성공")
+		void getAbandonedAnimal_Success() throws Exception {
+			// given
+			Long abandonedAnimalId = 1L;
+			tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse response = tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse.builder()
+				.abandonedAnimalId(abandonedAnimalId)
+				.happenDate(LocalDate.of(2025, 1, 1))
+				.species(Species.DOG)
+				.breedType("푸들")
+				.birth("2024년생")
+				.happenPlace("서울특별시 강남구 테헤란로")
+				.sex(Sex.M)
+				.processState("보호중")
+				.profiles(List.of("profile1.jpg", "profile2.jpg", "profile3.jpg"))
+				.color("흰색")
+				.noticeNo("경북-경주-2025-01056")
+				.noticeStartDate("2025-01-01")
+				.noticeEndDate("2025-12-31")
+				.specialMark("귀엽다")
+				.weight("3.3(Kg)")
+				.neuteredState(NeuteredState.Y)
+				.centerName("서울 유기견 보호소")
+				.centerAddress("서울특별시 강남구")
+				.centerPhone("02-1234-5678")
+				.build();
+
+			given(abandonedAnimalService.getAbandonedAnimal(abandonedAnimalId))
+				.willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/abandoned-animal/{abandonedAnimalId}", abandonedAnimalId))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value(200))
+				.andExpect(jsonPath("$.data.abandonedAnimalId").value(abandonedAnimalId))
+				.andExpect(jsonPath("$.data.happenDate").value("2025-01-01"))
+				.andExpect(jsonPath("$.data.species").value("DOG"))
+				.andExpect(jsonPath("$.data.breedType").value("푸들"))
+				.andExpect(jsonPath("$.data.birth").value("2024년생"))
+				.andExpect(jsonPath("$.data.happenPlace").value("서울특별시 강남구 테헤란로"))
+				.andExpect(jsonPath("$.data.sex").value("M"))
+				.andExpect(jsonPath("$.data.processState").value("보호중"))
+				.andExpect(jsonPath("$.data.profiles").isArray())
+				.andExpect(jsonPath("$.data.profiles.length()").value(3))
+				.andExpect(jsonPath("$.data.profiles[0]").value("profile1.jpg"))
+				.andExpect(jsonPath("$.data.profiles[1]").value("profile2.jpg"))
+				.andExpect(jsonPath("$.data.profiles[2]").value("profile3.jpg"))
+				.andExpect(jsonPath("$.data.color").value("흰색"))
+				.andExpect(jsonPath("$.data.noticeNo").value("경북-경주-2025-01056"))
+				.andExpect(jsonPath("$.data.noticeStartDate").value("2025-01-01"))
+				.andExpect(jsonPath("$.data.noticeEndDate").value("2025-12-31"))
+				.andExpect(jsonPath("$.data.specialMark").value("귀엽다"))
+				.andExpect(jsonPath("$.data.weight").value("3.3(Kg)"))
+				.andExpect(jsonPath("$.data.neuteredState").value("Y"))
+				.andExpect(jsonPath("$.data.centerName").value("서울 유기견 보호소"))
+				.andExpect(jsonPath("$.data.centerAddress").value("서울특별시 강남구"))
+				.andExpect(jsonPath("$.data.centerPhone").value("02-1234-5678"));
+
+			verify(abandonedAnimalService).getAbandonedAnimal(abandonedAnimalId);
+		}
+
+		@Test
+		@DisplayName("유기 동물 상세 조회 - 존재하지 않는 ID로 조회시 예외 발생")
+		void getAbandonedAnimal_Fail_WhenNotExists() throws Exception {
+			// given
+			Long abandonedAnimalId = 999L;
+
+			given(abandonedAnimalService.getAbandonedAnimal(abandonedAnimalId))
+				.willThrow(new tetoandeggens.seeyouagainbe.global.exception.CustomException(
+					AbandonedAnimalErrorCode.ABANDONED_ANIMAL_NOT_FOUND));
+
+			// when & then
+			mockMvc.perform(get("/abandoned-animal/{abandonedAnimalId}", abandonedAnimalId))
+				.andExpect(status().isNotFound());
+
+			verify(abandonedAnimalService).getAbandonedAnimal(abandonedAnimalId);
 		}
 	}
 }

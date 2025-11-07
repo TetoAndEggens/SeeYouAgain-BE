@@ -236,4 +236,99 @@ class AbandonedAnimalRepositoryTest extends RepositoryTest {
 			.build();
 		entityManager.persist(profile);
 	}
+
+	@Nested
+	@DisplayName("유기 동물 상세 조회 테스트")
+	class GetAbandonedAnimalTests {
+
+		@Test
+		@DisplayName("유기 동물 상세 조회 - 모든 정보 포함 성공")
+		void getAbandonedAnimal_Success_WithAllInformation() {
+			// given
+			tetoandeggens.seeyouagainbe.animal.entity.CenterLocation centerLocation = tetoandeggens.seeyouagainbe.animal.entity.CenterLocation.builder()
+				.name("서울 유기견 보호소")
+				.address("서울특별시 강남구")
+				.centerNo("CENTER001")
+				.build();
+			entityManager.persist(centerLocation);
+
+			AbandonedAnimal animal = AbandonedAnimal.builder()
+				.desertionNo("12345")
+				.happenDate(LocalDate.of(2025, 1, 1))
+				.happenPlace("서울특별시 강남구 테헤란로")
+				.species(Species.DOG)
+				.breedType(createBreedType("푸들", "DOG"))
+				.sex(Sex.M)
+				.neuteredState(NeuteredState.Y)
+				.city("서울특별시")
+				.town("강남구")
+				.birth("2024년생")
+				.processState("보호중")
+				.color("흰색")
+				.noticeNo("경북-경주-2025-01056")
+				.noticeStartDate("2025-01-01")
+				.noticeEndDate("2025-12-31")
+				.specialMark("귀엽다")
+				.weight("3.3(Kg)")
+				.centerPhone("02-1234-5678")
+				.centerLocation(centerLocation)
+				.build();
+			abandonedAnimalRepository.save(animal);
+
+			createAndSaveProfile(animal, "profile1.jpg");
+			createAndSaveProfile(animal, "profile2.jpg");
+			createAndSaveProfile(animal, "profile3.jpg");
+
+			entityManager.flush();
+			entityManager.clear();
+
+			// when
+			tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
+				animal.getId());
+
+			// then
+			assertThat(result).isNotNull();
+			assertThat(result.abandonedAnimalId()).isEqualTo(animal.getId());
+			assertThat(result.happenDate()).isEqualTo(LocalDate.of(2025, 1, 1));
+			assertThat(result.happenPlace()).isEqualTo("서울특별시 강남구 테헤란로");
+			assertThat(result.species()).isEqualTo(Species.DOG);
+			assertThat(result.breedType()).isEqualTo("푸들");
+			assertThat(result.sex()).isEqualTo(Sex.M);
+			assertThat(result.processState()).isEqualTo("보호중");
+			assertThat(result.profiles()).hasSize(3);
+			assertThat(result.profiles()).containsExactly("profile1.jpg", "profile2.jpg", "profile3.jpg");
+			assertThat(result.color()).isEqualTo("흰색");
+			assertThat(result.noticeNo()).isEqualTo("경북-경주-2025-01056");
+			assertThat(result.noticeStartDate()).isEqualTo("2025-01-01");
+			assertThat(result.noticeEndDate()).isEqualTo("2025-12-31");
+			assertThat(result.specialMark()).isEqualTo("귀엽다");
+			assertThat(result.weight()).isEqualTo("3.3(Kg)");
+			assertThat(result.neuteredState()).isEqualTo(NeuteredState.Y);
+			assertThat(result.centerName()).isEqualTo("서울 유기견 보호소");
+			assertThat(result.centerAddress()).isEqualTo("서울특별시 강남구");
+			assertThat(result.centerPhone()).isEqualTo("02-1234-5678");
+		}
+
+		@Test
+		@DisplayName("유기 동물 상세 조회 - 존재하지 않는 ID로 조회시 null 반환")
+		void getAbandonedAnimal_ReturnsNull_WhenNotExists() {
+			// when
+			tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
+				999L);
+
+			// then
+			assertThat(result).isNull();
+		}
+	}
+
+	private BreedType createBreedType(String name, String type) {
+		BreedType breedType = BreedType.builder()
+			.name(name)
+			.type(type)
+			.code(java.util.UUID.randomUUID().toString())
+			.build();
+		entityManager.persist(breedType);
+		entityManager.flush();
+		return breedType;
+	}
 }
