@@ -139,6 +139,10 @@ public class TokenProvider {
         return CookieUtil.resolveRefreshTokenFromCookie(request);
     }
 
+    public void setAccessTokenCookie(HttpServletResponse response, String accessToken) {
+        CookieUtil.setAccessTokenCookie(response, accessToken, accessTokenExpirationMs / 1000);
+    }
+
     public void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         CookieUtil.setRefreshTokenCookie(response, refreshToken, refreshTokenExpirationMs / 1000);
     }

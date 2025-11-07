@@ -80,12 +80,12 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
 
         UserTokenResponse loginToken = tokenProvider.createLoginToken(uuid, userDetails.getRole());
 
+        tokenProvider.setAccessTokenCookie(response, loginToken.accessToken());
         tokenProvider.setRefreshTokenCookie(response, loginToken.refreshToken());
 
         LoginResponse loginResponse = LoginResponse.builder()
                 .uuid(userDetails.getUuid())
                 .role(role)
-                .accessToken(loginToken.accessToken())
                 .build();
 
         ResponseUtil.writeSuccessResponseWithHeaders(

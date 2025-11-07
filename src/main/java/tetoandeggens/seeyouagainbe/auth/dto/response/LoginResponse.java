@@ -10,8 +10,5 @@ public record LoginResponse(
         String uuid,
 
         @Schema(description = "권한", example = "ROLE_USER")
-        String role,
-
-        @Schema(description = "Access Token")
-        String accessToken
+        String role
 ) {}
