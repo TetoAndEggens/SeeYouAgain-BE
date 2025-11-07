@@ -28,8 +28,8 @@ public class AbandonedAnimalS3Profile extends BaseEntity {
 	@Column(name = "abandoned_animal_s3_profile_id")
 	private Long id;
 
-	@Column(name = "object_key", unique = true)
-	private String objectKey;
+	@Column(name = "profile", unique = true)
+	private String profile;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "image_type")
