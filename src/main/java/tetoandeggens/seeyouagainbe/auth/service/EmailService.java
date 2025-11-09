@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import tetoandeggens.seeyouagainbe.auth.dto.ImapCredentials;
-import tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant;
+import tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +21,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants.*;
 
 @Slf4j
 @Service
@@ -204,7 +204,7 @@ public class EmailService {
         if (content == null) {
             return null;
         }
-        Pattern pattern = Pattern.compile(EmailVerificationConstant.VERIFICATION_CODE_PATTERN);
+        Pattern pattern = Pattern.compile(AuthVerificationConstants.VERIFICATION_CODE_PATTERN);
         Matcher matcher = pattern.matcher(content);
         if (matcher.find()) {
             return matcher.group(1);

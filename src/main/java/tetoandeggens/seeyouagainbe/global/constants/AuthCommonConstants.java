@@ -1,6 +1,6 @@
 package tetoandeggens.seeyouagainbe.global.constants;
 
-public class AuthConstants {
+public class AuthCommonConstants {
     public static final String ROLE_CLAIM = "role";
     public static final String SOCIAL_TEMP_TOKEN = "socialTempToken";
     public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
@@ -10,5 +10,5 @@ public class AuthConstants {
     public static final String LOGOUT_URI = "/auth/logout";
     public static final String POST_METHOD = "POST";
 
-    private AuthConstants() {}
+    private AuthCommonConstants() {}
 }

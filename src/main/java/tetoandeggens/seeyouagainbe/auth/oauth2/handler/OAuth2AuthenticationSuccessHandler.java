@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants.*;
 
 @Slf4j
 @Component

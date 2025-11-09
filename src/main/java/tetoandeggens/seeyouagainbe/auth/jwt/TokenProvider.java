@@ -11,7 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
-import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
 import javax.crypto.SecretKey;
@@ -69,7 +69,7 @@ public class TokenProvider {
 
         return Jwts.builder()
                 .subject(uuid)
-                .claim(AuthConstants.ROLE_CLAIM, role)
+                .claim(AuthCommonConstants.ROLE_CLAIM, role)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey, Jwts.SIG.HS512)
@@ -82,7 +82,7 @@ public class TokenProvider {
 
         return Jwts.builder()
                 .subject(uuid)
-                .claim(AuthConstants.ROLE_CLAIM, role)
+                .claim(AuthCommonConstants.ROLE_CLAIM, role)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(secretKey, Jwts.SIG.HS512)
@@ -138,7 +138,7 @@ public class TokenProvider {
     public Authentication getAuthenticationByAccessToken(String accessToken) {
         Claims claims = parseClaims(accessToken);
         String uuid = claims.getSubject();
-        String role = claims.get(AuthConstants.ROLE_CLAIM, String.class);
+        String role = claims.get(AuthCommonConstants.ROLE_CLAIM, String.class);
 
         CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(uuid, role);
         return new UsernamePasswordAuthenticationToken(

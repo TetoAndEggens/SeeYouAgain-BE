@@ -1,6 +1,6 @@
 package tetoandeggens.seeyouagainbe.global.constants;
 
-public class EmailVerificationConstant {
+public class AuthVerificationConstants {
 
     public static final int VERIFICATION_TIME = 10; // (분)
     public static final String VERIFICATION_CODE_PATTERN = "\\b(\\d{6})\\b";
@@ -31,5 +31,5 @@ public class EmailVerificationConstant {
     public static final String MULTIPART = "multipart/*";
     public static final String TXT = ".txt";
 
-    private EmailVerificationConstant() {}
+    private AuthVerificationConstants() {}
 }
