@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.SOCIAL_TEMP_TOKEN;
 import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
 
 @Slf4j
@@ -138,7 +139,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 tempUuid
         );
 
-        CookieUtil.setSocialTempTokenCookie(response, tempToken, 300);
+        CookieUtil.setCookie(response, SOCIAL_TEMP_TOKEN, tempToken, VERIFICATION_TIME * 60L);
 
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
                 .path("/auth/social-signup")

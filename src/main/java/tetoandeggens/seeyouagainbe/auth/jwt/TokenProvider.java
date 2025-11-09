@@ -26,6 +26,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.ACCESS_TOKEN_COOKIE_NAME;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.REFRESH_TOKEN_COOKIE_NAME;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -162,27 +165,29 @@ public class TokenProvider {
     }
 
     public String resolveAccessToken(HttpServletRequest request) {
-        return CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
+        return CookieUtil.resolveCookieValue(request, ACCESS_TOKEN_COOKIE_NAME);
     }
 
     public String resolveRefreshToken(HttpServletRequest request) {
-        return CookieUtil.resolveCookieValue(request, AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
+        return CookieUtil.resolveCookieValue(request, REFRESH_TOKEN_COOKIE_NAME);
     }
 
     public void setAccessTokenCookie(HttpServletResponse response, String accessToken) {
-        CookieUtil.setAccessTokenCookie(response, accessToken, accessTokenExpirationMs / 1000);
+        CookieUtil.setCookie(response, ACCESS_TOKEN_COOKIE_NAME, accessToken, accessTokenExpirationMs / 1000);
+
     }
 
     public void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
-        CookieUtil.setRefreshTokenCookie(response, refreshToken, refreshTokenExpirationMs / 1000);
+        CookieUtil.setCookie(response, REFRESH_TOKEN_COOKIE_NAME, refreshToken, refreshTokenExpirationMs / 1000);
+
     }
 
     public void deleteAccessTokenCookie(HttpServletResponse response) {
-        CookieUtil.deleteAccessTokenCookie(response);
+        CookieUtil.deleteCookie(response, ACCESS_TOKEN_COOKIE_NAME);
     }
 
     public void deleteRefreshTokenCookie(HttpServletResponse response) {
-        CookieUtil.deleteRefreshTokenCookie(response);
+        CookieUtil.deleteCookie(response, REFRESH_TOKEN_COOKIE_NAME);
     }
 
     public void deleteRefreshToken(String uuid) {
