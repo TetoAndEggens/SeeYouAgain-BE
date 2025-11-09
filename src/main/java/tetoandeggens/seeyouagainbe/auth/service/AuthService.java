@@ -4,27 +4,23 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.request.WithdrawalRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
-import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2UnlinkServiceProvider;
 import tetoandeggens.seeyouagainbe.auth.util.GeneratorRandomUtil;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Map;
 
-import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
+import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
 @Slf4j
 @Service
@@ -35,123 +31,62 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisAuthService redisAuthService;
+    private final CookieService cookieService;
     private final EmailService emailService;
-
-    @Qualifier("kakaoUnlinkService")
-    private final OAuth2UnlinkServiceProvider kakaoUnlinkService;
-
-    @Qualifier("naverUnlinkService")
-    private final OAuth2UnlinkServiceProvider naverUnlinkService;
-
-    @Qualifier("googleUnlinkService")
-    private final OAuth2UnlinkServiceProvider googleUnlinkService;
+    private final SocialAccountLinkStrategy socialAccountLinkStrategy;
+    private final Map<String, OAuth2UnlinkServiceProvider> unlinkServices; // Provider별 Unlink Service를 Map으로 주입
 
     @Transactional
     public void unifiedRegister(UnifiedRegisterRequest request) {
-        // 1. 휴대폰 인증 여부 확인
-        String verifiedKey = request.hasSocialInfo()
-                ? PREFIX_SOCIAL_VERIFIED + request.phoneNumber()
-                : request.phoneNumber();
-
-        String isVerified = redisTemplate.opsForValue().get(verifiedKey);
-
-        if (isVerified == null || !isVerified.equals(VERIFIED)) {
-            throw new CustomException(AuthErrorCode.PHONE_NOT_VERIFIED);
-        }
-
+        validatePhoneVerification(request);
         checkLoginIdAvailable(request.loginId());
 
-        String finalSocialId = null;
-        String finalProvider = null;
-        String finalRefreshToken = null;
-        String finalProfileImageUrl = request.profileImageUrl();
+        SocialInfo socialInfo = extractSocialInfo(request);
 
-        // 2. 소셜 로그인인 경우 tempUuid로 Redis에서 조회
-        if (request.hasSocialInfo()) {
-            String tempUuid = request.tempUuid();
-
-            // Redis에서 소셜 정보 조회
-            String provider = redisTemplate.opsForValue().get(PREFIX_TEMP_SOCIAL_PROVIDER + tempUuid);
-            String socialId = redisTemplate.opsForValue().get(PREFIX_TEMP_SOCIAL_ID + tempUuid);
-            String refreshToken = redisTemplate.opsForValue().get(PREFIX_TEMP_SOCIAL_REFRESH + tempUuid);
-
-            if (provider == null || socialId == null) {
-                throw new CustomException(AuthErrorCode.REAUTH_TOKEN_NOT_FOUND);
-            }
-
-            log.info("[AuthService] 소셜 정보 조회 완료 - tempUuid: {}, provider: {}", tempUuid, provider);
-
-            finalProvider = provider;
-            finalSocialId = socialId;
-            finalRefreshToken = refreshToken;
-        }
-
-        // 3. Member 엔티티 생성
-        Member member = Member.builder()
-                .loginId(request.loginId())
-                .password(passwordEncoder.encode(request.password()))
-                .nickName(request.nickName())
-                .phoneNumber(request.phoneNumber())
-                .profile(finalProfileImageUrl)
-                .socialIdKakao("kakao".equals(finalProvider) ? finalSocialId : null)
-                .socialIdNaver("naver".equals(finalProvider) ? finalSocialId : null)
-                .socialIdGoogle("google".equals(finalProvider) ? finalSocialId : null)
-                .build();
-
-        // 4. RefreshToken 저장 (네이버/구글만)
-        if ("naver".equals(finalProvider) && finalRefreshToken != null) {
-            member.updateNaverRefreshToken(finalRefreshToken);
-            log.info("[AuthService] 네이버 RefreshToken DB 저장 완료");
-        } else if ("google".equals(finalProvider) && finalRefreshToken != null) {
-            member.updateGoogleRefreshToken(finalRefreshToken);
-            log.info("[AuthService] 구글 RefreshToken DB 저장 완료");
-        }
-
+        Member member = buildMember(request, socialInfo);
         memberRepository.save(member);
 
-        // 5. Redis 정리
-        if (request.hasSocialInfo()) {
-            String tempUuid = request.tempUuid();
-            redisTemplate.delete(PREFIX_SOCIAL_VERIFIED + request.phoneNumber());
-            redisTemplate.delete(PREFIX_TEMP_SOCIAL_PROVIDER + tempUuid);
-            redisTemplate.delete(PREFIX_TEMP_SOCIAL_ID + tempUuid);
-            redisTemplate.delete(PREFIX_TEMP_SOCIAL_REFRESH + tempUuid);
-
-            // 추가: phone 기반 소셜 데이터도 정리
-            redisTemplate.delete(PREFIX_SOCIAL_PROVIDER + request.phoneNumber());
-            redisTemplate.delete(PREFIX_SOCIAL_ID + request.phoneNumber());
-            redisTemplate.delete(PREFIX_SOCIAL_TEMP_UUID + request.phoneNumber());
-
-            log.info("[AuthService] Redis 임시 소셜 데이터 삭제 완료 - tempUuid: {}", tempUuid);
-        } else {
-            redisTemplate.delete(request.phoneNumber());
-        }
+        cleanupRedisAfterRegister(request, socialInfo);
     }
 
-    public ReissueTokenResponse reissueToken(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = tokenProvider.resolveRefreshToken(request);
+
+    public void reissueToken(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = cookieService.resolveRefreshToken(request);
 
         if (refreshToken == null) {
-            throw new CustomException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND);
+            throw new CustomException(REFRESH_TOKEN_NOT_FOUND);
         }
 
-        String newAccessToken = tokenProvider.reissueAccessToken(refreshToken);
+        tokenProvider.validateToken(refreshToken);
 
-        return ReissueTokenResponse.builder()
-                .accessToken(newAccessToken)
-                .build();
+        String uuid = tokenProvider.parseClaims(refreshToken).getSubject();
+        String role = tokenProvider.parseClaims(refreshToken).get("role", String.class);
+
+        String storedRefreshToken = redisAuthService.getRefreshToken(uuid)
+                .orElseThrow(() -> new CustomException(REFRESH_TOKEN_NOT_FOUND));
+
+        if (!storedRefreshToken.equals(refreshToken)) {
+            throw new CustomException(REFRESH_TOKEN_MISMATCH);
+        }
+
+        String newAccessToken = tokenProvider.createAccessToken(uuid, role);
+        cookieService.setAccessTokenCookie(
+                response,
+                newAccessToken,
+                tokenProvider.getAccessTokenExpirationSec()
+        );
     }
 
     public void checkLoginIdAvailable(String loginId) {
         if (memberRepository.existsByLoginIdAndIsDeletedFalse(loginId)) {
-            throw new CustomException(AuthErrorCode.DUPLICATED_LOGIN_ID);
+            throw new CustomException(DUPLICATED_LOGIN_ID);
         }
     }
 
     public void checkPhoneNumberDuplicate(String phoneNumber) {
         if (memberRepository.existsByPhoneNumberAndIsDeletedFalse(phoneNumber)) {
-            throw new CustomException(AuthErrorCode.PHONE_NUMBER_DUPLICATED);
+            throw new CustomException(PHONE_NUMBER_DUPLICATED);
         }
     }
 
@@ -162,8 +97,8 @@ public class AuthService {
         String code = GeneratorRandomUtil.generateRandomNum();
         LocalDateTime now = LocalDateTime.now();
 
-        redisTemplate.opsForValue().set(PREFIX_VERIFICATION_CODE + phone, code, Duration.ofMinutes(VERIFICATION_TIME));
-        redisTemplate.opsForValue().set(PREFIX_VERIFICATION_TIME + phone, now.toString(), Duration.ofMinutes(VERIFICATION_TIME));
+        redisAuthService.saveVerificationCode(phone, code);
+        redisAuthService.saveVerificationTime(phone, now.toString());
 
         String emailAddress = emailService.getServerEmail();
         return new PhoneVerificationResultResponse(code, emailAddress);
@@ -171,38 +106,34 @@ public class AuthService {
 
     @Transactional
     public void verifyPhoneCode(String phone) {
-        String code = redisTemplate.opsForValue().get(PREFIX_VERIFICATION_CODE + phone);
-        String time = redisTemplate.opsForValue().get(PREFIX_VERIFICATION_TIME + phone);
+        String code = redisAuthService.getVerificationCode(phone)
+                .orElseThrow(() -> new CustomException(INVALID_VERIFICATION_CODE));
 
-        if (code == null || time == null) {
-            throw new CustomException(AuthErrorCode.INVALID_VERIFICATION_CODE);
-        }
+        String time = redisAuthService.getVerificationTime(phone)
+                .orElseThrow(() -> new CustomException(INVALID_VERIFICATION_CODE));
 
         LocalDateTime createdAt = LocalDateTime.parse(time);
-        boolean result = emailService.extractCodeByPhoneNumber(code, phone, createdAt);
+        boolean isValid = emailService.extractCodeByPhoneNumber(code, phone, createdAt);
 
-        if (!result) {
-            throw new CustomException(AuthErrorCode.INVALID_VERIFICATION_CODE);
+        if (!isValid) {
+            throw new CustomException(INVALID_VERIFICATION_CODE);
         }
 
-        redisTemplate.delete(PREFIX_VERIFICATION_CODE + phone);
-        redisTemplate.delete(PREFIX_VERIFICATION_TIME + phone);
-
-        redisTemplate.opsForValue().set(phone, VERIFIED, Duration.ofMinutes(VERIFICATION_TIME));
+        redisAuthService.deleteVerificationData(phone);
+        redisAuthService.markPhoneAsVerified(phone);
     }
 
     @Transactional
     public void withdrawMember(String uuid, WithdrawalRequest request) {
         Member member = memberRepository.findByUuidAndIsDeletedFalse(uuid)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.MEMBER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            throw new CustomException(AuthErrorCode.WRONG_ID_PW);
+            throw new CustomException(WRONG_ID_PW);
         }
 
         unlinkAllSocialAccounts(member);
-
-        clearRedisData(uuid);
+        redisAuthService.deleteRefreshToken(uuid);
 
         member.updateDeleteStatus();
         memberRepository.save(member);
@@ -210,38 +141,110 @@ public class AuthService {
         log.info("[Withdrawal] 회원 탈퇴 완료 - memberId: {}", member.getId());
     }
 
+    private void validatePhoneVerification(UnifiedRegisterRequest request) {
+        boolean isVerified = request.hasSocialInfo()
+                ? redisAuthService.isSocialPhoneVerified(request.phoneNumber())
+                : redisAuthService.isPhoneVerified(request.phoneNumber());
+
+        if (!isVerified) {
+            throw new CustomException(PHONE_NOT_VERIFIED);
+        }
+    }
+
+    private SocialInfo extractSocialInfo(UnifiedRegisterRequest request) {
+        if (!request.hasSocialInfo()) {
+            return new SocialInfo(null, null, null, request.profileImageUrl());
+        }
+
+        String tempUuid = request.tempUuid();
+
+        String provider = redisAuthService.getTempSocialProvider(tempUuid)
+                .orElseThrow(() -> new CustomException(REAUTH_TOKEN_NOT_FOUND));
+
+        String socialId = redisAuthService.getTempSocialId(tempUuid)
+                .orElseThrow(() -> new CustomException(REAUTH_TOKEN_NOT_FOUND));
+
+        String refreshToken = redisAuthService.getTempSocialRefreshToken(tempUuid).orElse(null);
+
+        return new SocialInfo(provider, socialId, refreshToken, request.profileImageUrl());
+    }
+
+    private Member buildMember(UnifiedRegisterRequest request, SocialInfo socialInfo) {
+        Member member = Member.builder()
+                .loginId(request.loginId())
+                .password(passwordEncoder.encode(request.password()))
+                .nickName(request.nickName())
+                .phoneNumber(request.phoneNumber())
+                .profile(socialInfo.profileImageUrl())
+                .socialIdKakao("kakao".equals(socialInfo.provider()) ? socialInfo.socialId() : null)
+                .socialIdNaver("naver".equals(socialInfo.provider()) ? socialInfo.socialId() : null)
+                .socialIdGoogle("google".equals(socialInfo.provider()) ? socialInfo.socialId() : null)
+                .build();
+
+        if (socialInfo.provider() != null && socialInfo.refreshToken() != null) {
+            socialAccountLinkStrategy.linkSocialId(
+                    member,
+                    socialInfo.provider(),
+                    socialInfo.socialId(),
+                    socialInfo.refreshToken()
+            );
+        }
+
+        return member;
+    }
+
+    private void cleanupRedisAfterRegister(UnifiedRegisterRequest request, SocialInfo socialInfo) {
+        if (request.hasSocialInfo()) {
+            String tempUuid = request.tempUuid();
+            redisAuthService.clearSocialPhoneData(request.phoneNumber());
+            redisAuthService.deleteTempSocialInfo(tempUuid);
+        } else {
+            redisAuthService.deletePhoneVerification(request.phoneNumber());
+        }
+    }
+
     private void unlinkAllSocialAccounts(Member member) {
         try {
-            if (member.getSocialIdKakao() != null) {
-                kakaoUnlinkService.unlink(member);
-                member.deleteKakaoSocialId();
-                log.info("[Withdrawal] 카카오 연동 해제 완료");
-            }
+            unlinkSocialAccountIfExists(member, "kakao", member.getSocialIdKakao(),
+                    () -> member.deleteKakaoSocialId());
 
-            if (member.getSocialIdNaver() != null) {
-                naverUnlinkService.unlink(member);
-                member.deleteNaverSocialId();
-                member.deleteNaverRefreshToken();
-                log.info("[Withdrawal] 네이버 연동 해제 완료");
-            }
+            unlinkSocialAccountIfExists(member, "naver", member.getSocialIdNaver(),
+                    () -> {
+                        member.deleteNaverSocialId();
+                        member.deleteNaverRefreshToken();
+                    });
 
-            if (member.getSocialIdGoogle() != null) {
-                googleUnlinkService.unlink(member);
-                member.deleteGoogleSocialId();
-                member.deleteGoogleRefreshToken();
-                log.info("[Withdrawal] 구글 연동 해제 완료");
-            }
-
+            unlinkSocialAccountIfExists(member, "google", member.getSocialIdGoogle(),
+                    () -> {
+                        member.deleteGoogleSocialId();
+                        member.deleteGoogleRefreshToken();
+                    });
         } catch (Exception e) {
             log.error("[Withdrawal] 소셜 연동 해제 중 오류 발생", e);
         }
     }
 
-    private void clearRedisData(String uuid) {
-        try {
-            redisTemplate.delete(uuid);
-        } catch (Exception e) {
-            log.error("[Withdrawal] Redis 데이터 삭제 중 오류", e);
+    private void unlinkSocialAccountIfExists(
+            Member member,
+            String provider,
+            String socialId,
+            Runnable cleanup
+    ) {
+        if (socialId != null) {
+            String serviceBeanName = provider + "UnlinkService";
+            OAuth2UnlinkServiceProvider unlinkService = unlinkServices.get(serviceBeanName);
+
+            if (unlinkService != null) {
+                unlinkService.unlink(member);
+                cleanup.run();
+            }
         }
     }
+
+    private record SocialInfo(
+            String provider,
+            String socialId,
+            String refreshToken,
+            String profileImageUrl
+    ) {}
 }
