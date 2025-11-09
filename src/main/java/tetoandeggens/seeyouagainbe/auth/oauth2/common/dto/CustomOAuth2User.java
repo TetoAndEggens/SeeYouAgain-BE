@@ -34,10 +34,6 @@ public class CustomOAuth2User implements OAuth2User {
         return attributes.getProvider();
     }
 
-    public String getSocialId() {
-        return attributes.getSocialId();
-    }
-
     public String getProfileImageUrl() {
         return attributes.getProfileImageUrl();
     }

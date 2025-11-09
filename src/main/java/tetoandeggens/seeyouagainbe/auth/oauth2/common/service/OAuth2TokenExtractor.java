@@ -23,8 +23,7 @@ public class OAuth2TokenExtractor {
         }
 
         try {
-            OAuth2AuthorizedClientService authorizedClientService =
-                    applicationContext.getBean(OAuth2AuthorizedClientService.class);
+            OAuth2AuthorizedClientService authorizedClientService = applicationContext.getBean(OAuth2AuthorizedClientService.class);
 
             OAuth2AuthorizedClient authorizedClient = authorizedClientService.loadAuthorizedClient(
                     oAuth2Token.getAuthorizedClientRegistrationId(),
@@ -32,8 +31,7 @@ public class OAuth2TokenExtractor {
             );
 
             if (authorizedClient == null) {
-                log.warn("[OAuth2TokenExtractor] {} OAuth2AuthorizedClient가 null",
-                        provider.getRegistrationId());
+                log.warn("[OAuth2TokenExtractor] {} OAuth2AuthorizedClient가 null", provider.getRegistrationId());
                 return null;
             }
 
