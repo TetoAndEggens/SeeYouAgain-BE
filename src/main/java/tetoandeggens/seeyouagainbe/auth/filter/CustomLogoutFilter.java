@@ -6,7 +6,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
@@ -46,7 +45,7 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
             Claims claims = tokenProvider.getClaimsFromToken(accessToken);
             String uuid = claims.getSubject();
 
-            tokenProvider.deleteRefreshToken(uuid);
+            tokenProvider.deleteUuid(uuid);
             tokenProvider.deleteRefreshTokenCookie(response);
             tokenProvider.deleteAccessTokenCookie(response);
 

@@ -174,12 +174,10 @@ public class TokenProvider {
 
     public void setAccessTokenCookie(HttpServletResponse response, String accessToken) {
         CookieUtil.setCookie(response, ACCESS_TOKEN_COOKIE_NAME, accessToken, accessTokenExpirationMs / 1000);
-
     }
 
     public void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         CookieUtil.setCookie(response, REFRESH_TOKEN_COOKIE_NAME, refreshToken, refreshTokenExpirationMs / 1000);
-
     }
 
     public void deleteAccessTokenCookie(HttpServletResponse response) {
@@ -190,7 +188,7 @@ public class TokenProvider {
         CookieUtil.deleteCookie(response, REFRESH_TOKEN_COOKIE_NAME);
     }
 
-    public void deleteRefreshToken(String uuid) {
+    public void deleteUuid(String uuid) {
         redisTemplate.delete(uuid);
     }
 

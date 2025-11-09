@@ -346,7 +346,7 @@ class TokenProviderTest {
         void deleteRefreshToken_Success() {
             when(redisTemplate.delete(TEST_UUID)).thenReturn(true);
 
-            assertThatCode(() -> tokenProvider.deleteRefreshToken(TEST_UUID))
+            assertThatCode(() -> tokenProvider.deleteUuid(TEST_UUID))
                     .doesNotThrowAnyException();
 
             verify(redisTemplate).delete(TEST_UUID);
@@ -357,7 +357,7 @@ class TokenProviderTest {
         void deleteRefreshToken_NonExistentToken() {
             when(redisTemplate.delete(TEST_UUID)).thenReturn(false);
 
-            assertThatCode(() -> tokenProvider.deleteRefreshToken(TEST_UUID))
+            assertThatCode(() -> tokenProvider.deleteUuid(TEST_UUID))
                     .doesNotThrowAnyException();
 
             verify(redisTemplate).delete(TEST_UUID);
