@@ -10,6 +10,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
@@ -37,6 +40,8 @@ class AbandonedAnimalServiceTest extends ServiceTest {
 
 	@Autowired
 	private EntityManager entityManager;
+
+	private final GeometryFactory geometryFactory = new GeometryFactory();
 
 	@BeforeEach
 	void setUp() {
@@ -411,10 +416,14 @@ class AbandonedAnimalServiceTest extends ServiceTest {
 		@DisplayName("유기 동물 상세 조회 - 성공")
 		void getAbandonedAnimal_Success() {
 			// given
+			Point point = geometryFactory.createPoint(new Coordinate(127.0276, 37.4979));
+			point.setSRID(4326);
+
 			tetoandeggens.seeyouagainbe.animal.entity.CenterLocation centerLocation = tetoandeggens.seeyouagainbe.animal.entity.CenterLocation.builder()
 				.name("서울 유기견 보호소")
 				.address("서울특별시 강남구")
 				.centerNo("CENTER001")
+				.coordinates(point)
 				.build();
 			entityManager.persist(centerLocation);
 
