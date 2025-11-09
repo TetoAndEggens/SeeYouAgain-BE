@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.SOCIAL_TEMP_TOKEN;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.*;
 import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
 
 @Slf4j

@@ -16,7 +16,6 @@ import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 import tetoandeggens.seeyouagainbe.auth.util.GeneratorRandomUtil;
-import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -26,6 +25,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.*;
 import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
 
 @Slf4j
@@ -57,18 +57,13 @@ public class OAuth2Service {
         LocalDateTime now = LocalDateTime.now();
 
         // 3. Redis에 인증 코드 및 소셜 정보 저장
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_VERIFICATION_CODE + phone, code, Duration.ofMinutes(VERIFICATION_TIME));
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_VERIFICATION_TIME + phone, now.toString(), Duration.ofMinutes(VERIFICATION_TIME));
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_PROVIDER + phone, provider, Duration.ofMinutes(VERIFICATION_TIME));
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_ID + phone, socialId, Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_VERIFICATION_CODE + phone, code, Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_VERIFICATION_TIME + phone, now.toString(), Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_PROVIDER + phone, provider, Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_ID + phone, socialId, Duration.ofMinutes(VERIFICATION_TIME));
 
         // 4. tempUuid 저장 (나중에 회원가입 시 사용)
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_TEMP_UUID + phone, tempUuid, Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_TEMP_UUID + phone, tempUuid, Duration.ofMinutes(VERIFICATION_TIME));
 
         log.info("[OAuth2Service] 소셜 휴대폰 인증 코드 생성 완료 - phone: {}, provider: {}", phone, provider);
 
@@ -96,8 +91,7 @@ public class OAuth2Service {
             throw new CustomException(AuthErrorCode.INVALID_VERIFICATION_CODE);
         }
 
-        redisTemplate.opsForValue().set(
-                PREFIX_SOCIAL_VERIFIED + phone, VERIFIED, Duration.ofMinutes(VERIFICATION_TIME));
+        redisTemplate.opsForValue().set(PREFIX_SOCIAL_VERIFIED + phone, VERIFIED, Duration.ofMinutes(VERIFICATION_TIME));
 
         redisTemplate.delete(PREFIX_SOCIAL_VERIFICATION_CODE + phone);
         redisTemplate.delete(PREFIX_SOCIAL_VERIFICATION_TIME + phone);
@@ -176,7 +170,7 @@ public class OAuth2Service {
 
     @Transactional(readOnly = true)
     public SocialTempInfoResponse getSocialTempInfo(HttpServletRequest request) {
-        String token = CookieUtil.resolveCookieValue(request, AuthConstants.SOCIAL_TEMP_TOKEN);
+        String token = CookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN);
         if (token == null) {
             throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }
