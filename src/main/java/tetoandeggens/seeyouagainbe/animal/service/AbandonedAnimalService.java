@@ -56,4 +56,33 @@ public class AbandonedAnimalService {
 
 		return response;
 	}
+
+	@Transactional(readOnly = true)
+	public AbandonedAnimalListResponse getAbandonedAnimalListWithCoordinates(
+		CursorPageRequest request, SortDirection sortDirection, Double minLongitude, Double minLatitude,
+		Double maxLongitude, Double maxLatitude, String keyword, String startDate, String endDate, Species species,
+		String breedType, NeuteredState neuteredState, Sex sex, String city, String town
+	) {
+		if (keyword == null || keyword.isBlank()) {
+			List<AbandonedAnimalResponse> responses = abandonedAnimalRepository.getAbandonedAnimalListWithCoordinates(
+				request, sortDirection, minLongitude, minLatitude, maxLongitude, maxLatitude,
+				startDate, endDate, species, breedType, neuteredState, sex, city, town
+			);
+
+			CursorPage<AbandonedAnimalResponse, Long> cursorPage = CursorPage.of(
+				responses,
+				request.size(),
+				AbandonedAnimalResponse::abandonedAnimalId
+			);
+
+			Long totalCount = abandonedAnimalRepository.getAbandonedAnimalsCountWithCoordinates(
+				minLongitude, minLatitude, maxLongitude, maxLatitude,
+				startDate, endDate, species, breedType, neuteredState, sex, city, town
+			);
+
+			return AbandonedAnimalListResponse.of(totalCount.intValue(), cursorPage);
+		} else {
+			return null;
+		}
+	}
 }

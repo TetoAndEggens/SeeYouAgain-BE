@@ -1,5 +1,7 @@
 package tetoandeggens.seeyouagainbe.animal.entity;
 
+import org.locationtech.jts.geom.Point;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -29,26 +31,18 @@ public class CenterLocation extends BaseEntity {
 	@Column(name = "address")
 	private String address;
 
-	@Column(name = "detail_address")
-	private String detailAddress;
-
-	@Column(name = "latitude")
-	private Double latitude;
-
-	@Column(name = "longitude")
-	private Double longitude;
+	@Column(name = "coordinates", columnDefinition = "POINT SRID 4326", nullable = false)
+	private Point coordinates;
 
 	@Column(name = "center_no", unique = true)
 	private String centerNo;
 
 	@Builder
-	public CenterLocation(String name, String address, String detailAddress, Double latitude, Double longitude,
-		String centerNo) {
+	public CenterLocation(Long id, String name, String address, Point coordinates, String centerNo) {
+		this.id = id;
 		this.name = name;
 		this.address = address;
-		this.detailAddress = detailAddress;
-		this.latitude = latitude;
-		this.longitude = longitude;
+		this.coordinates = coordinates;
 		this.centerNo = centerNo;
 	}
 }

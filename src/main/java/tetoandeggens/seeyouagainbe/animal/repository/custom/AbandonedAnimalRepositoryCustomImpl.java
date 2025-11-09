@@ -34,15 +34,9 @@ public class AbandonedAnimalRepositoryCustomImpl implements AbandonedAnimalRepos
 
 	@Override
 	public List<AbandonedAnimalResponse> getAbandonedAnimals(
-		CursorPageRequest request,
-		SortDirection sortDirection,
-		String startDate,
-		String endDate,
-		Species species, String breedType,
-		NeuteredState neuteredState,
-		Sex sex,
-		String city,
-		String town
+		CursorPageRequest request, SortDirection sortDirection,
+		String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town
 	) {
 
 		BooleanBuilder builder = createFilterConditions(startDate, endDate, species, breedType, neuteredState, sex,
@@ -152,9 +146,152 @@ public class AbandonedAnimalRepositoryCustomImpl implements AbandonedAnimalRepos
 			.fetchOne();
 	}
 
+	@Override
+	public List<AbandonedAnimalResponse> getAbandonedAnimalListWithCoordinates(
+		CursorPageRequest request, SortDirection sortDirection,
+		Double minLongitude, Double minLatitude, Double maxLongitude, Double maxLatitude,
+		String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town
+	) {
+		QCenterLocation cl = QCenterLocation.centerLocation;
+
+		BooleanExpression withinBounds = Expressions.booleanTemplate(
+			"ST_X({0}) BETWEEN {1} AND {2} AND ST_Y({0}) BETWEEN {3} AND {4}",
+			cl.coordinates,
+			minLatitude,
+			maxLatitude,
+			minLongitude,
+			maxLongitude
+		);
+
+		BooleanBuilder builder = createFilterConditionsWithCoordinates(
+			startDate, endDate, species, breedType, neuteredState, sex, city, town
+		);
+		builder.and(withinBounds);
+
+		BooleanExpression cursorCondition = null;
+		if (request.cursorId() != null) {
+			cursorCondition = (sortDirection == SortDirection.LATEST)
+				? abandonedAnimal.id.lt(request.cursorId())
+				: abandonedAnimal.id.gt(request.cursorId());
+		}
+
+		OrderSpecifier<Long> orderSpecifier = (sortDirection == SortDirection.LATEST)
+			? abandonedAnimal.id.desc()
+			: abandonedAnimal.id.asc();
+
+		QBreedType bt = QBreedType.breedType;
+		QAbandonedAnimalS3Profile profileEntity = QAbandonedAnimalS3Profile.abandonedAnimalS3Profile;
+		QAbandonedAnimalS3Profile subProfile = new QAbandonedAnimalS3Profile("subProfile");
+
+		return queryFactory
+			.select(Projections.constructor(
+				AbandonedAnimalResponse.class,
+				abandonedAnimal.id,
+				abandonedAnimal.happenDate,
+				abandonedAnimal.species,
+				bt.name,
+				abandonedAnimal.birth,
+				abandonedAnimal.city,
+				abandonedAnimal.town,
+				abandonedAnimal.sex,
+				abandonedAnimal.processState,
+				profileEntity.profile
+			))
+			.from(abandonedAnimal)
+			.innerJoin(abandonedAnimal.centerLocation, cl)
+			.innerJoin(abandonedAnimal.breedType, bt)
+			.leftJoin(profileEntity).on(
+				profileEntity.abandonedAnimal.eq(abandonedAnimal),
+				profileEntity.id.eq(
+					JPAExpressions.select(subProfile.id.min())
+						.from(subProfile)
+						.where(subProfile.abandonedAnimal.eq(abandonedAnimal))
+				)
+			)
+			.where(builder, cursorCondition)
+			.orderBy(orderSpecifier)
+			.limit(request.size() + 1)
+			.fetch();
+	}
+
+	@Override
+	public Long getAbandonedAnimalsCountWithCoordinates(
+		Double minLongitude, Double minLatitude, Double maxLongitude, Double maxLatitude,
+		String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town
+	) {
+		QCenterLocation cl = QCenterLocation.centerLocation;
+
+		BooleanExpression withinBounds = Expressions.booleanTemplate(
+			"ST_X({0}) BETWEEN {1} AND {2} AND ST_Y({0}) BETWEEN {3} AND {4}",
+			cl.coordinates,
+			minLatitude,
+			maxLatitude,
+			minLongitude,
+			maxLongitude
+		);
+
+		BooleanBuilder builder = createFilterConditionsWithCoordinates(
+			startDate, endDate, species, breedType, neuteredState, sex, city, town
+		);
+		builder.and(withinBounds);
+
+		return queryFactory
+			.select(abandonedAnimal.count())
+			.from(abandonedAnimal)
+			.innerJoin(abandonedAnimal.centerLocation, cl)
+			.leftJoin(abandonedAnimal.breedType, QBreedType.breedType)
+			.where(builder)
+			.fetchOne();
+	}
+
 	private BooleanBuilder createFilterConditions(String startDate, String endDate, Species species, String breedType,
 		NeuteredState neuteredState, Sex sex, String city, String town) {
 
+		BooleanBuilder builder = new BooleanBuilder();
+
+		if (startDate != null && !startDate.isBlank()) {
+			LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+			builder.and(abandonedAnimal.happenDate.goe(start));
+		}
+
+		if (endDate != null && !endDate.isBlank()) {
+			LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+			builder.and(abandonedAnimal.happenDate.loe(end));
+		}
+
+		if (species != null) {
+			builder.and(abandonedAnimal.species.eq(species));
+		}
+
+		if (breedType != null && !breedType.isBlank()) {
+			builder.and(abandonedAnimal.breedType.name.eq(breedType));
+		}
+
+		if (neuteredState != null) {
+			builder.and(abandonedAnimal.neuteredState.eq(neuteredState));
+		}
+
+		if (sex != null) {
+			builder.and(abandonedAnimal.sex.eq(sex));
+		}
+
+		if (city != null && !city.isBlank()) {
+			builder.and(abandonedAnimal.city.eq(city));
+		}
+
+		if (town != null && !town.isBlank()) {
+			builder.and(abandonedAnimal.town.eq(town));
+		}
+
+		return builder;
+	}
+
+	private BooleanBuilder createFilterConditionsWithCoordinates(
+		String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town
+	) {
 		BooleanBuilder builder = new BooleanBuilder();
 
 		if (startDate != null && !startDate.isBlank()) {
