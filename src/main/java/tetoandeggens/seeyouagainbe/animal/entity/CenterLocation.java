@@ -31,7 +31,7 @@ public class CenterLocation extends BaseEntity {
 	@Column(name = "address")
 	private String address;
 
-	@Column(name = "coordinates", columnDefinition = "POINT SRID 4326", nullable = false)
+	@Column(name = "coordinates")
 	private Point coordinates;
 
 	@Column(name = "center_no", unique = true)
