@@ -1,4 +1,4 @@
-package tetoandeggens.seeyouagainbe.auth.client;
+package tetoandeggens.seeyouagainbe.auth.oauth2.naver.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
