@@ -48,6 +48,7 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
 
             tokenProvider.deleteRefreshToken(uuid);
             tokenProvider.deleteRefreshTokenCookie(response);
+            tokenProvider.deleteAccessTokenCookie(response);
 
             ResponseUtil.writeNoContent(response, objectMapper, HttpStatus.NO_CONTENT);
         } catch (Exception e) {

@@ -23,6 +23,16 @@ public class CookieUtil {
         return null;
     }
 
+    public static String resolveAccessTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if (AuthConstants.ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
     public static String resolveRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) return null;
         for (var cookie : request.getCookies()) {
@@ -43,6 +53,10 @@ public class CookieUtil {
 
     public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
         addCookie(response, "accessToken", accessToken, maxAgeInSeconds);
+    }
+
+    public static void deleteAccessTokenCookie(HttpServletResponse response) {
+        addCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE_NAME, "", 0);
     }
 
     public static void setSocialTempTokenCookie(HttpServletResponse response, String tempToken, int maxAge) {
