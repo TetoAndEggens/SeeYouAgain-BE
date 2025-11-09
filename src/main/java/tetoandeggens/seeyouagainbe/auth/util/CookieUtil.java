@@ -3,48 +3,62 @@ package tetoandeggens.seeyouagainbe.auth.util;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ResponseCookie;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 
 public class CookieUtil {
 
+    private static final String SAME_SITE = "Lax";
+    private static final boolean SECURE = true;
+    private static final boolean HTTP_ONLY = true;
+    private static final String PATH = "/";
+
+    public static String resolveCookieValue(HttpServletRequest request, String name) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if (name.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
+    }
+
     public static String resolveRefreshTokenFromCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (AuthConstants.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
+        if (request.getCookies() == null) return null;
+        for (var cookie : request.getCookies()) {
+            if (AuthConstants.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                return cookie.getValue();
             }
         }
         return null;
     }
 
     public static void setRefreshTokenCookie(HttpServletResponse response, String refreshToken, long maxAgeInSeconds) {
-        Cookie cookie = new Cookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) maxAgeInSeconds);
-        response.addCookie(cookie);
+        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken, maxAgeInSeconds);
     }
 
     public static void deleteRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME, null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, "", 0);
     }
 
     public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
-        Cookie cookie = new Cookie("accessToken", accessToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) maxAgeInSeconds);
-        cookie.setAttribute("SameSite", "Lax");
-        response.addCookie(cookie);
+        addCookie(response, "accessToken", accessToken, maxAgeInSeconds);
+    }
+
+    public static void setSocialTempTokenCookie(HttpServletResponse response, String tempToken, int maxAge) {
+        addCookie(response, "socialTempToken", tempToken, maxAge);
+    }
+
+    private static void addCookie(HttpServletResponse response, String name, String value, long maxAgeSeconds) {
+        ResponseCookie cookie = ResponseCookie.from(name, value)
+                .httpOnly(HTTP_ONLY)
+                .secure(SECURE)
+                .path(PATH)
+                .maxAge(maxAgeSeconds)
+                .sameSite(SAME_SITE)
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     private CookieUtil() {}

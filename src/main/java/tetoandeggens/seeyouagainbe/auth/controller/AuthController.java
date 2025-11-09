@@ -74,7 +74,7 @@ public class AuthController {
             summary = "통합 회원가입",
             description = "일반 회원가입 (loginId, password, nickName, phoneNumber 필수)\n\n" +
                     "소셜 로그인으로 시작한 경우에도 이 API를 사용하며, " +
-                    "socialProvider, socialId, profileImageUrl은 자동으로 Redis에서 가져옵니다."
+                    "socialProvider, socialId, profileImageUrl, refreshToken은 자동으로 tempUuid를 통해 Redis에서 가져옵니다."
     )
     @PostMapping("/signup")
     public ApiResponse<Void> register(@Valid @RequestBody UnifiedRegisterRequest request) {
@@ -82,25 +82,27 @@ public class AuthController {
         return ApiResponse.created();
     }
 
-    @Operation(summary = "첫 소셜 회원가입 시, 필요한 정보 획득")
+    @Operation(
+            summary = "첫 소셜 회원가입 시, 필요한 정보 획득",
+            description = "쿠키에서 socialTempToken을 읽어 profileImageUrl과 tempUuid만 반환하고 provider와 socialId는 서버에서만 관리"
+    )
     @GetMapping("/social/temp-info")
-    public ApiResponse<SocialTempInfoResponse> getSocialTempInfo(@RequestParam String token) {
-        SocialTempInfoResponse response = oAuth2Service.getSocialTempInfo(token);
+    public ApiResponse<SocialTempInfoResponse> getSocialTempInfo(HttpServletRequest request) {
+        // 쿠키에서 임시 소셜 토큰을 읽어 처리
+        SocialTempInfoResponse response = oAuth2Service.getSocialTempInfo(request);
         return ApiResponse.ok(response);
     }
 
     @Operation(
             summary = "[소셜] 휴대폰 인증 코드 요청",
-            description = "소셜 로그인 시 휴대폰 인증을 위한 코드 생성. provider, socialId, profileImageUrl 포함"
+            description = "소셜 로그인 시 휴대폰 인증을 위한 코드 생성. tempUuid를 통해 서버가 provider, socialId를 자동으로 조회"
     )
     @PostMapping("/social/phone/send-code")
     public ApiResponse<PhoneVerificationResultResponse> sendSocialPhoneVerificationCode(
             @Valid @RequestBody SocialPhoneVerificationRequest request) {
         PhoneVerificationResultResponse response = oAuth2Service.sendSocialPhoneVerificationCode(
                 request.phone(),
-                request.provider(),
-                request.socialId(),
-                request.profileImageUrl()
+                request.tempUuid()
         );
         return ApiResponse.ok(response);
     }
