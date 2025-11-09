@@ -12,7 +12,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 
 import java.io.IOException;
 
@@ -33,7 +33,7 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
         String requestMethod = request.getMethod();
 
-        if (!AuthConstants.LOGOUT_URI.equals(requestURI) || !AuthConstants.POST_METHOD.equals(requestMethod)) {
+        if (!AuthCommonConstants.LOGOUT_URI.equals(requestURI) || !AuthCommonConstants.POST_METHOD.equals(requestMethod)) {
             filterChain.doFilter(request, response);
             return;
         }

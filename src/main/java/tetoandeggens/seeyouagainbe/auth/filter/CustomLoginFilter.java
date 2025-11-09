@@ -20,7 +20,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
         this.cookieService = cookieService;
         this.redisAuthService = redisAuthService;
         this.objectMapper = objectMapper;
-        setFilterProcessesUrl(AuthConstants.LOGIN_URI);
+        setFilterProcessesUrl(AuthCommonConstants.LOGIN_URI);
     }
 
     @Override
@@ -58,8 +58,8 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             HttpServletResponse response)
             throws AuthenticationException {
 
-        if (!AuthConstants.LOGIN_URI.equals(request.getRequestURI()) ||
-                !AuthConstants.POST_METHOD.equals(request.getMethod())) {
+        if (!AuthCommonConstants.LOGIN_URI.equals(request.getRequestURI()) ||
+                !AuthCommonConstants.POST_METHOD.equals(request.getMethod())) {
             throw new CustomException(INVALID_LOGIN_REQUEST);
         }
 

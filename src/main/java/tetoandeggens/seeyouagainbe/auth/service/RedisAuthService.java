@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Optional;
 
-import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants.*;
 
 @Slf4j
 @Service

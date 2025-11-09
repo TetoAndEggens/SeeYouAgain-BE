@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 
-import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.*;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.*;
 
 @Service
 @RequiredArgsConstructor
