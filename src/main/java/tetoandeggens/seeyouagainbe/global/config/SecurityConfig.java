@@ -117,6 +117,7 @@ public class SecurityConfig {
                         .requestMatchers(WHITE_LIST).permitAll()
                         .requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
                         .anyRequest().authenticated())
+
                 .addFilterAt(
                         new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
                         UsernamePasswordAuthenticationFilter.class)
