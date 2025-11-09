@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.dto.request.*;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
-import tetoandeggens.seeyouagainbe.auth.dto.response.ReissueTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialTempInfoResponse;
 import tetoandeggens.seeyouagainbe.auth.service.AuthService;
@@ -133,15 +132,15 @@ public class AuthController {
 
     @Operation(
             summary = "토큰 재발급",
-            description = "Refresh Token으로 새로운 Access Token 발급"
+            description = "Refresh Token으로 새로운 Access Token을 쿠키에 발급"
     )
     @PostMapping("/reissue")
-    public ApiResponse<ReissueTokenResponse> reissueToken(
+    public ApiResponse<Void> reissueToken(
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        ReissueTokenResponse reissueResponse = authService.reissueToken(request, response);
-        return ApiResponse.ok(reissueResponse);
+        authService.reissueToken(request, response);
+        return ApiResponse.noContent();
     }
 
     @Operation(
