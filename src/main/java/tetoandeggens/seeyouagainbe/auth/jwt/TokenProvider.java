@@ -162,11 +162,7 @@ public class TokenProvider {
     }
 
     public String resolveAccessToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader(AuthConstants.AUTHORIZATION_HEADER);
-        if (bearerToken != null && bearerToken.startsWith(AuthConstants.BEARER_PREFIX)) {
-            return bearerToken.substring(AuthConstants.BEARER_PREFIX.length());
-        }
-        return null;
+        return CookieUtil.resolveAccessTokenFromCookie(request);
     }
 
     public String resolveRefreshToken(HttpServletRequest request) {
@@ -179,6 +175,10 @@ public class TokenProvider {
 
     public void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
         CookieUtil.setRefreshTokenCookie(response, refreshToken, refreshTokenExpirationMs / 1000);
+    }
+
+    public void deleteAccessTokenCookie(HttpServletResponse response) {
+        CookieUtil.deleteAccessTokenCookie(response);
     }
 
     public void deleteRefreshTokenCookie(HttpServletResponse response) {
