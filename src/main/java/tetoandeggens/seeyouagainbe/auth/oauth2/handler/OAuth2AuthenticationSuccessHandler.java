@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -18,17 +17,16 @@ import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2Provider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2AttributeExtractorProvider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.OAuth2TokenExtractor;
-import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
+import tetoandeggens.seeyouagainbe.auth.service.CookieService;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import static tetoandeggens.seeyouagainbe.global.constants.AuthConstants.*;
 import static tetoandeggens.seeyouagainbe.global.constants.EmailVerificationConstant.*;
 
 @Slf4j
@@ -40,7 +38,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final MemberRepository memberRepository;
     private final Map<String, OAuth2AttributeExtractorProvider> attributeExtractors;
     private final OAuth2TokenExtractor tokenExtractor;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisAuthService redisAuthService;
+    private final CookieService cookieService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -60,28 +59,25 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         OAuth2User oAuth2User = oAuth2Token.getPrincipal();
         String registrationId = oAuth2Token.getAuthorizedClientRegistrationId();
-
         OAuth2Provider provider = OAuth2Provider.fromRegistrationId(registrationId);
 
-        // Provider별 Extractor 가져오기
         String extractorBeanName = provider.getRegistrationId() + "AttributeExtractor";
         OAuth2AttributeExtractorProvider extractor = attributeExtractors.get(extractorBeanName);
 
         if (extractor == null) {
-            log.error("[OAuth2Success] AttributeExtractor를 찾을 수 없음 - provider: {}", provider.getRegistrationId());
+            log.error("[OAuth2Success] AttributeExtractor를 찾을 수 없음 - provider: {}",
+                    provider.getRegistrationId());
             return;
         }
 
-        // socialId, profileImageUrl 추출
         String socialId = extractor.extractSocialId(oAuth2User);
         String profileImageUrl = extractor.extractProfileImageUrl(oAuth2User);
         String oauthRefreshToken = tokenExtractor.extractRefreshToken(oAuth2Token, provider);
 
-        // 회원 존재 여부 확인
         Optional<Member> memberOptional = findMemberBySocialId(provider, socialId);
 
         if (memberOptional.isPresent()) {
-            handleExistingMember(memberOptional.get(), provider, response);
+            handleExistingMember(memberOptional.get(), response);
         } else {
             handleNewMember(provider, socialId, profileImageUrl, oauthRefreshToken, response);
         }
@@ -95,21 +91,28 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         };
     }
 
-    private void handleExistingMember(
-            Member member,
-            OAuth2Provider provider,
-            HttpServletResponse response
-    ) throws IOException {
-        log.info("[OAuth2Success] 기존 회원 로그인 - memberId: {}, provider: {}",
-                member.getId(), provider.getRegistrationId());
-        // JWT 토큰 생성
+    private void handleExistingMember(Member member, HttpServletResponse response) throws IOException {
         UserTokenResponse tokens = tokenProvider.createLoginToken(
                 member.getUuid(),
                 member.getRole()
         );
 
-        tokenProvider.setAccessTokenCookie(response, tokens.accessToken());
-        tokenProvider.setRefreshTokenCookie(response, tokens.refreshToken());
+        cookieService.setAccessTokenCookie(
+                response,
+                tokens.accessToken(),
+                tokenProvider.getAccessTokenExpirationSec()
+        );
+        cookieService.setRefreshTokenCookie(
+                response,
+                tokens.refreshToken(),
+                tokenProvider.getRefreshTokenExpirationSec()
+        );
+
+        redisAuthService.saveRefreshToken(
+                member.getUuid(),
+                tokens.refreshToken(),
+                tokenProvider.getRefreshTokenExpirationMs()
+        );
 
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
                 .path("/auth/callback")
@@ -127,19 +130,22 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String oauthRefreshToken,
             HttpServletResponse response
     ) throws IOException {
-        log.info("[OAuth2Success] 신규 회원 - provider: {}, socialId: {}", provider.getRegistrationId(), socialId);
-
         String tempUuid = UUID.randomUUID().toString();
-        saveSocialInfoToRedis(tempUuid, provider.getRegistrationId(), socialId, oauthRefreshToken);
 
-        // RefreshToken 포함한 임시 JWT 생성
+        redisAuthService.saveTempSocialInfo(
+                tempUuid,
+                provider.getRegistrationId(),
+                socialId,
+                oauthRefreshToken
+        );
+
         String tempToken = tokenProvider.createSocialTempToken(
                 provider.getRegistrationId(),
                 profileImageUrl,
                 tempUuid
         );
 
-        CookieUtil.setCookie(response, SOCIAL_TEMP_TOKEN, tempToken, VERIFICATION_TIME * 60L);
+        cookieService.setSocialTempTokenCookie(response, tempToken, VERIFICATION_TIME * 60L);
 
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
                 .path("/auth/social-signup")
@@ -147,19 +153,5 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
-    }
-
-    private void saveSocialInfoToRedis(String tempUuid, String provider, String socialId, String refreshToken) {
-        Duration ttl = Duration.ofMinutes(VERIFICATION_TIME);
-
-        redisTemplate.opsForValue().set(PREFIX_TEMP_SOCIAL_PROVIDER + tempUuid, provider, ttl);
-        redisTemplate.opsForValue().set(PREFIX_TEMP_SOCIAL_ID + tempUuid, socialId, ttl);
-
-        if (refreshToken != null && !refreshToken.isBlank()) {
-            redisTemplate.opsForValue().set(PREFIX_TEMP_SOCIAL_REFRESH + tempUuid, refreshToken, ttl);
-            log.info("[OAuth2Success] {} RefreshToken Redis 저장 완료 - tempUuid: {}", provider, tempUuid);
-        }
-
-        log.info("[OAuth2Success] 소셜 정보 Redis 저장 완료 - tempUuid: {}, TTL: {}분", tempUuid, VERIFICATION_TIME);
     }
 }
