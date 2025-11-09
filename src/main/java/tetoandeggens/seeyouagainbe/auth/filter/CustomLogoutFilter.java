@@ -9,16 +9,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
+import tetoandeggens.seeyouagainbe.auth.service.CookieService;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
+
+import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
 @RequiredArgsConstructor
 public class CustomLogoutFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
+    private final CookieService cookieService;
+    private final RedisAuthService redisAuthService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -33,25 +38,24 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
             return;
         }
 
-        String accessToken = tokenProvider.resolveAccessToken(request);
-        String refreshToken = tokenProvider.resolveRefreshToken(request);
+        String accessToken = cookieService.resolveAccessToken(request);
+        String refreshToken = cookieService.resolveRefreshToken(request);
 
         if (accessToken == null || refreshToken == null) {
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.TOKEN_NOT_FOUND);
+            ResponseUtil.writeErrorResponse(response, objectMapper, TOKEN_NOT_FOUND);
             return;
         }
 
         try {
-            Claims claims = tokenProvider.getClaimsFromToken(accessToken);
+            Claims claims = tokenProvider.parseClaims(accessToken);
             String uuid = claims.getSubject();
 
-            tokenProvider.deleteUuid(uuid);
-            tokenProvider.deleteRefreshTokenCookie(response);
-            tokenProvider.deleteAccessTokenCookie(response);
+            redisAuthService.deleteRefreshToken(uuid);
+            cookieService.deleteAllAuthCookies(response);
 
             ResponseUtil.writeNoContent(response, objectMapper, HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.INVALID_TOKEN);
+            ResponseUtil.writeErrorResponse(response, objectMapper, INVALID_TOKEN);
         }
     }
 }

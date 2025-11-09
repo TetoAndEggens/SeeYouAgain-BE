@@ -14,16 +14,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
+import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
 import java.io.IOException;
 import java.util.Arrays;
+
+import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
+    private final CookieService cookieService;
     private final String[] whiteList;
     private final String[] blackList;
     private final ObjectMapper objectMapper;
@@ -36,28 +40,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String accessToken = tokenProvider.resolveAccessToken(request);
+        String accessToken = cookieService.resolveAccessToken(request);
 
         try {
-            if (accessToken != null && tokenProvider.validateToken(accessToken)) {
+            if (accessToken != null) {
+                tokenProvider.validateToken(accessToken);
                 Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+        } catch (CustomException e) {
+            SecurityContextHolder.clearContext();
+            ResponseUtil.writeErrorResponse(response, objectMapper, e.getErrorCode());
+            return;
         } catch (ExpiredJwtException e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.EXPIRED_TOKEN);
+            ResponseUtil.writeErrorResponse(response, objectMapper, EXPIRED_TOKEN);
             return;
         } catch (IncorrectClaimException e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.INCORRECT_CLAIM_TOKEN);
+            ResponseUtil.writeErrorResponse(response, objectMapper, INCORRECT_CLAIM_TOKEN);
             return;
         } catch (UsernameNotFoundException e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.MEMBER_NOT_FOUND);
+            ResponseUtil.writeErrorResponse(response, objectMapper, MEMBER_NOT_FOUND);
             return;
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.INVALID_TOKEN);
+            ResponseUtil.writeErrorResponse(response, objectMapper, INVALID_TOKEN);
             return;
         }
 

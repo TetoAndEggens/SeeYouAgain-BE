@@ -17,24 +17,37 @@ import tetoandeggens.seeyouagainbe.auth.dto.request.LoginRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
+import tetoandeggens.seeyouagainbe.auth.service.CookieService;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
 import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
+import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
+
 public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final TokenProvider tokenProvider;
+    private final CookieService cookieService;
+    private final RedisAuthService redisAuthService;
     private final ObjectMapper objectMapper;
 
-    public CustomLoginFilter(AuthenticationManager authenticationManager, TokenProvider tokenProvider, ObjectMapper objectMapper) {
+    public CustomLoginFilter(
+            AuthenticationManager authenticationManager,
+            TokenProvider tokenProvider,
+            CookieService cookieService,
+            RedisAuthService redisAuthService,
+            ObjectMapper objectMapper
+    ) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
+        this.cookieService = cookieService;
+        this.redisAuthService = redisAuthService;
         this.objectMapper = objectMapper;
         setFilterProcessesUrl(AuthConstants.LOGIN_URI);
     }
@@ -45,8 +58,9 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             HttpServletResponse response)
             throws AuthenticationException {
 
-        if (!AuthConstants.LOGIN_URI.equals(request.getRequestURI()) || !AuthConstants.POST_METHOD.equals(request.getMethod())) {
-            throw new CustomException(AuthErrorCode.INVALID_LOGIN_REQUEST);
+        if (!AuthConstants.LOGIN_URI.equals(request.getRequestURI()) ||
+                !AuthConstants.POST_METHOD.equals(request.getMethod())) {
+            throw new CustomException(INVALID_LOGIN_REQUEST);
         }
 
         LoginRequest loginRequest;
@@ -54,7 +68,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             String messageBody = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
             loginRequest = objectMapper.readValue(messageBody, LoginRequest.class);
         } catch (IOException e) {
-            throw new CustomException(AuthErrorCode.INVALID_LOGIN_REQUEST);
+            throw new CustomException(INVALID_LOGIN_REQUEST);
         }
 
         UsernamePasswordAuthenticationToken authToken =
@@ -76,12 +90,26 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
         String role = authorities.stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
-                .orElseThrow(() -> new CustomException(AuthErrorCode.ACCESS_DENIED));
+                .orElseThrow(() -> new CustomException(ACCESS_DENIED));
 
         UserTokenResponse loginToken = tokenProvider.createLoginToken(uuid, userDetails.getRole());
 
-        tokenProvider.setAccessTokenCookie(response, loginToken.accessToken());
-        tokenProvider.setRefreshTokenCookie(response, loginToken.refreshToken());
+        cookieService.setAccessTokenCookie(
+                response,
+                loginToken.accessToken(),
+                tokenProvider.getAccessTokenExpirationSec()
+        );
+        cookieService.setRefreshTokenCookie(
+                response,
+                loginToken.refreshToken(),
+                tokenProvider.getRefreshTokenExpirationSec()
+        );
+
+        redisAuthService.saveRefreshToken(
+                uuid,
+                loginToken.refreshToken(),
+                tokenProvider.getRefreshTokenExpirationMs()
+        );
 
         LoginResponse loginResponse = LoginResponse.builder()
                 .uuid(userDetails.getUuid())
@@ -102,6 +130,6 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
             HttpServletResponse response,
             AuthenticationException failed
     ) throws IOException {
-        ResponseUtil.writeErrorResponse(response, objectMapper, AuthErrorCode.WRONG_ID_PW);
+        ResponseUtil.writeErrorResponse(response, objectMapper, WRONG_ID_PW);
     }
 }
