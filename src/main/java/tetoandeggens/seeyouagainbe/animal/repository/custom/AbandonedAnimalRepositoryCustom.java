@@ -22,4 +22,16 @@ public interface AbandonedAnimalRepositoryCustom {
 		Sex sex, String city, String town);
 
 	AbandonedAnimalDetailResponse getAbandonedAnimal(Long abandonedAnimalId);
+
+	List<AbandonedAnimalResponse> getAbandonedAnimalListWithCoordinates(
+		CursorPageRequest request, SortDirection sortDirection, Double minLongitude, Double minLatitude,
+		Double maxLongitude, Double maxLatitude, String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town
+	);
+
+	Long getAbandonedAnimalsCountWithCoordinates(
+		Double minLongitude, Double minLatitude, Double maxLongitude, Double maxLatitude, String startDate,
+		String endDate, Species species, String breedType, NeuteredState neuteredState, Sex sex, String city,
+		String town
+	);
 }

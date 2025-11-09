@@ -62,4 +62,33 @@ public class AbandonedAnimalController {
 
 		return ApiResponse.ok(response);
 	}
+
+	@GetMapping("/map")
+	@Operation(
+		summary = "좌표 기준 범위 내, 유기 동물들 조회 API",
+		description = "좌표 기준 범위 내, 유기 동물들 조회 - 커서 페이징 적용")
+	public ApiResponse<AbandonedAnimalListResponse> getAbandonedAnimalListWithCoordinates(
+		@ParameterObject @Valid CursorPageRequest request,
+		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection,
+		@RequestParam Double minLongitude,
+		@RequestParam Double minLatitude,
+		@RequestParam Double maxLongitude,
+		@RequestParam Double maxLatitude,
+		@RequestParam(required = false) String keyword,
+		@RequestParam(required = false) String startDate,
+		@RequestParam(required = false) String endDate,
+		@RequestParam(required = false) Species species,
+		@RequestParam(required = false) String breedType,
+		@RequestParam(required = false) NeuteredState neuteredState,
+		@RequestParam(required = false) Sex sex,
+		@RequestParam(required = false) String city,
+		@RequestParam(required = false) String town
+	) {
+		AbandonedAnimalListResponse response = abandonedAnimalService.getAbandonedAnimalListWithCoordinates(
+			request, sortDirection, minLongitude, minLatitude, maxLongitude, maxLatitude, keyword,
+			startDate, endDate, species, breedType, neuteredState, sex, city, town
+		);
+
+		return ApiResponse.ok(response);
+	}
 }
