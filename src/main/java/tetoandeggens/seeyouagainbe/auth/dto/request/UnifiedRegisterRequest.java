@@ -30,17 +30,13 @@ public record UnifiedRegisterRequest(
         @Schema(description = "전화번호", example = "01012345678", required = true)
         String phoneNumber,
 
-        @Schema(description = "소셜 제공자 (선택: kakao, naver, google)", example = "kakao")
-        String socialProvider,
-
-        @Schema(description = "소셜 ID (선택)", example = "123456789")
-        String socialId,
-
         @Schema(description = "프로필 이미지 URL (선택)", example = "https://example.com/profile.jpg")
-        String profileImageUrl
+        String profileImageUrl,
+
+        @Schema(description = "소셜 로그인 임시 UUID (소셜 로그인 시에만 필요)", example = "550e8400-e29b-41d4-a716-446655440000")
+        String tempUuid
 ) {
-    // 소셜 정보가 있는지 확인
     public boolean hasSocialInfo() {
-        return socialProvider != null && socialId != null;
+        return tempUuid != null && !tempUuid.isBlank();
     }
 }

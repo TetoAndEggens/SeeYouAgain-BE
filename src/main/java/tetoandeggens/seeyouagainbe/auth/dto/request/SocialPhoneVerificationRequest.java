@@ -11,15 +11,7 @@ public record SocialPhoneVerificationRequest(
         @Schema(description = "휴대전화 번호", example = "01012345678")
         String phone,
 
-        @NotBlank(message = "소셜 제공자는 필수입니다.")
-        @Pattern(regexp = "^(kakao|naver|google)$", message = "제공자는 kakao, naver, google 중 하나여야 합니다.")
-        @Schema(description = "소셜 제공자", example = "kakao")
-        String provider,
-
-        @NotBlank(message = "소셜 ID는 필수입니다.")
-        @Schema(description = "소셜 플랫폼 고유 ID", example = "1234567890")
-        String socialId,
-
-        @Schema(description = "프로필 이미지 URL (선택)", example = "https://example.com/profile.jpg")
-        String profileImageUrl
+        @NotBlank(message = "임시 UUID는 필수입니다.")
+        @Schema(description = "임시 UUID (소셜 로그인 성공 시 발급받은 UUID)", example = "550e8400-e29b-41d4-a716-446655440000")
+        String tempUuid
 ) {}
