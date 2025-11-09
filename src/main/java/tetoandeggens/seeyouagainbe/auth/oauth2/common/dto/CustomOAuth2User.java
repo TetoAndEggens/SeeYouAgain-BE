@@ -1,4 +1,4 @@
-package tetoandeggens.seeyouagainbe.auth.oauth2;
+package tetoandeggens.seeyouagainbe.auth.oauth2.common.dto;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CustomOAuth2User implements OAuth2User {
 
-    private final OAuth2Attributes attributes;
+    private final BaseOAuth2Attributes attributes;
 
     @Override
     public Map<String, Object> getAttributes() {
