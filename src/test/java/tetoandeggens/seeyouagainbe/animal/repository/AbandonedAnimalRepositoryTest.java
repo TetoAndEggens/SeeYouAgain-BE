@@ -16,10 +16,12 @@ import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
+import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.AbandonedAnimal;
 import tetoandeggens.seeyouagainbe.animal.entity.AbandonedAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.CenterLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
@@ -253,7 +255,7 @@ class AbandonedAnimalRepositoryTest extends RepositoryTest {
 			Point point = geometryFactory.createPoint(new Coordinate(127.0276, 37.4979));
 			point.setSRID(4326);
 
-			tetoandeggens.seeyouagainbe.animal.entity.CenterLocation centerLocation = tetoandeggens.seeyouagainbe.animal.entity.CenterLocation.builder()
+			CenterLocation centerLocation = CenterLocation.builder()
 				.name("서울 유기견 보호소")
 				.address("서울특별시 강남구")
 				.centerNo("CENTER001")
@@ -292,7 +294,7 @@ class AbandonedAnimalRepositoryTest extends RepositoryTest {
 			entityManager.clear();
 
 			// when
-			tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
+			AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
 				animal.getId());
 
 			// then
@@ -322,7 +324,7 @@ class AbandonedAnimalRepositoryTest extends RepositoryTest {
 		@DisplayName("유기 동물 상세 조회 - 존재하지 않는 ID로 조회시 null 반환")
 		void getAbandonedAnimal_ReturnsNull_WhenNotExists() {
 			// when
-			tetoandeggens.seeyouagainbe.animal.dto.response.AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
+			AbandonedAnimalDetailResponse result = abandonedAnimalRepository.getAbandonedAnimal(
 				999L);
 
 			// then
