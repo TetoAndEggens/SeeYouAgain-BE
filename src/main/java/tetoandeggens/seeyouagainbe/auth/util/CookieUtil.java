@@ -23,24 +23,12 @@ public class CookieUtil {
         return null;
     }
 
-    public static void setSocialTempTokenCookie(HttpServletResponse response, String tempToken, int maxAge) {
-        addCookie(response, AuthConstants.SOCIAL_TEMP_TOKEN, tempToken, maxAge);
+    public static void setCookie(HttpServletResponse response, String cookieName, String value, long maxAgeInSeconds) {
+        addCookie(response, cookieName, value, maxAgeInSeconds);
     }
 
-    public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
-        addCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE_NAME, accessToken, maxAgeInSeconds);
-    }
-
-    public static void setRefreshTokenCookie(HttpServletResponse response, String refreshToken, long maxAgeInSeconds) {
-        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken, maxAgeInSeconds);
-    }
-
-    public static void deleteAccessTokenCookie(HttpServletResponse response) {
-        addCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE_NAME, "", 0);
-    }
-
-    public static void deleteRefreshTokenCookie(HttpServletResponse response) {
-        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, "", 0);
+    public static void deleteCookie(HttpServletResponse response, String cookieName) {
+        addCookie(response, cookieName, null, 0);
     }
 
     private static void addCookie(HttpServletResponse response, String name, String value, long maxAgeSeconds) {
