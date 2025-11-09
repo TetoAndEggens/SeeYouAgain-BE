@@ -22,6 +22,8 @@ import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import javax.crypto.SecretKey;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -45,6 +47,23 @@ public class TokenProvider {
     public void init() {
         byte[] keyBytes = Base64.getDecoder().decode(secret);
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public Claims parseClaims(String token) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            // 만료된 토큰도 Claims는 유효하므로 그대로 반환
+            log.info("임시 소셜 토큰 만료 (payload는 반환됨)");
+            return e.getClaims();
+        } catch (JwtException e) {
+            log.error("JWT 파싱 실패: {}", e.getMessage());
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+        }
     }
 
     public UserTokenResponse createLoginToken(String uuid, Role role) {
@@ -76,6 +95,21 @@ public class TokenProvider {
                 .claim(AuthConstants.ROLE_CLAIM, role)
                 .issuedAt(now)
                 .expiration(expiryDate)
+                .signWith(secretKey, Jwts.SIG.HS512)
+                .compact();
+    }
+
+    public String createSocialTempToken(String provider, String profileImageUrl, String tempUuid) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("provider", provider);
+        claims.put("profileImageUrl", profileImageUrl != null ? profileImageUrl : "");
+        claims.put("tempUuid", tempUuid);
+        claims.put("type", "social_temp");
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000)) // 10분
                 .signWith(secretKey, Jwts.SIG.HS512)
                 .compact();
     }
