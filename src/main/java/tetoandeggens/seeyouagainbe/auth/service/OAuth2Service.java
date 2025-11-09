@@ -16,6 +16,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 import tetoandeggens.seeyouagainbe.auth.util.GeneratorRandomUtil;
+import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -175,7 +176,7 @@ public class OAuth2Service {
 
     @Transactional(readOnly = true)
     public SocialTempInfoResponse getSocialTempInfo(HttpServletRequest request) {
-        String token = CookieUtil.resolveCookieValue(request, "socialTempToken");
+        String token = CookieUtil.resolveCookieValue(request, AuthConstants.SOCIAL_TEMP_TOKEN);
         if (token == null) {
             throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }

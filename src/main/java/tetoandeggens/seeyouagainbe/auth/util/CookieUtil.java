@@ -13,54 +13,34 @@ public class CookieUtil {
     private static final boolean HTTP_ONLY = true;
     private static final String PATH = "/";
 
-    public static String resolveCookieValue(HttpServletRequest request, String name) {
+    public static String resolveCookieValue(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return null;
         for (Cookie cookie : request.getCookies()) {
-            if (name.equals(cookie.getName())) {
+            if (cookieName.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }
         return null;
     }
 
-    public static String resolveAccessTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
-        for (Cookie cookie : request.getCookies()) {
-            if (AuthConstants.ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
+    public static void setSocialTempTokenCookie(HttpServletResponse response, String tempToken, int maxAge) {
+        addCookie(response, AuthConstants.SOCIAL_TEMP_TOKEN, tempToken, maxAge);
     }
 
-    public static String resolveRefreshTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
-        for (var cookie : request.getCookies()) {
-            if (AuthConstants.REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
+    public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
+        addCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE_NAME, accessToken, maxAgeInSeconds);
     }
 
     public static void setRefreshTokenCookie(HttpServletResponse response, String refreshToken, long maxAgeInSeconds) {
         addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken, maxAgeInSeconds);
     }
 
-    public static void deleteRefreshTokenCookie(HttpServletResponse response) {
-        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, "", 0);
-    }
-
-    public static void setAccessTokenCookie(HttpServletResponse response, String accessToken, long maxAgeInSeconds) {
-        addCookie(response, "accessToken", accessToken, maxAgeInSeconds);
-    }
-
     public static void deleteAccessTokenCookie(HttpServletResponse response) {
         addCookie(response, AuthConstants.ACCESS_TOKEN_COOKIE_NAME, "", 0);
     }
 
-    public static void setSocialTempTokenCookie(HttpServletResponse response, String tempToken, int maxAge) {
-        addCookie(response, "socialTempToken", tempToken, maxAge);
+    public static void deleteRefreshTokenCookie(HttpServletResponse response) {
+        addCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME, "", 0);
     }
 
     private static void addCookie(HttpServletResponse response, String name, String value, long maxAgeSeconds) {

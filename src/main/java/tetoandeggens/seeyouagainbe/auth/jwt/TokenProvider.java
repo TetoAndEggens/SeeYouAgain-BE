@@ -162,11 +162,11 @@ public class TokenProvider {
     }
 
     public String resolveAccessToken(HttpServletRequest request) {
-        return CookieUtil.resolveAccessTokenFromCookie(request);
+        return CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
     }
 
     public String resolveRefreshToken(HttpServletRequest request) {
-        return CookieUtil.resolveRefreshTokenFromCookie(request);
+        return CookieUtil.resolveCookieValue(request, AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
     }
 
     public void setAccessTokenCookie(HttpServletResponse response, String accessToken) {

@@ -11,6 +11,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DisplayName("CookieUtil 유틸 클래스 테스트")
 class CookieUtilTest {
+
     @Test
     @DisplayName("AccessToken 쿠키를 성공적으로 설정한다")
     void setAccessTokenCookie_Success() {
@@ -36,7 +37,7 @@ class CookieUtilTest {
         Cookie accessCookie = new Cookie(AuthConstants.ACCESS_TOKEN_COOKIE_NAME, "test_access_token");
         request.setCookies(accessCookie);
 
-        String result = CookieUtil.resolveAccessTokenFromCookie(request);
+        String result = CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
 
         assertThat(result).isEqualTo("test_access_token");
     }
@@ -47,7 +48,7 @@ class CookieUtilTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setCookies(new Cookie("otherCookie", "value"));
 
-        String result = CookieUtil.resolveAccessTokenFromCookie(request);
+        String result = CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
 
         assertThat(result).isNull();
     }
@@ -93,7 +94,7 @@ class CookieUtilTest {
         Cookie refreshCookie = new Cookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME, "test_refresh_token");
         request.setCookies(refreshCookie);
 
-        String result = CookieUtil.resolveRefreshTokenFromCookie(request);
+        String result = CookieUtil.resolveCookieValue(request, AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
 
         assertThat(result).isEqualTo("test_refresh_token");
     }
@@ -104,7 +105,7 @@ class CookieUtilTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setCookies(new Cookie("otherCookie", "value"));
 
-        String result = CookieUtil.resolveRefreshTokenFromCookie(request);
+        String result = CookieUtil.resolveCookieValue(request, AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
 
         assertThat(result).isNull();
     }
@@ -118,7 +119,7 @@ class CookieUtilTest {
 
         Cookie cookie = response.getCookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
         assertThat(cookie).isNotNull();
-        assertThat(cookie.getValue()).isNull();
+        assertThat(cookie.getValue()).isEmpty();
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(cookie.getSecure()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/");
