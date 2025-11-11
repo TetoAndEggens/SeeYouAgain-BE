@@ -20,6 +20,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.*;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants.*;
 import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
 @Slf4j
@@ -91,15 +93,19 @@ public class TokenProvider {
 
     public String createSocialTempToken(String provider, String profileImageUrl, String tempUuid) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("provider", provider);
-        claims.put("profileImageUrl", profileImageUrl != null ? profileImageUrl : "");
-        claims.put("tempUuid", tempUuid);
-        claims.put("type", "social_temp");
+        claims.put(CLAIM_PROVIDER, provider);
+        claims.put(CLAIM_PROFILE_IMAGE_URL, profileImageUrl != null ? profileImageUrl : "");
+        claims.put(CLAIM_TEMP_UUID, tempUuid);
+        claims.put(CLAIM_TYPE, CLAIM_TYPE_SOCIAL_TEMP);
+
+        long expirationMillis = System.currentTimeMillis() + VERIFICATION_TIME * 60 * 1000L;
+        Date now = new Date();
+        Date expiryDate = new Date(expirationMillis);
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
                 .signWith(secretKey, Jwts.SIG.HS512)
                 .compact();
     }
@@ -110,7 +116,7 @@ public class TokenProvider {
                     .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token);
-        } catch (SecurityException | MalformedJwtException e) {
+        } catch (SignatureException | SecurityException | MalformedJwtException e) {
             throw new CustomException(INVALID_JWT_SIGNATURE);
         } catch (ExpiredJwtException e) {
             throw new CustomException(EXPIRED_TOKEN);
