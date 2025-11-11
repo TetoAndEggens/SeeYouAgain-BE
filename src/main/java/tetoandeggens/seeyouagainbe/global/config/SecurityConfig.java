@@ -27,7 +27,12 @@ import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
+import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationFailureHandler;
+import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationSuccessHandler;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
+import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.CustomOAuth2UserService;
+import tetoandeggens.seeyouagainbe.auth.service.CookieService;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 
 import java.util.Arrays;
@@ -37,10 +42,15 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final TokenProvider tokenProvider;
-	private final ObjectMapper objectMapper;
-	private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-	private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final TokenProvider tokenProvider;
+    private final CookieService cookieService;
+    private final RedisAuthService redisAuthService;
+    private final ObjectMapper objectMapper;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
     private static final String[] WHITE_LIST = {
             "/auth/**",
@@ -112,6 +122,13 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler))
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(BLACK_LIST).authenticated()
                         .requestMatchers(WHITE_LIST).permitAll()
@@ -119,14 +136,34 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
 
                 .addFilterAt(
-                        new CustomLoginFilter(authenticationManager, tokenProvider, objectMapper),
+                        new CustomLoginFilter(
+                                authenticationManager,
+                                tokenProvider,
+                                cookieService,
+                                redisAuthService,
+                                objectMapper
+                        ),
                         UsernamePasswordAuthenticationFilter.class)
+
                 .addFilterAfter(
-                        new JwtAuthenticationFilter(tokenProvider, WHITE_LIST, BLACK_LIST, objectMapper),
+                        new JwtAuthenticationFilter(
+                                tokenProvider,
+                                cookieService,
+                                WHITE_LIST,
+                                BLACK_LIST,
+                                objectMapper
+                        ),
                         CustomLoginFilter.class)
+
                 .addFilterBefore(
-                        new CustomLogoutFilter(tokenProvider, objectMapper),
+                        new CustomLogoutFilter(
+                                tokenProvider,
+                                cookieService,
+                                redisAuthService,
+                                objectMapper
+                        ),
                         LogoutFilter.class)
+
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler));
