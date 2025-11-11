@@ -216,6 +216,7 @@ class AuthControllerTest extends ControllerTest {
     @Nested
     @DisplayName("회원가입 API 테스트")
     class RegisterTests {
+
         @Test
         @DisplayName("회원가입 - 성공")
         void register_Success() throws Exception {
@@ -227,7 +228,9 @@ class AuthControllerTest extends ControllerTest {
                     null,
                     null
             );
-            doNothing().when(authService).unifiedRegister(any(UnifiedRegisterRequest.class));
+
+            doNothing().when(authService)
+                    .unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
 
             mockMvc.perform(post("/auth/signup")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -235,7 +238,7 @@ class AuthControllerTest extends ControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(201));
 
-            verify(authService).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -248,7 +251,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -268,7 +271,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -281,7 +284,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -301,7 +304,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -314,7 +317,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -334,7 +337,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -347,7 +350,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(requestBody))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -367,7 +370,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
 
         @Test
@@ -387,7 +390,7 @@ class AuthControllerTest extends ControllerTest {
                             .content(asJsonString(request)))
                     .andExpect(status().isBadRequest());
 
-            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class));
+            verify(authService, never()).unifiedRegister(any(UnifiedRegisterRequest.class), any(HttpServletResponse.class));
         }
     }
 
