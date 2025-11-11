@@ -260,6 +260,7 @@ class AuthServiceTest extends ServiceTest {
         @Test
         @DisplayName("회원가입 - 성공")
         void register_Success() {
+            // given
             UnifiedRegisterRequest req = new UnifiedRegisterRequest(
                     TEST_LOGIN_ID, TEST_PASSWORD, TEST_NICKNAME, TEST_PHONE, null, null
             );
@@ -268,13 +269,16 @@ class AuthServiceTest extends ServiceTest {
             given(memberRepository.existsByLoginIdAndIsDeletedFalse(req.loginId())).willReturn(false);
             given(passwordEncoder.encode(req.password())).willReturn("encodedPassword");
             given(memberRepository.save(any(Member.class))).willReturn(null);
-
             willDoNothing().given(redisAuthService).deletePhoneVerification(req.phoneNumber());
 
-            assertThatCode(() -> authService.unifiedRegister(req)).doesNotThrowAnyException();
+            // when
+            assertThatCode(() -> authService.unifiedRegister(req, response))
+                    .doesNotThrowAnyException();
 
+            // then
             verify(memberRepository).save(any(Member.class));
             verify(redisAuthService).deletePhoneVerification(req.phoneNumber());
+            verify(cookieService, never()).deleteTempTokenCookie(any()); // 일반 회원가입에서는 호출되지 않음
         }
 
         @Test
@@ -286,7 +290,7 @@ class AuthServiceTest extends ServiceTest {
 
             given(redisAuthService.isPhoneVerified(req.phoneNumber())).willReturn(false);
 
-            assertThatThrownBy(() -> authService.unifiedRegister(req))
+            assertThatThrownBy(() -> authService.unifiedRegister(req, response))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NOT_VERIFIED);
 
@@ -300,10 +304,10 @@ class AuthServiceTest extends ServiceTest {
                     TEST_LOGIN_ID, TEST_PASSWORD, TEST_NICKNAME, TEST_PHONE, null, null
             );
 
-            given(redisAuthService.isPhoneVerified(req.phoneNumber())).willReturn(true); // 중요
+            given(redisAuthService.isPhoneVerified(req.phoneNumber())).willReturn(true);
             given(memberRepository.existsByLoginIdAndIsDeletedFalse(req.loginId())).willReturn(true);
 
-            assertThatThrownBy(() -> authService.unifiedRegister(req))
+            assertThatThrownBy(() -> authService.unifiedRegister(req, response))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.DUPLICATED_LOGIN_ID);
 
@@ -321,10 +325,9 @@ class AuthServiceTest extends ServiceTest {
             given(memberRepository.existsByLoginIdAndIsDeletedFalse(req.loginId())).willReturn(false);
             given(passwordEncoder.encode(req.password())).willReturn("encodedPassword");
             given(memberRepository.save(any(Member.class))).willReturn(null);
-
             willDoNothing().given(redisAuthService).deletePhoneVerification(req.phoneNumber());
 
-            authService.unifiedRegister(req);
+            authService.unifiedRegister(req, response);
 
             verify(redisAuthService).deletePhoneVerification(req.phoneNumber());
         }

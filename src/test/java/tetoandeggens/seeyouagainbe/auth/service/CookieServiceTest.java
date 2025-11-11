@@ -216,6 +216,24 @@ class CookieServiceTest {
                 assertThat(result).isEqualTo(TEST_SOCIAL_TEMP_TOKEN);
             }
         }
+
+        @Test
+        @DisplayName("Social Temp Token 쿠키 삭제 - 성공")
+        void deleteSocialTempTokenCookie_Success() {
+            // given
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+                // when
+                cookieService.deleteTempTokenCookie(response);
+
+                // then
+                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
+                        response,
+                        SOCIAL_TEMP_TOKEN
+                ));
+            }
+        }
     }
 
     @Nested
