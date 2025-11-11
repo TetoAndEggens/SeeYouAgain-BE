@@ -76,8 +76,10 @@ public class AuthController {
                     "socialProvider, socialId, profileImageUrl, refreshToken은 자동으로 tempUuid를 통해 Redis에서 가져옵니다."
     )
     @PostMapping("/signup")
-    public ApiResponse<Void> register(@Valid @RequestBody UnifiedRegisterRequest request) {
-        authService.unifiedRegister(request);
+    public ApiResponse<Void> register(
+            @Valid @RequestBody UnifiedRegisterRequest request,
+            HttpServletResponse response) {
+        authService.unifiedRegister(request, response);
         return ApiResponse.created();
     }
 
