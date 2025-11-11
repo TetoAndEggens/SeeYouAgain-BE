@@ -10,5 +10,14 @@ public class AuthCommonConstants {
     public static final String LOGOUT_URI = "/auth/logout";
     public static final String POST_METHOD = "POST";
 
+    // ===== JWT claim keys =====
+    public static final String CLAIM_PROVIDER = "provider";
+    public static final String CLAIM_PROFILE_IMAGE_URL = "profileImageUrl";
+    public static final String CLAIM_TEMP_UUID = "tempUuid";
+    public static final String CLAIM_TYPE = "type";
+
+    // ===== JWT claim values =====
+    public static final String CLAIM_TYPE_SOCIAL_TEMP = "social_temp";
+
     private AuthCommonConstants() {}
 }
