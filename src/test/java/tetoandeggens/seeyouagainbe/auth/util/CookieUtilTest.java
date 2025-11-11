@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import tetoandeggens.seeyouagainbe.global.constants.AuthConstants;
+import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -16,7 +16,7 @@ class CookieUtilTest {
     @DisplayName("쿠키를 성공적으로 설정한다")
     void setCookie_Success() {
         MockHttpServletResponse response = new MockHttpServletResponse();
-        String cookieName = AuthConstants.ACCESS_TOKEN_COOKIE_NAME;
+        String cookieName = AuthCommonConstants.ACCESS_TOKEN_COOKIE_NAME;
         String value = "sample_access_token";
         long maxAgeInSeconds = 3600;
 
@@ -35,10 +35,10 @@ class CookieUtilTest {
     @DisplayName("요청 쿠키에서 지정한 이름의 쿠키를 성공적으로 추출한다")
     void resolveCookieValue_Success() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        Cookie cookie = new Cookie(AuthConstants.ACCESS_TOKEN_COOKIE_NAME, "test_access_token");
+        Cookie cookie = new Cookie(AuthCommonConstants.ACCESS_TOKEN_COOKIE_NAME, "test_access_token");
         request.setCookies(cookie);
 
-        String result = CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
+        String result = CookieUtil.resolveCookieValue(request, AuthCommonConstants.ACCESS_TOKEN_COOKIE_NAME);
 
         assertThat(result).isEqualTo("test_access_token");
     }
@@ -49,7 +49,7 @@ class CookieUtilTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setCookies(new Cookie("otherCookie", "value"));
 
-        String result = CookieUtil.resolveCookieValue(request, AuthConstants.ACCESS_TOKEN_COOKIE_NAME);
+        String result = CookieUtil.resolveCookieValue(request, AuthCommonConstants.ACCESS_TOKEN_COOKIE_NAME);
 
         assertThat(result).isNull();
     }
@@ -59,11 +59,11 @@ class CookieUtilTest {
     void deleteCookie_Success() {
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        CookieUtil.deleteCookie(response, AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
+        CookieUtil.deleteCookie(response, AuthCommonConstants.REFRESH_TOKEN_COOKIE_NAME);
 
-        Cookie cookie = response.getCookie(AuthConstants.REFRESH_TOKEN_COOKIE_NAME);
+        Cookie cookie = response.getCookie(AuthCommonConstants.REFRESH_TOKEN_COOKIE_NAME);
         assertThat(cookie).isNotNull();
-        assertThat(cookie.getValue()).isNull();
+        assertThat(cookie.getValue()).isEmpty();
         assertThat(cookie.isHttpOnly()).isTrue();
         assertThat(cookie.getSecure()).isTrue();
         assertThat(cookie.getPath()).isEqualTo("/");
