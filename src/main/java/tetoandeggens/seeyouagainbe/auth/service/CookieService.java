@@ -36,6 +36,10 @@ public class CookieService {
         return CookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN);
     }
 
+    public void deleteTempTokenCookie(HttpServletResponse response) {
+        CookieUtil.deleteCookie(response, SOCIAL_TEMP_TOKEN);
+    }
+
     public void deleteAccessTokenCookie(HttpServletResponse response) {
         CookieUtil.deleteCookie(response, ACCESS_TOKEN_COOKIE_NAME);
     }

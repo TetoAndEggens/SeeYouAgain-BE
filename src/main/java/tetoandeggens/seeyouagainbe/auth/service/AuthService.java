@@ -38,7 +38,7 @@ public class AuthService {
     private final Map<String, OAuth2UnlinkServiceProvider> unlinkServices; // Provider별 Unlink Service를 Map으로 주입
 
     @Transactional
-    public void unifiedRegister(UnifiedRegisterRequest request) {
+    public void unifiedRegister(UnifiedRegisterRequest request, HttpServletResponse response) {
         validatePhoneVerification(request);
         checkLoginIdAvailable(request.loginId());
 
@@ -46,6 +46,10 @@ public class AuthService {
 
         Member member = buildMember(request, socialInfo);
         memberRepository.save(member);
+
+        if (socialInfo.provider() != null && socialInfo.refreshToken() != null) {
+            cookieService.deleteTempTokenCookie(response);
+        }
 
         cleanupRedisAfterRegister(request, socialInfo);
     }
