@@ -124,3 +124,6 @@ test:
     enabled: false
   cache:
     enabled: false
+
+app:
+  frontend-url: http://localhost:3000
