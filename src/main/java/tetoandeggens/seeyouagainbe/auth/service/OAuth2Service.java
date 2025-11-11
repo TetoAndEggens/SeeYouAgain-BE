@@ -20,6 +20,8 @@ import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 import java.time.LocalDateTime;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.CLAIM_PROFILE_IMAGE_URL;
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.CLAIM_TEMP_UUID;
 import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
 @Slf4j
@@ -80,9 +82,14 @@ public class OAuth2Service {
         redisAuthService.markSocialPhoneAsVerified(phone);
         redisAuthService.deleteSocialVerificationData(phone);
 
-        return memberRepository.findByPhoneNumberAndIsDeletedFalse(phone)
-                .map(member -> handleExistingMember(member, provider, socialId, response))
-                .orElseGet(this::handleNewMember);
+        Member member = memberRepository.findByPhoneNumberAndIsDeletedFalse(phone)
+                .orElse(null);
+
+        if (member != null) {
+            return handleExistingMember();
+        } else {
+            return handleNewMember();
+        }
     }
 
     @Transactional
@@ -123,8 +130,8 @@ public class OAuth2Service {
         }
 
         Claims claims = tokenProvider.parseClaims(token);
-        String profileImageUrl = claims.get("profileImageUrl", String.class);
-        String tempUuid = claims.get("tempUuid", String.class);
+        String profileImageUrl = claims.get(CLAIM_PROFILE_IMAGE_URL, String.class);
+        String tempUuid = claims.get(CLAIM_TEMP_UUID, String.class);
 
         if (tempUuid == null) {
             throw new CustomException(INVALID_TOKEN);
@@ -135,23 +142,12 @@ public class OAuth2Service {
         return new SocialTempInfoResponse(profileImageUrl, tempUuid);
     }
 
-    private SocialLoginResultResponse handleExistingMember(
-            Member member,
-            String provider,
-            String socialId,
-            HttpServletResponse response
-    ) {
-        boolean alreadyLinked = socialAccountLinkStrategy.isAlreadyLinked(member, provider, socialId);
-
-        if (alreadyLinked) {
-            return createLoginResponse(member, response);
-        } else {
-            return SocialLoginResultResponse.builder()
-                    .status("LINK")
-                    .message("이미 가입된 계정입니다. 소셜 계정을 연동하시겠습니까?")
-                    .loginResponse(null)
-                    .build();
-        }
+    private SocialLoginResultResponse handleExistingMember() {
+        return SocialLoginResultResponse.builder()
+                .status("LINK")
+                .message("이미 가입된 계정입니다. 소셜 계정을 연동하시겠습니까?")
+                .loginResponse(null)
+                .build();
     }
 
     private SocialLoginResultResponse handleNewMember() {
@@ -192,7 +188,6 @@ public class OAuth2Service {
 
         return SocialLoginResultResponse.builder()
                 .status("LOGIN")
-                .message("로그인 성공")
                 .loginResponse(loginResponse)
                 .build();
     }

@@ -19,18 +19,6 @@ public class SocialAccountLinkStrategy {
         }
     }
 
-    public boolean isAlreadyLinked(Member member, String provider, String socialId) {
-        return switch (provider.toLowerCase()) {
-            case "kakao" -> member.getSocialIdKakao() != null &&
-                    member.getSocialIdKakao().equals(socialId);
-            case "naver" -> member.getSocialIdNaver() != null &&
-                    member.getSocialIdNaver().equals(socialId);
-            case "google" -> member.getSocialIdGoogle() != null &&
-                    member.getSocialIdGoogle().equals(socialId);
-            default -> false;
-        };
-    }
-
     private void linkKakao(Member member, String socialId) {
         member.updateKakaoSocialId(socialId);
     }
