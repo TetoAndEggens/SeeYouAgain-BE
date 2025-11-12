@@ -18,6 +18,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2AttributeExtractorProvider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2Provider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.OAuth2TokenExtractor;
+import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -47,6 +48,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
     @Mock private OAuth2AuthenticationToken oAuth2Token;
     @Mock private OAuth2User oAuth2User;
     @Mock private OAuth2AttributeExtractorProvider attributeExtractor;
+    @Mock private HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
     @InjectMocks
     private OAuth2AuthenticationSuccessHandler handler;
@@ -67,6 +69,42 @@ class OAuth2AuthenticationSuccessHandlerTest {
     @Nested
     @DisplayName("기존 회원 로그인 테스트")
     class ExistingMemberTests {
+
+        @Nested
+        @DisplayName("HttpCookieOAuth2AuthorizationRequestRepository 연동 테스트")
+        class HttpCookieRepositoryIntegrationTests {
+
+            @Test
+            @DisplayName("OAuth2 성공 시 AuthorizationRequest 쿠키가 삭제된다")
+            void shouldRemoveAuthorizationRequestCookies_OnSuccess() throws IOException {
+                setupOAuth2Authentication("kakao");
+
+                // given
+                Member existingMember = Member.builder()
+                        .loginId("testuser")
+                        .password("password")
+                        .nickName("테스트")
+                        .phoneNumber("01012345678")
+                        .build();
+                ReflectionTestUtils.setField(existingMember, "role", Role.USER);
+                ReflectionTestUtils.setField(existingMember, "uuid", TEST_UUID);
+                ReflectionTestUtils.setField(existingMember, "socialIdKakao", TEST_SOCIAL_ID);
+
+                when(memberRepository.findBySocialIdKakaoAndIsDeletedFalse(TEST_SOCIAL_ID))
+                        .thenReturn(Optional.of(existingMember));
+                when(tokenProvider.createLoginToken(TEST_UUID, Role.USER))
+                        .thenReturn(new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN));
+                doNothing().when(httpCookieOAuth2AuthorizationRequestRepository)
+                        .removeAuthorizationRequestCookies(any(HttpServletRequest.class), any(HttpServletResponse.class));
+
+                // when
+                handler.onAuthenticationSuccess(request, response, oAuth2Token);
+
+                // then
+                verify(httpCookieOAuth2AuthorizationRequestRepository, times(1))
+                        .removeAuthorizationRequestCookies(request, response);
+            }
+        }
 
         @Test
         @DisplayName("기존 카카오 회원 로그인 - 성공")
