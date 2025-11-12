@@ -2,18 +2,23 @@ package tetoandeggens.seeyouagainbe.auth.oauth2.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
+import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 
 import java.io.IOException;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
+
+    private final HttpCookieOAuth2AuthorizationRequestRepository authRequestRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -22,6 +27,7 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
+        authRequestRepository.removeAuthorizationRequestCookies(request, response);
 
         log.error("[OAuth2Failure] 소셜 로그인 실패: {}", exception.getMessage());
 
