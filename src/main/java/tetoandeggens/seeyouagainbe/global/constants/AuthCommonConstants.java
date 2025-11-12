@@ -19,5 +19,10 @@ public class AuthCommonConstants {
     // ===== JWT claim values =====
     public static final String CLAIM_TYPE_SOCIAL_TEMP = "social_temp";
 
+    // ===== OAuth2 HttpCookieOAuth2AuthorizationRequestRepository =====
+    public static final String OAUTH2_AUTH_REQUEST_COOKIE_NAME = "oauth2_auth_request";
+    public static final String REDIRECT_URI_PARAM_COOKIE_NAME = "redirect_uri";
+    public static final int COOKIE_EXPIRE_SECONDS = 180;  // 3분
+
     private AuthCommonConstants() {}
 }

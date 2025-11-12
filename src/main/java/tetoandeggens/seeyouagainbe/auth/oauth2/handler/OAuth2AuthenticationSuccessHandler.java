@@ -17,6 +17,7 @@ import tetoandeggens.seeyouagainbe.auth.jwt.UserTokenResponse;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2Provider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2AttributeExtractorProvider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.OAuth2TokenExtractor;
+import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -40,6 +41,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final OAuth2TokenExtractor tokenExtractor;
     private final RedisAuthService redisAuthService;
     private final CookieService cookieService;
+    private final HttpCookieOAuth2AuthorizationRequestRepository authRequestRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -51,6 +53,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             HttpServletResponse response,
             Authentication authentication
     ) throws IOException {
+
+        authRequestRepository.removeAuthorizationRequestCookies(request, response);
 
         if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token)) {
             log.error("[OAuth2Success] 잘못된 Authentication 타입");
