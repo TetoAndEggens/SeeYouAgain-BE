@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import tetoandeggens.seeyouagainbe.animal.entity.AbandonedAnimal;
+import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
 
 @Entity
@@ -31,6 +31,6 @@ public class AnimalByKeyword extends BaseEntity {
 	private NotificationKeyword notificationKeyword;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "abandoned_animal_id")
-	private AbandonedAnimal abandonedAnimal;
+	@JoinColumn(name = "animal_id")
+	private Animal animal;
 }

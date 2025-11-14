@@ -10,10 +10,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
@@ -41,17 +43,9 @@ public class Board extends BaseEntity {
 	@Column(name = "content")
 	private String content;
 
-	@Column(name = "age")
-	private Integer age;
-
-	@Column(name = "weight")
-	private Double weight;
-
-	@Column(name = "feature")
-	private String feature;
-
-	@Column(name = "address")
-	private String address;
+	@OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "animal_id")
+	private Animal animal;
 
 	@Column(name = "latitude")
 	private Double latitude;

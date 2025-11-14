@@ -2,6 +2,8 @@ package tetoandeggens.seeyouagainbe.animal.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,30 +12,38 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import tetoandeggens.seeyouagainbe.common.enums.ImageType;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
-import tetoandeggens.seeyouagainbe.member.entity.Member;
 
 @Entity
-@Table(name = "BOOK_MARK")
+@Table(name = "ANIMAL_S3_PROFILE")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class BookMark extends BaseEntity {
+public class AnimalS3Profile extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "book_mark_id")
+	@Column(name = "animal_s3_profile_id")
 	private Long id;
 
-	@Column(name = "is_deleted")
-	private Boolean isDeleted;
+	@Column(name = "profile", unique = true)
+	private String profile;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "member_id")
-	private Member member;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "image_type")
+	private ImageType imageType = ImageType.WEBP;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "animal_id")
 	private Animal animal;
+
+	@Builder
+	public AnimalS3Profile(String profile, ImageType imageType, Animal animal) {
+		this.profile = profile;
+		this.imageType = imageType;
+		this.animal = animal;
+	}
 }
