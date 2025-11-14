@@ -94,6 +94,14 @@ public class Member extends BaseEntity {
 		this.id = memberId;
 	}
 
+    public void increaseViolatedCount() {
+        this.violatedCount++;
+
+        if (this.violatedCount >= 3) {
+            this.isBanned = true;
+        }
+    }
+
 	public void updateProfile(String profileImageUrl) {
 		this.profile = profileImageUrl;
 	}
@@ -118,6 +126,14 @@ public class Member extends BaseEntity {
 		this.socialIdGoogle = socialIdGoogle;
 	}
 
+    public void updateGoogleRefreshToken(String googleRefreshToken) {
+        this.googleRefreshToken = googleRefreshToken;
+    }
+
+    public void updateNaverRefreshToken(String naverRefreshToken) {
+        this.naverRefreshToken = naverRefreshToken;
+    }
+
 	public void deleteKakaoSocialId() {
 		this.socialIdKakao = null;
 	}
@@ -128,14 +144,6 @@ public class Member extends BaseEntity {
 
 	public void deleteGoogleSocialId() {
 		this.socialIdGoogle = null;
-	}
-
-	public void updateGoogleRefreshToken(String googleRefreshToken) {
-		this.googleRefreshToken = googleRefreshToken;
-	}
-
-	public void updateNaverRefreshToken(String naverRefreshToken) {
-		this.naverRefreshToken = naverRefreshToken;
 	}
 
 	public void deleteGoogleRefreshToken() {
