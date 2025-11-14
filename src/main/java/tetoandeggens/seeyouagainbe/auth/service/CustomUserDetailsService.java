@@ -23,6 +23,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         Member member = memberRepository.findByLoginIdAndIsDeletedFalse(loginId)
                 .orElseThrow(() -> new CustomException(AuthErrorCode.MEMBER_NOT_FOUND));
 
+        if (member.getIsBanned()) {
+            throw new CustomException(AuthErrorCode.ACCOUNT_BANNED);
+        }
+
         return new CustomUserDetails(member);
     }
 }
