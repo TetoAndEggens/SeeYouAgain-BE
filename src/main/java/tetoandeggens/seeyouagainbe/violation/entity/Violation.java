@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
@@ -43,9 +44,13 @@ public class Violation extends BaseEntity {
 	@Column(name = "detail_reason")
 	private String detailReason;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "member_id")
-	private Member member;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id") // 신고자
+    private Member reporter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reported_member_id") // 피신고자
+    private Member reportedMember;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "board_id")
@@ -54,4 +59,16 @@ public class Violation extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "chat_room_id")
 	private ChatRoom chatRoom;
+
+    @Builder
+    public Violation(ViolatedStatus violatedStatus, ReportReason reason, String detailReason,
+                     Member reporter, Member reportedMember, Board board, ChatRoom chatRoom) {
+        this.violatedStatus = violatedStatus;
+        this.reason = reason;
+        this.detailReason = detailReason;
+        this.reporter = reporter;
+        this.reportedMember = reportedMember;
+        this.board = board;
+        this.chatRoom = chatRoom;
+    }
 }
