@@ -1,5 +1,7 @@
 package tetoandeggens.seeyouagainbe.animal.entity;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,25 +15,23 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
-import tetoandeggens.seeyouagainbe.member.entity.Member;
 
 @Entity
-@Table(name = "BOOK_MARK")
+@Table(name = "ANIMAL_PROFILE")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class BookMark extends BaseEntity {
+public class AnimalProfile extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "book_mark_id")
+	@Column(name = "animal_profile_id")
 	private Long id;
 
-	@Column(name = "is_deleted")
-	private Boolean isDeleted;
+	@Column(name = "profile")
+	private String profile;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "member_id")
-	private Member member;
+	@Column(name = "happen_date")
+	private LocalDate happenDate;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "animal_id")
