@@ -1,7 +1,7 @@
 package tetoandeggens.seeyouagainbe.global.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import java.util.Arrays;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,158 +22,161 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import tetoandeggens.seeyouagainbe.auth.filter.CustomLogoutFilter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.auth.filter.CustomLoginFilter;
+import tetoandeggens.seeyouagainbe.auth.filter.CustomLogoutFilter;
 import tetoandeggens.seeyouagainbe.auth.filter.JwtAuthenticationFilter;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAccessDeniedHandler;
 import tetoandeggens.seeyouagainbe.auth.handler.CustomAuthenticationEntryPoint;
-import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationFailureHandler;
-import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationSuccessHandler;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.CustomOAuth2UserService;
+import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationFailureHandler;
+import tetoandeggens.seeyouagainbe.auth.oauth2.handler.OAuth2AuthenticationSuccessHandler;
 import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
-
-import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final TokenProvider tokenProvider;
-    private final CookieService cookieService;
-    private final RedisAuthService redisAuthService;
-    private final ObjectMapper objectMapper;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
-    private final CustomOAuth2UserService customOAuth2UserService;
-    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
-    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
-    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
+	private final TokenProvider tokenProvider;
+	private final CookieService cookieService;
+	private final RedisAuthService redisAuthService;
+	private final ObjectMapper objectMapper;
+	private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+	private final CustomAccessDeniedHandler customAccessDeniedHandler;
+	private final CustomOAuth2UserService customOAuth2UserService;
+	private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+	private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+	private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
-    private static final String[] WHITE_LIST = {
-            "/auth/**",
-            "/login/oauth2/**",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/swagger-resources/**",
-            "/webjars/**",
-            "/actuator/**",
-            "/abandoned-animal/**"
-    };
+	private static final String[] WHITE_LIST = {
+		"/auth/**",
+		"/login/oauth2/**",
+		"/swagger-ui/**",
+		"/v3/api-docs/**",
+		"/swagger-resources/**",
+		"/webjars/**",
+		"/actuator/**",
+		"/animal/**"
+	};
 
-    private static final String[] BLACK_LIST = {
-            "/auth/logout",
-            "/auth/withdrawal"
-    };
+	private static final String[] BLACK_LIST = {
+		"/auth/logout",
+		"/auth/withdrawal"
+	};
 
-    private static final String[] ADMINLIST = {
-            "/admin/**"
-    };
+	private static final String[] ADMINLIST = {
+		"/admin/**"
+	};
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+		return authConfig.getAuthenticationManager();
+	}
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
 
-    @Bean
-    public OAuth2AuthorizedClientService authorizedClientService(
-            ClientRegistrationRepository clientRegistrationRepository) {
-        return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
-    }
+	@Bean
+	public OAuth2AuthorizedClientService authorizedClientService(
+		ClientRegistrationRepository clientRegistrationRepository) {
+		return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
+	}
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList(
-                "https://dev-api.seeyouagain.store",
-                "http://localhost:3000"
-        ));
+		configuration.setAllowedOrigins(Arrays.asList(
+			"https://dev-api.seeyouagain.store",
+			"http://localhost:3000"
+		));
 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+		configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+		configuration.setAllowedHeaders(Arrays.asList("*"));
+		configuration.setAllowCredentials(true);
+		configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
 
-        return source;
-    }
+		return source;
+	}
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws
+		Exception {
+		http
+			.csrf(AbstractHttpConfigurer::disable)
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+			.formLogin(AbstractHttpConfigurer::disable)
+			.httpBasic(AbstractHttpConfigurer::disable)
+			.sessionManagement(session ->
+				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/oauth2/authorization")
-                                .authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
-                        )
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService))
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureHandler(oAuth2FailureHandler))
+			.oauth2Login(oauth2 -> oauth2
+				.authorizationEndpoint(authorization -> authorization
+					.baseUri("/oauth2/authorization")
+					.authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
+				)
+				.userInfoEndpoint(userInfo -> userInfo
+					.userService(customOAuth2UserService))
+				.successHandler(oAuth2SuccessHandler)
+				.failureHandler(oAuth2FailureHandler))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(BLACK_LIST).authenticated()
-                        .requestMatchers(WHITE_LIST).permitAll()
-                        .requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
-                        .anyRequest().authenticated())
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(BLACK_LIST).authenticated()
+				.requestMatchers(WHITE_LIST).permitAll()
+				.requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
+				.anyRequest().authenticated())
 
-                .addFilterAt(
-                        new CustomLoginFilter(
-                                authenticationManager,
-                                tokenProvider,
-                                cookieService,
-                                redisAuthService,
-                                objectMapper
-                        ),
-                        UsernamePasswordAuthenticationFilter.class)
+			.addFilterAt(
+				new CustomLoginFilter(
+					authenticationManager,
+					tokenProvider,
+					cookieService,
+					redisAuthService,
+					objectMapper
+				),
+				UsernamePasswordAuthenticationFilter.class)
 
-                .addFilterAfter(
-                        new JwtAuthenticationFilter(
-                                tokenProvider,
-                                cookieService,
-                                WHITE_LIST,
-                                BLACK_LIST,
-                                objectMapper
-                        ),
-                        CustomLoginFilter.class)
+			.addFilterAfter(
+				new JwtAuthenticationFilter(
+					tokenProvider,
+					cookieService,
+					WHITE_LIST,
+					BLACK_LIST,
+					objectMapper
+				),
+				CustomLoginFilter.class)
 
-                .addFilterBefore(
-                        new CustomLogoutFilter(
-                                tokenProvider,
-                                cookieService,
-                                redisAuthService,
-                                objectMapper
-                        ),
-                        LogoutFilter.class)
+			.addFilterBefore(
+				new CustomLogoutFilter(
+					tokenProvider,
+					cookieService,
+					redisAuthService,
+					objectMapper
+				),
+				LogoutFilter.class)
 
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(customAuthenticationEntryPoint)
-                        .accessDeniedHandler(customAccessDeniedHandler));
+			.exceptionHandling(exceptions -> exceptions
+				.authenticationEntryPoint(customAuthenticationEntryPoint)
+				.accessDeniedHandler(customAccessDeniedHandler));
 
-        return http.build();
-    }
+		return http.build();
+	}
 }
