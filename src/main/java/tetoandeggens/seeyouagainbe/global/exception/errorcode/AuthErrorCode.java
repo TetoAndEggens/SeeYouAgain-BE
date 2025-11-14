@@ -42,9 +42,10 @@ public enum AuthErrorCode implements ErrorCode {
     OAUTH2_TOKEN_EXCHANGE_FAILED("AUTH_021", "OAuth2 토큰 교환에 실패했습니다.", HttpStatus.BAD_REQUEST),
     OAUTH2_USER_INFO_FETCH_FAILED("AUTH_022", "OAuth2 사용자 정보 조회에 실패했습니다.", HttpStatus.BAD_REQUEST),
     REAUTH_TOKEN_NOT_FOUND("AUTH_023", "재인증 토큰이 없습니다. 소셜 로그인을 다시 진행해주세요.", HttpStatus.BAD_REQUEST),
-    SOCIAL_TOKEN_REFRESH_FAILED("AUTH_024", "소셜 로그인 토큰 갱신에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+    SOCIAL_TOKEN_REFRESH_FAILED("AUTH_024", "소셜 로그인 토큰 갱신에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
-
+    // Ban 관련
+    ACCOUNT_BANNED("AUTH_025", "신고 누적으로 계정이 정지되었습니다.", HttpStatus.FORBIDDEN);
 
     private final String code;
     private final String message;
