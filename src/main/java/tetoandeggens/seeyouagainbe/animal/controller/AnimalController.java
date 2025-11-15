@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalListResponse;
+import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
@@ -45,7 +46,7 @@ public class AnimalController {
 		@RequestParam(required = false) String city,
 		@RequestParam(required = false) String town
 	) {
-		AnimalListResponse response = animalService.getAnimalList(request, sortDirection,
+		AnimalListResponse response = animalService.getAbandonedAnimalList(request, sortDirection,
 			startDate, endDate, species, breedType, neuteredState, sex, city, town);
 
 		return ApiResponse.ok(response);
@@ -74,6 +75,7 @@ public class AnimalController {
 		@RequestParam Double minLatitude,
 		@RequestParam Double maxLongitude,
 		@RequestParam Double maxLatitude,
+		@RequestParam(required = false) AnimalType animalType,
 		@RequestParam(required = false) String startDate,
 		@RequestParam(required = false) String endDate,
 		@RequestParam(required = false) Species species,
@@ -84,7 +86,7 @@ public class AnimalController {
 		@RequestParam(required = false) String town
 	) {
 		AnimalListResponse response = animalService.getAnimalListWithCoordinates(
-			request, sortDirection, minLongitude, minLatitude, maxLongitude, maxLatitude, startDate,
+			request, sortDirection, animalType, minLongitude, minLatitude, maxLongitude, maxLatitude, startDate,
 			endDate, species, breedType, neuteredState, sex, city, town
 		);
 

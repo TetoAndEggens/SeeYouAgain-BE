@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
+import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
@@ -40,6 +41,9 @@ public record AnimalResponse(
 	String processState,
 
 	@Schema(description = "프로필 url", example = "https://프로필.com")
-	String profile
+	String profile,
+
+	@Schema(description = "동물 타입", example = "실종")
+	AnimalType animalType
 ) {
 }
