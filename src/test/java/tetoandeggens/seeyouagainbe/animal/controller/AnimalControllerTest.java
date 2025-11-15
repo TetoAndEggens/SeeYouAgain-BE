@@ -64,7 +64,7 @@ class AnimalControllerTest extends ControllerTest {
 
 			AnimalListResponse response = AnimalListResponse.of(1, cursorPage);
 
-			given(animalService.getAnimalList(
+			given(animalService.getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
 				isNull(),
@@ -87,7 +87,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.data.animal.data[0].species").value("DOG"))
 				.andExpect(jsonPath("$.data.animal.data[0].breedType").value("치와와"));
 
-			verify(animalService).getAnimalList(
+			verify(animalService).getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
 				isNull(),
@@ -126,7 +126,7 @@ class AnimalControllerTest extends ControllerTest {
 
 			AnimalListResponse response = AnimalListResponse.of(1, cursorPage);
 
-			given(animalService.getAnimalList(
+			given(animalService.getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
 				anyString(),
@@ -155,7 +155,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.status").value(200))
 				.andExpect(jsonPath("$.data.animalCount").value(1));
 
-			verify(animalService).getAnimalList(
+			verify(animalService).getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.LATEST),
 				eq("20250101"),
@@ -194,7 +194,7 @@ class AnimalControllerTest extends ControllerTest {
 
 			AnimalListResponse response = AnimalListResponse.of(1, cursorPage);
 
-			given(animalService.getAnimalList(
+			given(animalService.getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
 				isNull(),
@@ -214,7 +214,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
 
-			verify(animalService).getAnimalList(
+			verify(animalService).getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
 				isNull(),
@@ -237,7 +237,7 @@ class AnimalControllerTest extends ControllerTest {
 				CursorPage.of(List.of(), 10, AnimalResponse::animalId)
 			);
 
-			given(animalService.getAnimalList(
+			given(animalService.getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.OLDEST),
 				isNull(),
@@ -257,7 +257,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
 
-			verify(animalService).getAnimalList(
+			verify(animalService).getAbandonedAnimalList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.OLDEST),
 				isNull(),
@@ -278,7 +278,7 @@ class AnimalControllerTest extends ControllerTest {
 			mockMvc.perform(get("/animal"))
 				.andExpect(status().isBadRequest());
 
-			verify(animalService, never()).getAnimalList(
+			verify(animalService, never()).getAbandonedAnimalList(
 				any(),
 				any(),
 				any(),
@@ -405,7 +405,7 @@ class AnimalControllerTest extends ControllerTest {
 			AnimalListResponse response = AnimalListResponse.of(1, cursorPage);
 
 			given(animalService.getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), any(SortDirection.class),
+				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
 			)).willReturn(response);
@@ -416,6 +416,7 @@ class AnimalControllerTest extends ControllerTest {
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
 					.param("maxLatitude", "37.7")
+					.param("animalType", "ABANDONED")
 					.param("size", "10"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200))
@@ -424,7 +425,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.data.animal.data[0].city").value("서울특별시"));
 
 			verify(animalService).getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), any(SortDirection.class),
+				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				eq(126.8), eq(37.4), eq(127.1), eq(37.7),
 				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
 			);
@@ -440,7 +441,7 @@ class AnimalControllerTest extends ControllerTest {
 			);
 
 			given(animalService.getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), any(SortDirection.class),
+				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				anyString(), anyString(), any(Species.class), anyString(),
 				any(NeuteredState.class), any(Sex.class), anyString(), anyString()
@@ -452,6 +453,7 @@ class AnimalControllerTest extends ControllerTest {
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
 					.param("maxLatitude", "37.7")
+					.param("animalType", "ABANDONED")
 					.param("size", "10")
 					.param("keyword", "검색어")
 					.param("startDate", "20250101")
@@ -466,7 +468,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.status").value(200));
 
 			verify(animalService).getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), eq(SortDirection.LATEST),
+				any(CursorPageRequest.class), eq(SortDirection.LATEST), any(),
 				eq(126.8), eq(37.4), eq(127.1), eq(37.7),
 				eq("20250101"), eq("20250131"), eq(Species.DOG), eq("치와와"),
 				eq(NeuteredState.Y), eq(Sex.M), eq("서울특별시"), eq("중구")
@@ -485,7 +487,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(status().isBadRequest());
 
 			verify(animalService, never()).getAnimalListWithCoordinates(
-				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
 			);
 		}
 
@@ -499,7 +501,7 @@ class AnimalControllerTest extends ControllerTest {
 			);
 
 			given(animalService.getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), any(SortDirection.class),
+				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
 			)).willReturn(response);
@@ -511,12 +513,13 @@ class AnimalControllerTest extends ControllerTest {
 					.param("minLongitude", "126.8")
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
-					.param("maxLatitude", "37.7"))
+					.param("maxLatitude", "37.7")
+					.param("animalType", "ABANDONED"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
 
 			verify(animalService).getAnimalListWithCoordinates(
-				any(CursorPageRequest.class), any(SortDirection.class),
+				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
 			);

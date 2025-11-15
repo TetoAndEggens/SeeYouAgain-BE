@@ -61,8 +61,8 @@ class AnimalRepositoryTest extends RepositoryTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			List<AnimalResponse> results = animalRepository.getAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null
+			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -88,8 +88,8 @@ class AnimalRepositoryTest extends RepositoryTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			List<AnimalResponse> results = animalRepository.getAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null
+			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -121,8 +121,8 @@ class AnimalRepositoryTest extends RepositoryTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			List<AnimalResponse> results = animalRepository.getAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null
+			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -174,8 +174,8 @@ class AnimalRepositoryTest extends RepositoryTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			List<AnimalResponse> results = animalRepository.getAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null
+			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
 			);
 
 			// then

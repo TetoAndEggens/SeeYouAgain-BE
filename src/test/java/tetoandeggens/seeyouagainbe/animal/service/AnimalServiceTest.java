@@ -21,6 +21,7 @@ import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalListResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
+import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
@@ -83,7 +84,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -131,7 +132,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -179,7 +180,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -227,7 +228,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -277,7 +278,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -327,7 +328,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.OLDEST,
 				null,
@@ -355,7 +356,7 @@ class AnimalServiceTest extends ServiceTest {
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 
 			// when
-			AnimalListResponse response = animalService.getAnimalList(
+			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
 				null,
@@ -407,6 +408,7 @@ class AnimalServiceTest extends ServiceTest {
 			.town(town)
 			.birth("2024년생")
 			.processState("보호중")
+			.animalType(AnimalType.ABANDONED)
 			.build();
 	}
 
