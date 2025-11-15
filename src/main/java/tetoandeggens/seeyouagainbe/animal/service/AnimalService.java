@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalDetailResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalListResponse;
 import tetoandeggens.seeyouagainbe.animal.dto.response.AnimalResponse;
+import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
@@ -26,12 +27,13 @@ public class AnimalService {
 	private final AnimalRepository animalRepository;
 
 	@Transactional(readOnly = true)
-	public AnimalListResponse getAnimalList(CursorPageRequest request, SortDirection sortDirection,
+	public AnimalListResponse getAbandonedAnimalList(CursorPageRequest request, SortDirection sortDirection,
 		String startDate, String endDate, Species species, String breedType, NeuteredState neuteredState, Sex sex,
 		String city,
 		String town) {
 
-		List<AnimalResponse> responses = animalRepository.getAnimals(request, sortDirection,
+		List<AnimalResponse> responses = animalRepository.getAbandonedAnimals(request, sortDirection,
+			AnimalType.ABANDONED,
 			startDate, endDate, species, breedType, neuteredState, sex, city, town);
 
 		CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
@@ -40,7 +42,8 @@ public class AnimalService {
 			AnimalResponse::animalId
 		);
 
-		Long totalCount = animalRepository.getAnimalsCount(startDate, endDate, species, breedType,
+		Long totalCount = animalRepository.getAbandonedAnimalsCount(AnimalType.ABANDONED, startDate, endDate, species,
+			breedType,
 			neuteredState, sex, city, town);
 
 		return AnimalListResponse.of(totalCount.intValue(), cursorPage);
@@ -59,12 +62,12 @@ public class AnimalService {
 
 	@Transactional(readOnly = true)
 	public AnimalListResponse getAnimalListWithCoordinates(
-		CursorPageRequest request, SortDirection sortDirection, Double minLongitude, Double minLatitude,
-		Double maxLongitude, Double maxLatitude, String startDate, String endDate, Species species,
+		CursorPageRequest request, SortDirection sortDirection, AnimalType animalType, Double minLongitude,
+		Double minLatitude, Double maxLongitude, Double maxLatitude, String startDate, String endDate, Species species,
 		String breedType, NeuteredState neuteredState, Sex sex, String city, String town
 	) {
 		List<AnimalResponse> responses = animalRepository.getAnimalListWithCoordinates(
-			request, sortDirection, minLongitude, minLatitude, maxLongitude, maxLatitude,
+			request, sortDirection, animalType, minLongitude, minLatitude, maxLongitude, maxLatitude,
 			startDate, endDate, species, breedType, neuteredState, sex, city, town
 		);
 
@@ -75,7 +78,7 @@ public class AnimalService {
 		);
 
 		Long totalCount = animalRepository.getAnimalsCountWithCoordinates(
-			minLongitude, minLatitude, maxLongitude, maxLatitude,
+			animalType, minLongitude, minLatitude, maxLongitude, maxLatitude,
 			startDate, endDate, species, breedType, neuteredState, sex, city, town
 		);
 

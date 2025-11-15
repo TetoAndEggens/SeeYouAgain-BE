@@ -6,6 +6,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
+import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
@@ -16,6 +17,9 @@ public record AnimalDetailResponse(
 	@NotBlank(message = "유기 동물 고유 id입니다.")
 	@Schema(description = "유기 동물 고유 id", example = "1")
 	Long animalId,
+
+	@Schema(description = "동물 타입", example = "실종")
+	AnimalType animalType,
 
 	@Schema(description = "발생 날짜", example = "20250101")
 	LocalDate happenDate,
