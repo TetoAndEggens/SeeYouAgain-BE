@@ -11,11 +11,11 @@ import tetoandeggens.seeyouagainbe.board.repository.custom.BoardRepositoryCustom
 
 public interface BoardRepository extends JpaRepository<Board, Long>, BoardRepositoryCustom {
 
-	@Modifying
-	@Query("update AnimalS3Profile p set p.isDeleted = true where p.animal.id = :animalId")
-	void softDeleteByAnimalId(Long animalId);
+    @Modifying
+    @Query("update AnimalS3Profile p set p.isDeleted = true where p.animal.id = :animalId")
+    void softDeleteByAnimalId(Long animalId);
 
-	@Modifying
-	@Query("update AnimalS3Profile p set p.isDeleted = true where p.id in :imageIds")
-	void softDeleteByImageIds(List<Long> imageIds);
+    @Modifying
+    @Query("update AnimalS3Profile p set p.isDeleted = true where p.id in :imageIds")
+    void softDeleteByImageIds(List<Long> imageIds);
 }
