@@ -9,7 +9,7 @@ import tetoandeggens.seeyouagainbe.chat.repository.custom.ChatRoomRepositoryCust
 
 public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long>, ChatRoomRepositoryCustom {
 
-	@Modifying
-	@Query("update ChatRoom c set c.isDeleted = true where c.board.id = :boardId")
-	void softDeleteByBoardId(Long boardId);
+    @Modifying
+    @Query("update ChatRoom c set c.isDeleted = true where c.board.id = :boardId")
+    void softDeleteByBoardId(Long boardId);
 }
