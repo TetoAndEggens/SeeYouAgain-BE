@@ -33,6 +33,18 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("잘못된 인자 예외: {}", e.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("INVALID_ARGUMENT")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity
+                .badRequest()
+                .body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("그외 예외: {}", e.getMessage(), e);
