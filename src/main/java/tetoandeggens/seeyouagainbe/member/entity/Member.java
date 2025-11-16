@@ -90,6 +90,7 @@ public class Member extends BaseEntity {
 		this.uuid = UUID.randomUUID().toString();
 	}
 
+    // 관리자 승인 시 사용 예정
     public void increaseViolatedCount() {
         this.violatedCount++;
 
