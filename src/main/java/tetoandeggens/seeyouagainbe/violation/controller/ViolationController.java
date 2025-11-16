@@ -3,16 +3,14 @@ package tetoandeggens.seeyouagainbe.violation.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 import tetoandeggens.seeyouagainbe.violation.dto.request.ViolationCreateRequest;
-import tetoandeggens.seeyouagainbe.violation.dto.response.ViolationResponse;
 import tetoandeggens.seeyouagainbe.violation.service.ViolationService;
 
 import java.util.UUID;
@@ -25,14 +23,15 @@ public class ViolationController {
     private final ViolationService violationService;
 
     @PostMapping
-    public ResponseEntity<ViolationResponse> createViolation(
+    public ApiResponse<Void> createViolation(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ViolationCreateRequest request
     ) {
-        ViolationResponse response = violationService.createViolation(
+        violationService.createViolation(
                 UUID.fromString(userDetails.getUuid()),
                 request
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        return ApiResponse.noContent();
     }
 }
