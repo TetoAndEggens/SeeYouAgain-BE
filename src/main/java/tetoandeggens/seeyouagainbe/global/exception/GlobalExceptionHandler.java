@@ -55,15 +55,27 @@ public class GlobalExceptionHandler {
 			.body(errorResponse);
 	}
 
-	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ErrorResponse> handleException(Exception e) {
-		log.error("그외 예외: {}", e.getMessage(), e);
-		ErrorResponse errorResponse = ErrorResponse.builder()
-			.code("INTERNAL_SERVER_ERROR")
-			.message("서버 내부 오류가 발생했습니다.")
-			.build();
-		return ResponseEntity
-			.internalServerError()
-			.body(errorResponse);
-	}
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("잘못된 인자 예외: {}", e.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("INVALID_ARGUMENT")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity
+                .badRequest()
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleException(Exception e) {
+        log.error("그외 예외: {}", e.getMessage(), e);
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("INTERNAL_SERVER_ERROR")
+                .message("서버 내부 오류가 발생했습니다.")
+                .build();
+        return ResponseEntity
+                .internalServerError()
+                .body(errorResponse);
+    }
 }
