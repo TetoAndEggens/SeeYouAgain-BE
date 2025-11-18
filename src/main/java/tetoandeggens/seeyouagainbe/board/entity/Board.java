@@ -13,6 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.animal.entity.Animal;
@@ -67,4 +68,19 @@ public class Board extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "breed_type_id")
 	private BreedType breedType;
+
+	@Builder
+	public Board(ContentType contentType, String title, String content, Animal animal,
+		Double latitude, Double longitude, Member member, BreedType breedType) {
+		this.contentType = contentType;
+		this.title = title;
+		this.content = content;
+		this.animal = animal;
+		this.latitude = latitude;
+		this.longitude = longitude;
+		this.isDeleted = false;
+		this.violatedStatus = ViolatedStatus.NORMAL;
+		this.member = member;
+		this.breedType = breedType;
+	}
 }
