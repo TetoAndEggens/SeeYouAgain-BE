@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialTempInfoResponse;
@@ -225,7 +226,6 @@ class OAuth2ServiceTest extends ServiceTest {
     @Nested
     @DisplayName("소셜 계정 연동 테스트")
     class LinkSocialAccountTests {
-
         @Test
         @DisplayName("소셜 계정 연동 - 성공")
         void linkSocialAccount_Success() {
@@ -236,6 +236,9 @@ class OAuth2ServiceTest extends ServiceTest {
                     .nickName("테스트")
                     .phoneNumber(TEST_PHONE)
                     .build();
+
+            // Member의 id 필드 설정 (추가)
+            ReflectionTestUtils.setField(member, "id", 1L);
 
             given(redisAuthService.isSocialPhoneVerified(TEST_PHONE)).willReturn(true);
             given(redisAuthService.getSocialId(TEST_PHONE)).willReturn(Optional.of(TEST_SOCIAL_ID));
@@ -258,6 +261,7 @@ class OAuth2ServiceTest extends ServiceTest {
             doNothing().when(cookieService).setAccessTokenCookie(any(), anyString(), anyLong());
             doNothing().when(cookieService).setRefreshTokenCookie(any(), anyString(), anyLong());
             doNothing().when(redisAuthService).saveRefreshToken(anyString(), anyString(), anyLong());
+            doNothing().when(redisAuthService).saveMemberId(anyString(), anyLong(), anyLong());
 
             // when
             SocialLoginResultResponse result = oAuth2Service.linkSocialAccount(TEST_PHONE, response);
@@ -270,6 +274,8 @@ class OAuth2ServiceTest extends ServiceTest {
             verify(memberRepository).save(member);
             verify(redisAuthService).clearSocialPhoneData(TEST_PHONE);
             verify(redisAuthService).deleteTempSocialInfo(TEST_TEMP_UUID);
+            verify(redisAuthService).saveRefreshToken(anyString(), anyString(), anyLong());
+            verify(redisAuthService).saveMemberId(anyString(), eq(1L), anyLong());  // eq(1L)로 변경
         }
 
         @Test
@@ -284,6 +290,8 @@ class OAuth2ServiceTest extends ServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NOT_VERIFIED);
 
             verify(memberRepository, never()).findByPhoneNumberAndIsDeletedFalse(anyString());
+            verify(redisAuthService, never()).saveRefreshToken(anyString(), anyString(), anyLong());
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());  // 추가
         }
 
         @Test
@@ -299,6 +307,9 @@ class OAuth2ServiceTest extends ServiceTest {
             assertThatThrownBy(() -> oAuth2Service.linkSocialAccount(TEST_PHONE, response))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+
+            verify(redisAuthService, never()).saveRefreshToken(anyString(), anyString(), anyLong());
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());  // 추가
         }
     }
 

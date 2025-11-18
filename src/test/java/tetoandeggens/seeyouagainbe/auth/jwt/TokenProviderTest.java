@@ -1,10 +1,12 @@
 package tetoandeggens.seeyouagainbe.auth.jwt;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -21,6 +25,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
@@ -32,14 +37,18 @@ class TokenProviderTest {
             "testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest".getBytes(StandardCharsets.UTF_8)
     );
     private static final String TEST_UUID = "test-uuid-1234";
+    private static final Long TEST_MEMBER_ID = 1L;
     private static final long ACCESS_TOKEN_EXPIRATION_MS = 3600000L; // 1시간
     private static final long REFRESH_TOKEN_EXPIRATION_MS = 1209600000L; // 14일
 
+    @Mock
+    private RedisAuthService redisAuthService;
+
+    @InjectMocks
     private TokenProvider tokenProvider;
 
     @BeforeEach
     void setUp() {
-        tokenProvider = new TokenProvider();
         ReflectionTestUtils.setField(tokenProvider, "secret", SECRET_KEY);
         ReflectionTestUtils.setField(tokenProvider, "accessTokenExpirationMs", ACCESS_TOKEN_EXPIRATION_MS);
         ReflectionTestUtils.setField(tokenProvider, "refreshTokenExpirationMs", REFRESH_TOKEN_EXPIRATION_MS);
@@ -279,6 +288,7 @@ class TokenProviderTest {
         void getAuthenticationByAccessToken_UserRole_ReturnsAuthentication() {
             // given
             String accessToken = tokenProvider.createAccessToken(TEST_UUID, Role.USER.getRole());
+            given(redisAuthService.getMemberId(TEST_UUID)).willReturn(Optional.of(TEST_MEMBER_ID));
 
             // when
             Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
@@ -289,11 +299,14 @@ class TokenProviderTest {
 
             CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
             assertThat(principal.getUuid()).isEqualTo(TEST_UUID);
+            assertThat(principal.getMemberId()).isEqualTo(TEST_MEMBER_ID);
             assertThat(principal.getRole()).isEqualTo(Role.USER);
             assertThat(authentication.getAuthorities()).isNotEmpty();
             assertThat(authentication.getAuthorities())
                     .extracting("authority")
                     .containsExactly(Role.USER.getRole());
+
+            verify(redisAuthService).getMemberId(TEST_UUID);
         }
 
         @Test
@@ -301,16 +314,36 @@ class TokenProviderTest {
         void getAuthenticationByAccessToken_AdminRole_ReturnsAuthentication() {
             // given
             String accessToken = tokenProvider.createAccessToken(TEST_UUID, Role.ADMIN.getRole());
+            given(redisAuthService.getMemberId(TEST_UUID)).willReturn(Optional.of(TEST_MEMBER_ID));
 
             // when
             Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
 
             // then
             CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
+            assertThat(principal.getMemberId()).isEqualTo(TEST_MEMBER_ID);
             assertThat(principal.getRole()).isEqualTo(Role.ADMIN);
             assertThat(authentication.getAuthorities())
                     .extracting("authority")
                     .containsExactly(Role.ADMIN.getRole());
+
+            verify(redisAuthService).getMemberId(TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("Redis에 memberId가 없으면 MEMBER_NOT_FOUND 예외 발생")
+        void getAuthenticationByAccessToken_ThrowsException_WhenMemberIdNotFoundInRedis() {
+            // given
+            String accessToken = tokenProvider.createAccessToken(TEST_UUID, Role.USER.getRole());
+            given(redisAuthService.getMemberId(TEST_UUID)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> tokenProvider.getAuthenticationByAccessToken(accessToken))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("errorCode",
+                            tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.MEMBER_NOT_FOUND);
+
+            verify(redisAuthService).getMemberId(TEST_UUID);
         }
     }
 
