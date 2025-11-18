@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
@@ -39,6 +40,7 @@ public class TokenProvider {
     private Long refreshTokenExpirationMs;
 
     private SecretKey secretKey;
+    private final RedisAuthService redisAuthService;
 
     @PostConstruct
     public void init() {
@@ -146,7 +148,10 @@ public class TokenProvider {
         String uuid = claims.getSubject();
         String role = claims.get(AuthCommonConstants.ROLE_CLAIM, String.class);
 
-        CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(uuid, role);
+        Long memberId = redisAuthService.getMemberId(uuid)
+                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
+
+        CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(uuid, role, memberId);
         return new UsernamePasswordAuthenticationToken(
                 customUserDetails,
                 null,
