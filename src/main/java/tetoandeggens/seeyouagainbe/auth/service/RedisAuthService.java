@@ -210,21 +210,40 @@ public class RedisAuthService { // Redis를 사용한 인증 관련 데이터 �
         redisTemplate.delete(PREFIX_TEMP_SOCIAL_REFRESH + tempUuid);
     }
 
-    // ============ JWT Refresh Token ============
+    // ============ JWT Token 관리 (RefreshToken + MemberId) ============
 
     public void saveRefreshToken(String uuid, String refreshToken, long expirationMs) {
         redisTemplate.opsForValue().set(
-                uuid,
+                PREFIX_REFRESH_TOKEN + uuid,
                 refreshToken,
                 Duration.ofMillis(expirationMs)
         );
     }
 
     public Optional<String> getRefreshToken(String uuid) {
-        return Optional.ofNullable(redisTemplate.opsForValue().get(uuid));
+        return Optional.ofNullable(
+                redisTemplate.opsForValue().get(PREFIX_REFRESH_TOKEN + uuid)
+        );
     }
 
     public void deleteRefreshToken(String uuid) {
-        redisTemplate.delete(uuid);
+        redisTemplate.delete(PREFIX_REFRESH_TOKEN + uuid);
+    }
+
+    public void saveMemberId(String uuid, Long memberId, long expirationMs) {
+        redisTemplate.opsForValue().set(
+                PREFIX_MEMBER_ID + uuid,
+                String.valueOf(memberId),
+                Duration.ofMillis(expirationMs)
+        );
+    }
+
+    public Optional<Long> getMemberId(String uuid) {
+        String memberId = redisTemplate.opsForValue().get(PREFIX_MEMBER_ID + uuid);
+        return Optional.ofNullable(memberId).map(Long::parseLong);
+    }
+
+    public void deleteMemberId(String uuid) {
+        redisTemplate.delete(PREFIX_MEMBER_ID + uuid);
     }
 }
