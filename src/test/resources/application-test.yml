@@ -99,6 +99,13 @@ spring:
           kakao:
             admin-key: dummy-test-admin-key
 
+aws:
+  s3:
+    access-key: test
+    secret-key: test
+    region: test
+    bucket: test
+
 logging:
   level:
     root: INFO
