@@ -37,39 +37,50 @@ class AuthControllerTest extends ControllerTest {
     @Nested
     @DisplayName("loginId 중복 체크 API 테스트")
     class CheckLoginIdTests {
+
         @Test
         @DisplayName("loginId 중복 체크 - 성공")
         void checkLoginId_Success() throws Exception {
-            String loginId = "testuser123";
+            CheckUserIdRequest request = new CheckUserIdRequest("testuser123");
+
             doNothing().when(authService).checkLoginIdAvailable(anyString());
 
-            mockMvc.perform(get("/auth/check/loginId")
-                            .param("loginId", loginId))
+            mockMvc.perform(post("/auth/check/loginId")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(204));
 
-            verify(authService).checkLoginIdAvailable(loginId);
+            verify(authService).checkLoginIdAvailable("testuser123");
         }
 
         @Test
-        @DisplayName("loginId 중복 체크 - 파라미터 없으면 실패")
-        void checkLoginId_ValidationFail_NoParam() throws Exception {
-            mockMvc.perform(get("/auth/check/loginId"))
-                    .andExpect(status().is5xxServerError());
+        @DisplayName("loginId 중복 체크 - loginId null이면 실패")
+        void checkLoginId_ValidationFail_Null() throws Exception {
+            String requestBody = "{\"loginId\":null}";
+
+            mockMvc.perform(post("/auth/check/loginId")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest());
 
             verify(authService, never()).checkLoginIdAvailable(anyString());
         }
 
         @Test
         @DisplayName("loginId 중복 체크 - 빈 문자열이면 실패")
-        void checkLoginId_ValidationFail_EmptyString() throws Exception {
-            mockMvc.perform(get("/auth/check/loginId")
-                            .param("loginId", ""))
-                    .andExpect(status().is5xxServerError());
+        void checkLoginId_ValidationFail_Empty() throws Exception {
+            CheckUserIdRequest request = new CheckUserIdRequest("");
+
+            mockMvc.perform(post("/auth/check/loginId")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
 
             verify(authService, never()).checkLoginIdAvailable(anyString());
         }
     }
+
 
     @Nested
     @DisplayName("휴대폰 번호 중복 체크 API 테스트")
