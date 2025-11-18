@@ -51,6 +51,7 @@ public class CustomLogoutFilter extends OncePerRequestFilter {
             String uuid = claims.getSubject();
 
             redisAuthService.deleteRefreshToken(uuid);
+            redisAuthService.deleteMemberId(uuid);
             cookieService.deleteAllAuthCookies(response);
 
             ResponseUtil.writeNoContent(response, objectMapper, HttpStatus.NO_CONTENT);
