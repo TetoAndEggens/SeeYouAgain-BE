@@ -14,20 +14,22 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final String uuid;
+    private final Long memberId;
     private final String loginId;
     private final String password;
     private final Role role;
 
     public CustomUserDetails(Member member) {
         this.uuid = member.getUuid();
+        this.memberId = member.getId();
         this.loginId = member.getLoginId();
         this.password = member.getPassword();
         this.role = member.getRole();
     }
 
-    public static CustomUserDetails fromClaims(String uuid, String role) {
+    public static CustomUserDetails fromClaims(String uuid, String role, Long memberId) {
         String roleValue = role.startsWith("ROLE_") ? role.substring(5) : role;
-        return new CustomUserDetails(uuid, null, null, Role.valueOf(roleValue));
+        return new CustomUserDetails(uuid, null, null, Role.valueOf(roleValue), memberId);
     }
 
     @Override
@@ -65,7 +67,8 @@ public class CustomUserDetails implements UserDetails {
         return true;
     }
 
-    private CustomUserDetails(String uuid, String loginId, String password, Role role) {
+    private CustomUserDetails(String uuid, String loginId, String password, Role role, Long memberId) {
+        this.memberId = memberId;
         this.uuid = uuid;
         this.loginId = loginId;
         this.password = password;
