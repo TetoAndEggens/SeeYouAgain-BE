@@ -86,6 +86,9 @@ dependencies {
 
     // Hibernate Spatial
     implementation "org.hibernate.orm:hibernate-spatial:${hibernateVersion}"
+
+    // AWS SDK
+    implementation 'software.amazon.awssdk:s3:2.21.5'
 }
 
 dependencyManagement {
