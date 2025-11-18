@@ -138,6 +138,7 @@ public class AuthService {
 
         unlinkAllSocialAccounts(member);
         redisAuthService.deleteRefreshToken(uuid);
+        redisAuthService.deleteMemberId(uuid);
 
         member.updateDeleteStatus();
         memberRepository.save(member);
