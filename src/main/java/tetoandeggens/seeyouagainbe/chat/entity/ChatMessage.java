@@ -14,7 +14,6 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ImageType;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
