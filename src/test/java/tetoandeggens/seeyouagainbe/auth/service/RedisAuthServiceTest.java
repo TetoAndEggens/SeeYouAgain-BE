@@ -478,8 +478,12 @@ class RedisAuthServiceTest {
     }
 
     @Nested
-    @DisplayName("RefreshToken 관리 테스트")
-    class RefreshTokenTests {
+    @DisplayName("RefreshToken 및 MemberId 관리 테스트")
+    class RefreshTokenAndMemberIdTests {
+
+        private static final String PREFIX_REFRESH_TOKEN = "refresh:";
+        private static final String PREFIX_MEMBER_ID = "member:";
+        private static final Long TEST_MEMBER_ID = 1L;
 
         @Test
         @DisplayName("RefreshToken 저장 - 성공")
@@ -493,7 +497,7 @@ class RedisAuthServiceTest {
 
             // then
             verify(valueOperations).set(
-                    eq(TEST_UUID),
+                    eq(PREFIX_REFRESH_TOKEN + TEST_UUID),
                     eq(TEST_REFRESH_TOKEN),
                     any(Duration.class)
             );
@@ -503,7 +507,7 @@ class RedisAuthServiceTest {
         @DisplayName("RefreshToken 조회 - 성공")
         void getRefreshToken_Success() {
             // given
-            when(valueOperations.get(TEST_UUID)).thenReturn(TEST_REFRESH_TOKEN);
+            when(valueOperations.get(PREFIX_REFRESH_TOKEN + TEST_UUID)).thenReturn(TEST_REFRESH_TOKEN);
 
             // when
             Optional<String> result = redisAuthService.getRefreshToken(TEST_UUID);
@@ -511,19 +515,110 @@ class RedisAuthServiceTest {
             // then
             assertThat(result).isPresent();
             assertThat(result.get()).isEqualTo(TEST_REFRESH_TOKEN);
+            verify(valueOperations).get(PREFIX_REFRESH_TOKEN + TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("RefreshToken 조회 - 존재하지 않으면 빈 Optional 반환")
+        void getRefreshToken_ReturnsEmpty_WhenNotExists() {
+            // given
+            when(valueOperations.get(PREFIX_REFRESH_TOKEN + TEST_UUID)).thenReturn(null);
+
+            // when
+            Optional<String> result = redisAuthService.getRefreshToken(TEST_UUID);
+
+            // then
+            assertThat(result).isEmpty();
+            verify(valueOperations).get(PREFIX_REFRESH_TOKEN + TEST_UUID);
         }
 
         @Test
         @DisplayName("RefreshToken 삭제 - 성공")
         void deleteRefreshToken_Success() {
             // given
-            when(redisTemplate.delete(TEST_UUID)).thenReturn(true);
+            when(redisTemplate.delete(PREFIX_REFRESH_TOKEN + TEST_UUID)).thenReturn(true);
 
             // when
             redisAuthService.deleteRefreshToken(TEST_UUID);
 
             // then
-            verify(redisTemplate).delete(TEST_UUID);
+            verify(redisTemplate).delete(PREFIX_REFRESH_TOKEN + TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("MemberId 저장 - 성공")
+        void saveMemberId_Success() {
+            // given
+            long TEST_EXPIRATION_MS = 86400000L; // 24시간
+            doNothing().when(valueOperations).set(anyString(), anyString(), any(Duration.class));
+
+            // when
+            redisAuthService.saveMemberId(TEST_UUID, TEST_MEMBER_ID, TEST_EXPIRATION_MS);
+
+            // then
+            verify(valueOperations).set(
+                    eq(PREFIX_MEMBER_ID + TEST_UUID),
+                    eq(String.valueOf(TEST_MEMBER_ID)),
+                    any(Duration.class)
+            );
+        }
+
+        @Test
+        @DisplayName("MemberId 조회 - 성공")
+        void getMemberId_Success() {
+            // given
+            when(valueOperations.get(PREFIX_MEMBER_ID + TEST_UUID)).thenReturn(String.valueOf(TEST_MEMBER_ID));
+
+            // when
+            Optional<Long> result = redisAuthService.getMemberId(TEST_UUID);
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get()).isEqualTo(TEST_MEMBER_ID);
+            verify(valueOperations).get(PREFIX_MEMBER_ID + TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("MemberId 조회 - 존재하지 않으면 빈 Optional 반환")
+        void getMemberId_ReturnsEmpty_WhenNotExists() {
+            // given
+            when(valueOperations.get(PREFIX_MEMBER_ID + TEST_UUID)).thenReturn(null);
+
+            // when
+            Optional<Long> result = redisAuthService.getMemberId(TEST_UUID);
+
+            // then
+            assertThat(result).isEmpty();
+            verify(valueOperations).get(PREFIX_MEMBER_ID + TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("MemberId 삭제 - 성공")
+        void deleteMemberId_Success() {
+            // given
+            when(redisTemplate.delete(PREFIX_MEMBER_ID + TEST_UUID)).thenReturn(true);
+
+            // when
+            redisAuthService.deleteMemberId(TEST_UUID);
+
+            // then
+            verify(redisTemplate).delete(PREFIX_MEMBER_ID + TEST_UUID);
+        }
+
+        @Test
+        @DisplayName("로그아웃 시 RefreshToken과 MemberId 모두 삭제")
+        void deleteRefreshTokenAndMemberId_Success() {
+            // given
+            when(redisTemplate.delete(PREFIX_REFRESH_TOKEN + TEST_UUID)).thenReturn(true);
+            when(redisTemplate.delete(PREFIX_MEMBER_ID + TEST_UUID)).thenReturn(true);
+
+            // when
+            redisAuthService.deleteRefreshToken(TEST_UUID);
+            redisAuthService.deleteMemberId(TEST_UUID);
+
+            // then
+            verify(redisTemplate).delete(PREFIX_REFRESH_TOKEN + TEST_UUID);
+            verify(redisTemplate).delete(PREFIX_MEMBER_ID + TEST_UUID);
         }
     }
 }

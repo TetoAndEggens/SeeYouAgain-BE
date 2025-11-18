@@ -444,6 +444,7 @@ class AuthServiceTest extends ServiceTest {
                     .willReturn(true);
             given(memberRepository.save(any(Member.class))).willReturn(member);
             doNothing().when(redisAuthService).deleteRefreshToken(TEST_UUID);
+            doNothing().when(redisAuthService).deleteMemberId(TEST_UUID);  // 추가
 
             // when
             authService.withdrawMember(TEST_UUID, withdrawalRequest);
@@ -453,6 +454,7 @@ class AuthServiceTest extends ServiceTest {
             verify(passwordEncoder).matches(TEST_PASSWORD, ENCODED_PASSWORD);
             verify(memberRepository).save(member);
             verify(redisAuthService).deleteRefreshToken(TEST_UUID);
+            verify(redisAuthService).deleteMemberId(TEST_UUID);  // 추가
         }
 
         @Test
@@ -472,6 +474,8 @@ class AuthServiceTest extends ServiceTest {
             verify(memberRepository).findByUuidAndIsDeletedFalse(TEST_UUID);
             verify(passwordEncoder, never()).matches(anyString(), anyString());
             verify(memberRepository, never()).save(any(Member.class));
+            verify(redisAuthService, never()).deleteRefreshToken(anyString());
+            verify(redisAuthService, never()).deleteMemberId(anyString());  // 추가
         }
 
         @Test
@@ -500,6 +504,8 @@ class AuthServiceTest extends ServiceTest {
             verify(memberRepository).findByUuidAndIsDeletedFalse(TEST_UUID);
             verify(passwordEncoder).matches("WrongPassword!", ENCODED_PASSWORD);
             verify(memberRepository, never()).save(any(Member.class));
+            verify(redisAuthService, never()).deleteRefreshToken(anyString());
+            verify(redisAuthService, never()).deleteMemberId(anyString());  // 추가
         }
     }
 }
