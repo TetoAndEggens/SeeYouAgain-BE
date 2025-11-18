@@ -5,6 +5,10 @@ public class AuthVerificationConstants {
     public static final int VERIFICATION_TIME = 10; // (분)
     public static final String VERIFICATION_CODE_PATTERN = "\\b(\\d{6})\\b";
 
+    // JWT Token 관리 (RefreshToken + MemberId)
+    public static final String PREFIX_REFRESH_TOKEN = "refresh:";
+    public static final String PREFIX_MEMBER_ID = "member:";
+
     // 일반 유저로 회원가입 시, 필요한 휴대폰 인증관련 key값
     public static final String PREFIX_VERIFICATION_CODE = "verify:phone:code:";
     public static final String PREFIX_VERIFICATION_TIME = "verify:phone:time:";
