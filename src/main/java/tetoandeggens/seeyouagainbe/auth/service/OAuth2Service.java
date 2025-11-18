@@ -181,6 +181,12 @@ public class OAuth2Service {
                 tokenProvider.getRefreshTokenExpirationMs()
         );
 
+        redisAuthService.saveMemberId(
+                member.getUuid(),
+                member.getId(),
+                tokenProvider.getRefreshTokenExpirationMs()
+        );
+
         LoginResponse loginResponse = LoginResponse.builder()
                 .uuid(member.getUuid())
                 .role(member.getRole().getRole())
