@@ -1,5 +1,7 @@
 package tetoandeggens.seeyouagainbe.animal.entity;
 
+import java.util.Arrays;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,4 +14,11 @@ public enum Sex {
 
 	private final String code;
 	private final String type;
+
+	public static Sex fromCode(String code) {
+		return Arrays.stream(Sex.values())
+			.filter(sex -> sex.code.equals(code))
+			.findFirst()
+			.orElse(Q);
+	}
 }
