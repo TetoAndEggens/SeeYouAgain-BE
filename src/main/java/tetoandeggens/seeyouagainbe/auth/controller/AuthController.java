@@ -32,9 +32,9 @@ public class AuthController {
             summary = "loginId 중복 체크",
             description = "로그인 아이디 중복 확인"
     )
-    @GetMapping("/check/loginId")
-    public ApiResponse<Void> checkLoginId(@RequestParam @NotBlank(message = "loginId는 비어 있을 수 없습니다.") String loginId) {
-        authService.checkLoginIdAvailable(loginId);
+    @PostMapping("/check/loginId")
+    public ApiResponse<Void> checkLoginId(@Valid @RequestBody CheckUserIdRequest checkUserIdRequest) {
+        authService.checkLoginIdAvailable(checkUserIdRequest.loginId());
         return ApiResponse.noContent();
     }
 
