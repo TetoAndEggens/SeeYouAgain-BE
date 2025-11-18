@@ -85,6 +85,7 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
     ) throws IOException {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String uuid = userDetails.getUuid();
+        Long memberId = userDetails.getMemberId();
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         String role = authorities.stream()
@@ -108,6 +109,12 @@ public class CustomLoginFilter extends UsernamePasswordAuthenticationFilter {
         redisAuthService.saveRefreshToken(
                 uuid,
                 loginToken.refreshToken(),
+                tokenProvider.getRefreshTokenExpirationMs()
+        );
+
+        redisAuthService.saveMemberId(
+                uuid,
+                memberId,
                 tokenProvider.getRefreshTokenExpirationMs()
         );
 
