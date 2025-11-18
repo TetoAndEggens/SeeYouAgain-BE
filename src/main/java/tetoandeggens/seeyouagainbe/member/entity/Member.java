@@ -90,6 +90,10 @@ public class Member extends BaseEntity {
 		this.uuid = UUID.randomUUID().toString();
 	}
 
+	public Member(Long memberId) {
+		this.id = memberId;
+	}
+
 	public void updateProfile(String profileImageUrl) {
 		this.profile = profileImageUrl;
 	}
