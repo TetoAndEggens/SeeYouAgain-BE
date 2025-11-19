@@ -1,6 +1,9 @@
 package tetoandeggens.seeyouagainbe.animal.entity;
 
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,18 +34,27 @@ public class AnimalLocation extends BaseEntity {
 	@Column(name = "address")
 	private String address;
 
-	@Column(name = "coordinates")
+	@Column(name = "coordinates", columnDefinition = "POINT SRID 4326", nullable = false)
 	private Point coordinates;
 
 	@Column(name = "center_no", unique = true)
 	private String centerNo;
 
+	private static final GeometryFactory geometryFactory =
+		new GeometryFactory(new PrecisionModel(), 4326);
+
 	@Builder
-	public AnimalLocation(Long id, String name, String address, Point coordinates, String centerNo) {
+	public AnimalLocation(Long id, String name, String address, Double latitude, Double longitude, String centerNo) {
 		this.id = id;
 		this.name = name;
 		this.address = address;
-		this.coordinates = coordinates;
 		this.centerNo = centerNo;
+		double lon = (longitude != null) ? longitude : 0.0;
+		double lat = (latitude != null) ? latitude : 0.0;
+		this.coordinates = createPoint(lon, lat);
+	}
+
+	public static Point createPoint(double longitude, double latitude) {
+		return geometryFactory.createPoint(new Coordinate(longitude, latitude));
 	}
 }

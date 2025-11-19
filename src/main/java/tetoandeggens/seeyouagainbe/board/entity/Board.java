@@ -17,7 +17,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.animal.entity.Animal;
-import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -48,12 +47,6 @@ public class Board extends BaseEntity {
 	@JoinColumn(name = "animal_id")
 	private Animal animal;
 
-	@Column(name = "latitude")
-	private Double latitude;
-
-	@Column(name = "longitude")
-	private Double longitude;
-
 	@Column(name = "is_deleted")
 	private Boolean isDeleted;
 
@@ -65,22 +58,15 @@ public class Board extends BaseEntity {
 	@JoinColumn(name = "member_id")
 	private Member member;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "breed_type_id")
-	private BreedType breedType;
-
 	@Builder
 	public Board(ContentType contentType, String title, String content, Animal animal,
-		Double latitude, Double longitude, Member member, BreedType breedType) {
+		Member member) {
 		this.contentType = contentType;
 		this.title = title;
 		this.content = content;
 		this.animal = animal;
-		this.latitude = latitude;
-		this.longitude = longitude;
 		this.isDeleted = false;
 		this.violatedStatus = ViolatedStatus.NORMAL;
 		this.member = member;
-		this.breedType = breedType;
 	}
 }
