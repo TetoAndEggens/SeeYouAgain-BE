@@ -100,6 +100,9 @@ public class Animal extends BaseEntity {
 	@JoinColumn(name = "breed_type_id")
 	private BreedType breedType;
 
+	@Column(name = "is_deleted")
+	private Boolean isDeleted;
+
 	@Builder
 	public Animal(String desertionNo, LocalDate happenDate, String happenPlace, AnimalType animalType,
 		String city, String town, Species species, String color, String birth, String weight, String noticeNo,
@@ -127,5 +130,6 @@ public class Animal extends BaseEntity {
 		this.finalUpdatedAt = finalUpdatedAt;
 		this.animalLocation = animalLocation;
 		this.breedType = breedType;
+		this.isDeleted = false;
 	}
 }

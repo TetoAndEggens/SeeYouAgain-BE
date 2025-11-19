@@ -140,7 +140,10 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 			.from(animal)
 			.leftJoin(animal.breedType, bt)
 			.leftJoin(animal.animalLocation, al)
-			.where(animal.id.eq(animalId))
+			.where(
+				animal.id.eq(animalId),
+				animal.isDeleted.eq(false)
+			)
 			.fetchOne();
 	}
 
@@ -268,6 +271,8 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 		if (animalType != null) {
 			builder.and(animal.animalType.eq(animalType));
 		}
+
+		builder.and(animal.isDeleted.eq(false));
 
 		return builder;
 	}
