@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "AnimalBoardRequest: 실종/동물 게시물 작성 요청 Dto")
-public record BoardRequest(
+@Schema(name = "WritingBoardRequest: 실종/동물 게시물 작성 요청 Dto")
+public record WritingBoardRequest(
 	@NotBlank(message = "제목은 필수 입니다.")
 	@Schema(description = "제목", example = "[실종] 땡땡이를 찾습니다.")
 	String title,

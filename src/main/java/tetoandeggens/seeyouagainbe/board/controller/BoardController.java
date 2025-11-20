@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
-import tetoandeggens.seeyouagainbe.board.dto.request.BoardRequest;
+import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
@@ -38,7 +38,7 @@ public class BoardController {
 		summary = "실종/목격 동물 게시글 작성 API",
 		description = "실종/목격 동물 게시글 작성 후 presigned URL 반환")
 	public ApiResponse<PresignedUrlResponse> writeAnimalBoard(
-		@RequestBody @Valid BoardRequest request,
+		@RequestBody @Valid WritingBoardRequest request,
 		@AuthenticationPrincipal CustomUserDetails customUserDetails
 	) {
 		PresignedUrlResponse presignedUrlResponse = boardService.writeAnimalBoard(request,
