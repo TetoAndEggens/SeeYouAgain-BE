@@ -18,7 +18,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
-import tetoandeggens.seeyouagainbe.board.dto.request.BoardRequest;
+import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
@@ -50,7 +50,7 @@ public class BoardService {
 	private final ImageService imageService;
 
 	@Transactional
-	public PresignedUrlResponse writeAnimalBoard(BoardRequest request, Long memberId) {
+	public PresignedUrlResponse writeAnimalBoard(WritingBoardRequest request, Long memberId) {
 		AnimalLocation savedAnimalLocation = createAndSaveAnimalLocation(request);
 		Animal savedAnimal = createAndSaveAnimal(request, savedAnimalLocation);
 		Board savedBoard = createAndSaveBoard(request, savedAnimal, memberId);
@@ -115,7 +115,7 @@ public class BoardService {
 		chatRoomRepository.softDeleteByBoardId(boardId);
 	}
 
-	private AnimalLocation createAndSaveAnimalLocation(BoardRequest request) {
+	private AnimalLocation createAndSaveAnimalLocation(WritingBoardRequest request) {
 		AnimalLocation animalLocation = AnimalLocation.builder()
 			.address(request.address())
 			.latitude(request.latitude())
@@ -125,7 +125,7 @@ public class BoardService {
 		return animalLocationRepository.save(animalLocation);
 	}
 
-	private Animal createAndSaveAnimal(BoardRequest request, AnimalLocation animalLocation) {
+	private Animal createAndSaveAnimal(WritingBoardRequest request, AnimalLocation animalLocation) {
 		BreedType breedType = findBreedType(request.breedType());
 		Species species = Species.fromCode(request.species());
 		Sex sex = Sex.fromCode(request.sex());
@@ -143,7 +143,7 @@ public class BoardService {
 		return animalRepository.save(animal);
 	}
 
-	private Board createAndSaveBoard(BoardRequest request, Animal animal, Long memberId) {
+	private Board createAndSaveBoard(WritingBoardRequest request, Animal animal, Long memberId) {
 		ContentType contentType = ContentType.fromCode(request.animalType());
 
 		Board board = Board.builder()
