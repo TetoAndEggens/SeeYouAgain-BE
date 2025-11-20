@@ -132,4 +132,8 @@ public class Animal extends BaseEntity {
 		this.breedType = breedType;
 		this.isDeleted = false;
 	}
+
+	public void updateIsDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
 }

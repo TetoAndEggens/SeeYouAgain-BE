@@ -34,7 +34,10 @@ public class AnimalS3Profile extends BaseEntity {
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "image_type")
-	private ImageType imageType = ImageType.WEBP;
+	private ImageType imageType;
+
+	@Column(name = "is_deleted")
+	private Boolean isDeleted = false;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "animal_id")

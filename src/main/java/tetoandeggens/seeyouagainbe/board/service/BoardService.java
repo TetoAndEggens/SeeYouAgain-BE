@@ -27,6 +27,7 @@ import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.board.repository.BoardTagRepository;
+import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -45,6 +46,7 @@ public class BoardService {
 	private final AnimalRepository animalRepository;
 	private final AnimalLocationRepository animalLocationRepository;
 	private final BreedTypeRepository breedTypeRepository;
+	private final ChatRoomRepository chatRoomRepository;
 	private final ImageService imageService;
 
 	@Transactional
@@ -93,6 +95,24 @@ public class BoardService {
 		}
 
 		return response;
+	}
+
+	@Transactional
+	public void deleteAnimalBoard(Long boardId, Long memberId) {
+		Board board = boardRepository.findById(boardId)
+			.orElseThrow(() -> new CustomException(BoardErrorCode.BOARD_NOT_FOUND));
+
+		if (!board.getMember().getId().equals(memberId)) {
+			throw new CustomException(BoardErrorCode.BOARD_FORBIDDEN);
+		}
+
+		board.updateIsDeleted(true);
+
+		Animal animal = board.getAnimal();
+		animal.updateIsDeleted(true);
+
+		boardRepository.softDeleteByAnimalId(animal.getId());
+		chatRoomRepository.softDeleteByBoardId(boardId);
 	}
 
 	private AnimalLocation createAndSaveAnimalLocation(BoardRequest request) {
