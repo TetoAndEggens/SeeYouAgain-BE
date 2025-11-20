@@ -30,7 +30,7 @@ public class AnimalController {
 
 	private final AnimalService animalService;
 
-	@GetMapping
+	@GetMapping("/list")
 	@Operation(
 		summary = "유기 동물 리스트 조회 API",
 		description = "유기 동물 리스트 조회 - 커서 페이징 적용")
@@ -64,7 +64,7 @@ public class AnimalController {
 		return ApiResponse.ok(response);
 	}
 
-	@GetMapping("/map")
+	@GetMapping("/list/map")
 	@Operation(
 		summary = "좌표 기준 범위 내, 유기 동물들 조회 API",
 		description = "좌표 기준 범위 내, 유기 동물들 조회 - 커서 페이징 적용")
