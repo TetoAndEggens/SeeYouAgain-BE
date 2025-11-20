@@ -16,7 +16,9 @@ import tetoandeggens.seeyouagainbe.animal.entity.QAnimal;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
+import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.entity.QBoardTag;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
@@ -118,5 +120,61 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		return sortDirection == SortDirection.LATEST
 			? board.id.desc()
 			: board.id.asc();
+	}
+
+	@Override
+	public BoardDetailResponse getAnimalBoard(Long boardId) {
+		QAnimal animal = QAnimal.animal;
+		QBreedType bt = QBreedType.breedType;
+		QMember member = QMember.member;
+		QAnimalLocation animalLocation = QAnimalLocation.animalLocation;
+		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
+		QBoardTag boardTag = QBoardTag.boardTag;
+
+		List<String> profiles = queryFactory
+			.select(profileEntity.profile)
+			.from(profileEntity)
+			.where(profileEntity.animal.id.in(
+				JPAExpressions.select(board.animal.id)
+					.from(board)
+					.where(board.id.eq(boardId), board.isDeleted.eq(false))
+			))
+			.orderBy(profileEntity.id.asc())
+			.limit(3)
+			.fetch();
+
+		List<String> tags = queryFactory
+			.select(boardTag.name)
+			.from(boardTag)
+			.where(boardTag.board.id.eq(boardId))
+			.fetch();
+
+		return queryFactory
+			.select(Projections.constructor(
+				BoardDetailResponse.class,
+				board.id,
+				board.title,
+				board.content,
+				animal.species,
+				bt.name,
+				animal.sex,
+				animal.color,
+				animalLocation.address,
+				Expressions.numberTemplate(Double.class, "ST_Y({0})", animalLocation.coordinates),
+				Expressions.numberTemplate(Double.class, "ST_X({0})", animalLocation.coordinates),
+				animal.animalType,
+				member.nickName,
+				board.createdAt,
+				board.updatedAt,
+				Expressions.constant(tags),
+				Expressions.constant(profiles)
+			))
+			.from(board)
+			.join(board.animal, animal)
+			.join(board.member, member)
+			.leftJoin(animal.animalLocation, animalLocation)
+			.leftJoin(animal.breedType, bt)
+			.where(board.id.eq(boardId), board.isDeleted.eq(false))
+			.fetchOne();
 	}
 }
