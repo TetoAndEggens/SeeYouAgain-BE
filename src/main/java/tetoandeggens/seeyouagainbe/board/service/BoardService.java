@@ -1,6 +1,9 @@
 package tetoandeggens.seeyouagainbe.board.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +23,9 @@ import tetoandeggens.seeyouagainbe.board.dto.response.AnimalBoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
+import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
+import tetoandeggens.seeyouagainbe.board.repository.BoardTagRepository;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -33,6 +38,7 @@ import tetoandeggens.seeyouagainbe.member.entity.Member;
 public class BoardService {
 
 	private final BoardRepository boardRepository;
+	private final BoardTagRepository boardTagRepository;
 	private final AnimalRepository animalRepository;
 	private final AnimalLocationRepository animalLocationRepository;
 	private final BreedTypeRepository breedTypeRepository;
@@ -40,50 +46,13 @@ public class BoardService {
 
 	@Transactional
 	public AnimalBoardResponse writeAnimalBoard(AnimalBoardRequest request, Long memberId) {
-		BreedType breedType = null;
-		if (request.breedType() != null && !request.breedType().isBlank()) {
-			breedType = breedTypeRepository.findByName(request.breedType())
-				.orElse(null);
-		}
+		AnimalLocation savedAnimalLocation = createAndSaveAnimalLocation(request);
+		Animal savedAnimal = createAndSaveAnimal(request, savedAnimalLocation);
+		Board savedBoard = createAndSaveBoard(request, savedAnimal, memberId);
 
-		Species species = Species.fromCode(request.species());
-		Sex sex = Sex.fromCode(request.sex());
-		AnimalType animalType = AnimalType.fromCode(request.animalType());
-		ContentType contentType = ContentType.fromCode(request.animalType());
+		saveBoardTags(request.tags(), savedBoard);
 
-		AnimalLocation animalLocation = AnimalLocation.builder()
-			.address(request.address())
-			.latitude(request.latitude())
-			.longitude(request.longitude())
-			.build();
-
-		AnimalLocation savedAnimalLocation = animalLocationRepository.save(animalLocation);
-
-		Animal animal = Animal.builder()
-			.animalType(animalType)
-			.sex(sex)
-			.species(species)
-			.color(request.color())
-			.breedType(breedType)
-			.animalLocation(savedAnimalLocation)
-			.build();
-
-		Animal savedAnimal = animalRepository.save(animal);
-
-		Board board = Board.builder()
-			.contentType(contentType)
-			.title(request.title())
-			.content(request.content())
-			.animal(savedAnimal)
-			.member(new Member(memberId))
-			.build();
-
-		boardRepository.save(board);
-
-		List<String> presignedUrls = List.of();
-		if (request.count() != null && request.count() > 0) {
-			presignedUrls = imageService.generatePresignedUrls(savedAnimal.getId(), request.count());
-		}
+		List<String> presignedUrls = generatePresignedUrlsIfNeeded(request.count(), savedAnimal.getId());
 
 		return new AnimalBoardResponse(presignedUrls);
 	}
@@ -99,8 +68,10 @@ public class BoardService {
 		List<BoardResponse> responses = boardRepository.getAnimalBoards(
 			request, sortDirection, contentType);
 
+		List<BoardResponse> responsesWithTags = attachTagsToResponses(responses);
+
 		CursorPage<BoardResponse, Long> cursorPage = CursorPage.of(
-			responses,
+			responsesWithTags,
 			request.size(),
 			BoardResponse::boardId
 		);
@@ -108,5 +79,109 @@ public class BoardService {
 		Long totalCount = boardRepository.getAnimalBoardsCount(contentType);
 
 		return BoardListResponse.of(totalCount.intValue(), cursorPage);
+	}
+
+	private AnimalLocation createAndSaveAnimalLocation(AnimalBoardRequest request) {
+		AnimalLocation animalLocation = AnimalLocation.builder()
+			.address(request.address())
+			.latitude(request.latitude())
+			.longitude(request.longitude())
+			.build();
+
+		return animalLocationRepository.save(animalLocation);
+	}
+
+	private Animal createAndSaveAnimal(AnimalBoardRequest request, AnimalLocation animalLocation) {
+		BreedType breedType = findBreedType(request.breedType());
+		Species species = Species.fromCode(request.species());
+		Sex sex = Sex.fromCode(request.sex());
+		AnimalType animalType = AnimalType.fromCode(request.animalType());
+
+		Animal animal = Animal.builder()
+			.animalType(animalType)
+			.sex(sex)
+			.species(species)
+			.color(request.color())
+			.breedType(breedType)
+			.animalLocation(animalLocation)
+			.build();
+
+		return animalRepository.save(animal);
+	}
+
+	private Board createAndSaveBoard(AnimalBoardRequest request, Animal animal, Long memberId) {
+		ContentType contentType = ContentType.fromCode(request.animalType());
+
+		Board board = Board.builder()
+			.contentType(contentType)
+			.title(request.title())
+			.content(request.content())
+			.animal(animal)
+			.member(new Member(memberId))
+			.build();
+
+		return boardRepository.save(board);
+	}
+
+	private BreedType findBreedType(String breedTypeName) {
+		if (breedTypeName == null || breedTypeName.isBlank()) {
+			return null;
+		}
+		return breedTypeRepository.findByName(breedTypeName).orElse(null);
+	}
+
+	private void saveBoardTags(List<String> tags, Board board) {
+		if (tags != null && !tags.isEmpty()) {
+			boardTagRepository.bulkInsert(tags, board);
+		}
+	}
+
+	private List<String> generatePresignedUrlsIfNeeded(Integer count, Long animalId) {
+		if (count != null && count > 0) {
+			return imageService.generatePresignedUrls(animalId, count);
+		}
+		return List.of();
+	}
+
+	private List<BoardResponse> attachTagsToResponses(List<BoardResponse> responses) {
+		if (responses.isEmpty()) {
+			return responses;
+		}
+
+		List<Long> boardIds = new ArrayList<>();
+		for (BoardResponse response : responses) {
+			boardIds.add(response.boardId());
+		}
+
+		Map<Long, List<String>> tagsMap = new HashMap<>();
+		List<BoardTag> boardTags = boardTagRepository.findByBoardIdInWithBoard(boardIds);
+
+		for (BoardTag boardTag : boardTags) {
+			Long boardId = boardTag.getBoard().getId();
+			tagsMap.computeIfAbsent(boardId, k -> new ArrayList<>()).add(boardTag.getName());
+		}
+
+		List<BoardResponse> result = new ArrayList<>();
+		for (BoardResponse response : responses) {
+			BoardResponse newResponse = BoardResponse.builder()
+				.boardId(response.boardId())
+				.title(response.title())
+				.species(response.species())
+				.breedType(response.breedType())
+				.sex(response.sex())
+				.address(response.address())
+				.latitude(response.latitude())
+				.longitude(response.longitude())
+				.animalType(response.animalType())
+				.memberNickname(response.memberNickname())
+				.profile(response.profile())
+				.createdAt(response.createdAt())
+				.updatedAt(response.updatedAt())
+				.tags(tagsMap.getOrDefault(response.boardId(), List.of()))
+				.build();
+			result.add(newResponse);
+		}
+
+		return result;
 	}
 }

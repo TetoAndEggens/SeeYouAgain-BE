@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.board.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -50,6 +51,9 @@ public record BoardResponse(
 	LocalDateTime createdAt,
 
 	@Schema(description = "수정일시", example = "2024-01-01T00:00:00")
-	LocalDateTime updatedAt
+	LocalDateTime updatedAt,
+
+	@Schema(description = "해시태그", example = "[\"강아지\", \"실종\"]")
+	List<String> tags
 ) {
 }

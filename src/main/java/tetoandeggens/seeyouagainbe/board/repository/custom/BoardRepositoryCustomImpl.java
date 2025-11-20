@@ -57,7 +57,8 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				member.nickName,
 				profileEntity.profile,
 				board.createdAt,
-				board.updatedAt
+				board.updatedAt,
+				Expressions.constant(java.util.Collections.emptyList())
 			))
 			.from(board)
 			.join(board.animal, animal)
