@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 public enum BoardErrorCode implements ErrorCode {
 
 	BOARD_NOT_FOUND("BOARD_001", "게시물을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
-	INVALID_CONTENT_TYPE("BOARD_002", "유효하지 않은 게시물 타입입니다.", HttpStatus.BAD_REQUEST);
+	INVALID_CONTENT_TYPE("BOARD_002", "유효하지 않은 게시물 타입입니다.", HttpStatus.BAD_REQUEST),
+	BOARD_FORBIDDEN("BOARD_003", "게시물에 대한 권한이 없습니다.", HttpStatus.FORBIDDEN),
+	BOARD_ALREADY_DELETED("BOARD_004", "이미 삭제된 게시물입니다.", HttpStatus.BAD_REQUEST);
 
 	private final String code;
 	private final String message;

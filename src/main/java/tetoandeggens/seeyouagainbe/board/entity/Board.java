@@ -69,4 +69,8 @@ public class Board extends BaseEntity {
 		this.violatedStatus = ViolatedStatus.NORMAL;
 		this.member = member;
 	}
+
+	public void updateIsDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
 }
