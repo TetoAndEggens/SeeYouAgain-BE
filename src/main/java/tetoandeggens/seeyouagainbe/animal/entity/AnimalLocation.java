@@ -34,7 +34,7 @@ public class AnimalLocation extends BaseEntity {
 	@Column(name = "address")
 	private String address;
 
-	@Column(name = "coordinates", columnDefinition = "POINT SRID 4326", nullable = false)
+	@Column(name = "coordinates", columnDefinition = "GEOMETRY", nullable = false)
 	private Point coordinates;
 
 	@Column(name = "center_no", unique = true)
