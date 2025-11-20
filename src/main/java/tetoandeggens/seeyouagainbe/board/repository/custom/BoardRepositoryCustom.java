@@ -2,6 +2,7 @@ package tetoandeggens.seeyouagainbe.board.repository.custom;
 
 import java.util.List;
 
+import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -13,4 +14,6 @@ public interface BoardRepositoryCustom {
 		ContentType contentType);
 
 	Long getAnimalBoardsCount(ContentType contentType);
+
+	BoardDetailResponse getAnimalBoard(Long boardId);
 }

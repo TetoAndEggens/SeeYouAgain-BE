@@ -15,9 +15,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
-import tetoandeggens.seeyouagainbe.board.dto.request.AnimalBoardRequest;
-import tetoandeggens.seeyouagainbe.board.dto.response.AnimalBoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.request.BoardRequest;
+import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
 import tetoandeggens.seeyouagainbe.board.service.BoardService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -35,16 +36,16 @@ public class BoardController {
 	@Operation(
 		summary = "실종/유기 동물 게시글 작성 API",
 		description = "실종/유기 동물 게시글 작성 후 presigned URL 반환")
-	public ApiResponse<AnimalBoardResponse> writeAnimalBoard(
-		@RequestBody @Valid AnimalBoardRequest request,
+	public ApiResponse<PresignedUrlResponse> writeAnimalBoard(
+		@RequestBody @Valid BoardRequest request,
 		@AuthenticationPrincipal CustomUserDetails customUserDetails
 	) {
-		AnimalBoardResponse animalBoardResponse = boardService.writeAnimalBoard(request,
+		PresignedUrlResponse presignedUrlResponse = boardService.writeAnimalBoard(request,
 			customUserDetails.getMemberId());
-		return ApiResponse.ok(animalBoardResponse);
+		return ApiResponse.ok(presignedUrlResponse);
 	}
 
-	@GetMapping({"", "/{type}"})
+	@GetMapping({"/list", "/list/{type}"})
 	@Operation(
 		summary = "실종/유기 동물 게시글 리스트 조회 API",
 		description = "실종/유기 동물 게시글 리스트 조회")
@@ -56,5 +57,16 @@ public class BoardController {
 		BoardListResponse animalBoardList = boardService.getAnimalBoardList(request, sortDirection, type);
 
 		return ApiResponse.ok(animalBoardList);
+	}
+
+	@GetMapping("/{boardId}")
+	@Operation(
+		summary = "실종/유기 동물 게시글 조회 API",
+		description = "실종/유기 동물 게시글 조회")
+	public ApiResponse<BoardDetailResponse> getAnimalBoard(
+		@PathVariable Long boardId) {
+		BoardDetailResponse response = boardService.getAnimalBoard(boardId);
+
+		return ApiResponse.ok(response);
 	}
 }

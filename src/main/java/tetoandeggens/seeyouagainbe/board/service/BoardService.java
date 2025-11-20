@@ -18,10 +18,11 @@ import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
-import tetoandeggens.seeyouagainbe.board.dto.request.AnimalBoardRequest;
-import tetoandeggens.seeyouagainbe.board.dto.response.AnimalBoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.request.BoardRequest;
+import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
@@ -30,6 +31,8 @@ import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.BoardErrorCode;
 import tetoandeggens.seeyouagainbe.image.service.ImageService;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 
@@ -45,7 +48,7 @@ public class BoardService {
 	private final ImageService imageService;
 
 	@Transactional
-	public AnimalBoardResponse writeAnimalBoard(AnimalBoardRequest request, Long memberId) {
+	public PresignedUrlResponse writeAnimalBoard(BoardRequest request, Long memberId) {
 		AnimalLocation savedAnimalLocation = createAndSaveAnimalLocation(request);
 		Animal savedAnimal = createAndSaveAnimal(request, savedAnimalLocation);
 		Board savedBoard = createAndSaveBoard(request, savedAnimal, memberId);
@@ -54,7 +57,7 @@ public class BoardService {
 
 		List<String> presignedUrls = generatePresignedUrlsIfNeeded(request.count(), savedAnimal.getId());
 
-		return new AnimalBoardResponse(presignedUrls);
+		return new PresignedUrlResponse(presignedUrls);
 	}
 
 	@Transactional(readOnly = true)
@@ -81,7 +84,18 @@ public class BoardService {
 		return BoardListResponse.of(totalCount.intValue(), cursorPage);
 	}
 
-	private AnimalLocation createAndSaveAnimalLocation(AnimalBoardRequest request) {
+	@Transactional(readOnly = true)
+	public BoardDetailResponse getAnimalBoard(Long boardId) {
+		BoardDetailResponse response = boardRepository.getAnimalBoard(boardId);
+
+		if (response == null) {
+			throw new CustomException(BoardErrorCode.BOARD_NOT_FOUND);
+		}
+
+		return response;
+	}
+
+	private AnimalLocation createAndSaveAnimalLocation(BoardRequest request) {
 		AnimalLocation animalLocation = AnimalLocation.builder()
 			.address(request.address())
 			.latitude(request.latitude())
@@ -91,7 +105,7 @@ public class BoardService {
 		return animalLocationRepository.save(animalLocation);
 	}
 
-	private Animal createAndSaveAnimal(AnimalBoardRequest request, AnimalLocation animalLocation) {
+	private Animal createAndSaveAnimal(BoardRequest request, AnimalLocation animalLocation) {
 		BreedType breedType = findBreedType(request.breedType());
 		Species species = Species.fromCode(request.species());
 		Sex sex = Sex.fromCode(request.sex());
@@ -109,7 +123,7 @@ public class BoardService {
 		return animalRepository.save(animal);
 	}
 
-	private Board createAndSaveBoard(AnimalBoardRequest request, Animal animal, Long memberId) {
+	private Board createAndSaveBoard(BoardRequest request, Animal animal, Long memberId) {
 		ContentType contentType = ContentType.fromCode(request.animalType());
 
 		Board board = Board.builder()
