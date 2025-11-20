@@ -34,8 +34,8 @@ public class BoardController {
 
 	@PostMapping
 	@Operation(
-		summary = "실종/유기 동물 게시글 작성 API",
-		description = "실종/유기 동물 게시글 작성 후 presigned URL 반환")
+		summary = "실종/목격 동물 게시글 작성 API",
+		description = "실종/목격 동물 게시글 작성 후 presigned URL 반환")
 	public ApiResponse<PresignedUrlResponse> writeAnimalBoard(
 		@RequestBody @Valid BoardRequest request,
 		@AuthenticationPrincipal CustomUserDetails customUserDetails
@@ -47,8 +47,8 @@ public class BoardController {
 
 	@GetMapping({"/list", "/list/{type}"})
 	@Operation(
-		summary = "실종/유기 동물 게시글 리스트 조회 API",
-		description = "실종/유기 동물 게시글 리스트 조회")
+		summary = "실종/목격 동물 게시글 리스트 조회 API",
+		description = "실종/목격 동물 게시글 리스트 조회")
 	public ApiResponse<BoardListResponse> getAnimalBoardList(
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection,
@@ -61,8 +61,8 @@ public class BoardController {
 
 	@GetMapping("/{boardId}")
 	@Operation(
-		summary = "실종/유기 동물 게시글 조회 API",
-		description = "실종/유기 동물 게시글 조회")
+		summary = "실종/목격 동물 게시글 조회 API",
+		description = "실종/목격 동물 게시글 조회")
 	public ApiResponse<BoardDetailResponse> getAnimalBoard(
 		@PathVariable Long boardId) {
 		BoardDetailResponse response = boardService.getAnimalBoard(boardId);
