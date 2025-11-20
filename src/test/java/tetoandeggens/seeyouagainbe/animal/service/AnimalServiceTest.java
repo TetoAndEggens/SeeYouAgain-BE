@@ -427,7 +427,8 @@ class AnimalServiceTest extends ServiceTest {
 				.name("서울 유기견 보호소")
 				.address("서울특별시 강남구")
 				.centerNo("CENTER001")
-				.coordinates(point)
+				.latitude(37.4979)
+				.longitude(127.0276)
 				.build();
 			entityManager.persist(animalLocation);
 
