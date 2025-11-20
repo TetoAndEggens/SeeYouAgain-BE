@@ -1,8 +1,11 @@
 package tetoandeggens.seeyouagainbe.board.dto.request;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Schema(name = "AnimalBoardRequest: 실종/동물 게시물 작성 요청 Dto")
 public record AnimalBoardRequest(
@@ -41,6 +44,10 @@ public record AnimalBoardRequest(
 
 	@Max(value = 3, message = "이미지는 최대 3개까지 업로드 가능합니다.")
 	@Schema(description = "이미지 개수", example = "2")
-	Integer count
+	Integer count,
+
+	@Size(max = 7, message = "해시태그는 최대 7개까지 가능합니다.")
+	@Schema(description = "해시태그", example = "[\"강아지\", \"실종\"]")
+	List<String> tags
 ) {
 }

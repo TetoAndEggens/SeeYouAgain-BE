@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -31,4 +32,10 @@ public class BoardTag extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "board_id")
 	private Board board;
+
+	@Builder
+	public BoardTag(String name, Board board) {
+		this.name = name;
+		this.board = board;
+	}
 }
