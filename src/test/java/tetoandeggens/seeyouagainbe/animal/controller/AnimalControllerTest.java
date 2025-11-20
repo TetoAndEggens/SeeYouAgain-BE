@@ -78,7 +78,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal")
+			mockMvc.perform(get("/animal/list")
 					.param("size", "10"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200))
@@ -140,7 +140,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal")
+			mockMvc.perform(get("/animal/list")
 					.param("size", "10")
 					.param("sortDirection", "LATEST")
 					.param("startDate", "20250101")
@@ -208,7 +208,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal")
+			mockMvc.perform(get("/animal/list")
 					.param("cursorId", "10")
 					.param("size", "10"))
 				.andExpect(status().isOk())
@@ -251,7 +251,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal")
+			mockMvc.perform(get("/animal/list")
 					.param("size", "10")
 					.param("sortDirection", "OLDEST"))
 				.andExpect(status().isOk())
@@ -275,7 +275,7 @@ class AnimalControllerTest extends ControllerTest {
 		@DisplayName("유기 동물 리스트 조회 - size 파라미터 없으면 실패")
 		void getAnimalList_Fail_WithoutSize() throws Exception {
 			// when & then
-			mockMvc.perform(get("/animal"))
+			mockMvc.perform(get("/animal/list"))
 				.andExpect(status().isBadRequest());
 
 			verify(animalService, never()).getAbandonedAnimalList(
@@ -411,7 +411,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal/map")
+			mockMvc.perform(get("/animal/list/map")
 					.param("minLongitude", "126.8")
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
@@ -448,7 +448,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal/map")
+			mockMvc.perform(get("/animal/list/map")
 					.param("minLongitude", "126.8")
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
@@ -479,7 +479,7 @@ class AnimalControllerTest extends ControllerTest {
 		@DisplayName("좌표 기반 조회 - size 파라미터 누락 시 실패")
 		void getAnimalListWithCoordinates_Fail_WithoutSize() throws Exception {
 			// when & then
-			mockMvc.perform(get("/animal/map")
+			mockMvc.perform(get("/animal/list/map")
 					.param("minLongitude", "126.8")
 					.param("minLatitude", "37.4")
 					.param("maxLongitude", "127.1")
@@ -507,7 +507,7 @@ class AnimalControllerTest extends ControllerTest {
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/animal/map")
+			mockMvc.perform(get("/animal/list/map")
 					.param("cursorId", "10")
 					.param("size", "10")
 					.param("minLongitude", "126.8")
