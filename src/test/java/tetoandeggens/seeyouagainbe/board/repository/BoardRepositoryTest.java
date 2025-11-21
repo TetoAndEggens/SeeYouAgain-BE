@@ -205,7 +205,7 @@ class BoardRepositoryTest extends RepositoryTest {
 
 	@Nested
 	@DisplayName("태그 ID 검증 테스트")
-	class CountValidTagIdsTests {
+	class CountValidTagInfoTests {
 
 		@Test
 		@DisplayName("태그 ID 검증 - 모두 유효한 경우")

@@ -24,6 +24,8 @@ import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
+import tetoandeggens.seeyouagainbe.board.dto.response.TagInfo;
 import tetoandeggens.seeyouagainbe.board.service.BoardService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -336,8 +338,14 @@ class BoardControllerTest extends ControllerTest {
 				"홍길동",
 				LocalDateTime.now(),
 				LocalDateTime.now(),
-				List.of("강아지", "실종"),
-				List.of("profile1.jpg", "profile2.jpg")
+				List.of(
+					new TagInfo(1L, "강아지"),
+					new TagInfo(2L, "실종")
+				),
+				List.of(
+					new ProfileInfo(1L, "profile1.jpg"),
+					new ProfileInfo(2L, "profile2.jpg")
+				)
 			);
 
 			given(boardService.getAnimalBoard(boardId))
