@@ -134,7 +134,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QBoardTag boardTag = QBoardTag.boardTag;
 
-		// 🔹 1. 프로필: id + url
 		List<ProfileInfo> profiles = queryFactory
 			.select(Projections.constructor(
 				ProfileInfo.class,
@@ -151,7 +150,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.limit(3)
 			.fetch();
 
-		// 🔹 2. 태그: id + name
 		List<TagInfo> tags = queryFactory
 			.select(Projections.constructor(
 				TagInfo.class,
