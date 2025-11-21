@@ -18,6 +18,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.QBoardTag;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -175,6 +176,55 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.leftJoin(animal.animalLocation, animalLocation)
 			.leftJoin(animal.breedType, bt)
 			.where(board.id.eq(boardId), board.isDeleted.eq(false))
+			.fetchOne();
+	}
+
+	@Override
+	public long countValidImageIds(java.util.List<Long> imageIds, Long animalId) {
+		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
+
+		Long count = queryFactory
+			.select(profileEntity.count())
+			.from(profileEntity)
+			.where(
+				profileEntity.id.in(imageIds),
+				profileEntity.animal.id.eq(animalId),
+				profileEntity.isDeleted.eq(false)
+			)
+			.fetchOne();
+
+		return count != null ? count : 0L;
+	}
+
+	@Override
+	public long countValidTagIds(java.util.List<Long> tagIds, Long boardId) {
+		QBoardTag boardTag = QBoardTag.boardTag;
+
+		Long count = queryFactory
+			.select(boardTag.count())
+			.from(boardTag)
+			.where(
+				boardTag.id.in(tagIds),
+				boardTag.board.id.eq(boardId),
+				boardTag.isDeleted.eq(false)
+			)
+			.fetchOne();
+
+		return count != null ? count : 0L;
+	}
+
+	@Override
+	public Board findByIdWithAnimal(Long boardId) {
+		QAnimal animal = QAnimal.animal;
+		QAnimalLocation animalLocation = QAnimalLocation.animalLocation;
+		QBreedType breedType = QBreedType.breedType;
+
+		return queryFactory
+			.selectFrom(board)
+			.join(board.animal, animal).fetchJoin()
+			.leftJoin(animal.animalLocation, animalLocation).fetchJoin()
+			.leftJoin(animal.breedType, breedType).fetchJoin()
+			.where(board.id.eq(boardId))
 			.fetchOne();
 	}
 }

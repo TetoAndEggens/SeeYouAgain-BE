@@ -18,6 +18,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
+import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
@@ -113,6 +114,75 @@ public class BoardService {
 
 		boardRepository.softDeleteByAnimalId(animal.getId());
 		chatRoomRepository.softDeleteByBoardId(boardId);
+	}
+
+	@Transactional
+	public PresignedUrlResponse updateAnimalBoard(Long boardId, UpdatingBoardRequest request, Long memberId) {
+		Board board = boardRepository.findByIdWithAnimal(boardId);
+		if (board == null) {
+			throw new CustomException(BoardErrorCode.BOARD_NOT_FOUND);
+		}
+
+		if (!board.getMember().getId().equals(memberId)) {
+			throw new CustomException(BoardErrorCode.BOARD_FORBIDDEN);
+		}
+
+		Animal animal = board.getAnimal();
+		AnimalLocation animalLocation = animal.getAnimalLocation();
+
+		if (request.title() != null) {
+			board.updateTitle(request.title());
+		}
+		if (request.content() != null) {
+			board.updateContent(request.content());
+		}
+		if (request.animalType() != null) {
+			ContentType contentType = ContentType.fromCode(request.animalType());
+			board.updateContentType(contentType);
+			AnimalType animalType = AnimalType.fromCode(request.animalType());
+			animal.updateAnimalType(animalType);
+		}
+
+		if (request.species() != null) {
+			Species species = Species.fromCode(request.species());
+			animal.updateSpecies(species);
+		}
+		if (request.breedType() != null) {
+			BreedType breedType = findBreedType(request.breedType());
+			animal.updateBreedType(breedType);
+		}
+		if (request.sex() != null) {
+			Sex sex = Sex.fromCode(request.sex());
+			animal.updateSex(sex);
+		}
+		if (request.color() != null) {
+			animal.updateColor(request.color());
+		}
+
+		if (request.address() != null) {
+			animalLocation.updateAddress(request.address());
+		}
+		if (request.latitude() != null && request.longitude() != null) {
+			animalLocation.updateCoordinates(request.latitude(), request.longitude());
+		}
+
+		if (request.deleteTagIds() != null && !request.deleteTagIds().isEmpty()) {
+			validateTagIds(request.deleteTagIds(), board.getId());
+			boardTagRepository.softDeleteByTagIds(request.deleteTagIds());
+		}
+
+		if (request.tags() != null && !request.tags().isEmpty()) {
+			saveBoardTags(request.tags(), board);
+		}
+
+		if (request.deleteImageIds() != null && !request.deleteImageIds().isEmpty()) {
+			validateImageIds(request.deleteImageIds(), animal.getId());
+			boardRepository.softDeleteByImageIds(request.deleteImageIds());
+		}
+
+		List<String> presignedUrls = generatePresignedUrlsIfNeeded(request.count(), animal.getId());
+
+		return new PresignedUrlResponse(presignedUrls);
 	}
 
 	private AnimalLocation createAndSaveAnimalLocation(WritingBoardRequest request) {
@@ -217,5 +287,19 @@ public class BoardService {
 		}
 
 		return result;
+	}
+
+	private void validateImageIds(List<Long> imageIds, Long animalId) {
+		long validCount = boardRepository.countValidImageIds(imageIds, animalId);
+		if (validCount != imageIds.size()) {
+			throw new CustomException(BoardErrorCode.INVALID_IMAGE_IDS);
+		}
+	}
+
+	private void validateTagIds(List<Long> tagIds, Long boardId) {
+		long validCount = boardRepository.countValidTagIds(tagIds, boardId);
+		if (validCount != tagIds.size()) {
+			throw new CustomException(BoardErrorCode.INVALID_TAG_IDS);
+		}
 	}
 }

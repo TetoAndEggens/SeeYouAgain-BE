@@ -25,8 +25,8 @@ public class BoardTagRepositoryCustomImpl implements BoardTagRepositoryCustom {
 
 	@Override
 	public void bulkInsert(List<String> tags, Board board) {
-		String sql = "INSERT INTO board_tag (board_id, name, created_at, updated_at) "
-			+ "VALUES (:boardId, :name, :createdAt, :updatedAt)";
+		String sql = "INSERT INTO board_tag (board_id, name, created_at, updated_at, is_deleted) "
+			+ "VALUES (:boardId, :name, :createdAt, :updatedAt, :isDeleted)";
 
 		LocalDateTime now = LocalDateTime.now();
 
@@ -35,7 +35,8 @@ public class BoardTagRepositoryCustomImpl implements BoardTagRepositoryCustom {
 				.addValue("boardId", board.getId())
 				.addValue("name", tag)
 				.addValue("createdAt", now)
-				.addValue("updatedAt", now))
+				.addValue("updatedAt", now)
+				.addValue("isDeleted", false))
 			.toArray(SqlParameterSource[]::new);
 
 		namedParameterJdbcTemplate.batchUpdate(sql, batchParams);

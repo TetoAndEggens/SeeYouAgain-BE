@@ -57,4 +57,14 @@ public class AnimalLocation extends BaseEntity {
 	public static Point createPoint(double longitude, double latitude) {
 		return geometryFactory.createPoint(new Coordinate(longitude, latitude));
 	}
+
+	public void updateAddress(String address) {
+		this.address = address;
+	}
+
+	public void updateCoordinates(Double latitude, Double longitude) {
+		double lon = (longitude != null) ? longitude : 0.0;
+		double lat = (latitude != null) ? latitude : 0.0;
+		this.coordinates = createPoint(lon, lat);
+	}
 }
