@@ -35,9 +35,10 @@ public abstract class ControllerTest {
         }
     }
 
-    protected RequestPostProcessor mockUser(Long uuid) {
+    protected RequestPostProcessor mockUser(Long memberId) {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
-        when(userDetails.getUuid()).thenReturn(String.valueOf(uuid));
+        when(userDetails.getUuid()).thenReturn(String.valueOf(memberId));
+        when(userDetails.getMemberId()).thenReturn(memberId);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
                 userDetails, null, List.of()
