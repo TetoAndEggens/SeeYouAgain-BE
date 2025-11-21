@@ -18,6 +18,8 @@ import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
+import tetoandeggens.seeyouagainbe.board.dto.response.TagInfo;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.QBoardTag;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -132,8 +134,13 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QBoardTag boardTag = QBoardTag.boardTag;
 
-		List<String> profiles = queryFactory
-			.select(profileEntity.profile)
+		// 🔹 1. 프로필: id + url
+		List<ProfileInfo> profiles = queryFactory
+			.select(Projections.constructor(
+				ProfileInfo.class,
+				profileEntity.id,
+				profileEntity.profile
+			))
 			.from(profileEntity)
 			.where(profileEntity.animal.id.in(
 				JPAExpressions.select(board.animal.id)
@@ -144,12 +151,18 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.limit(3)
 			.fetch();
 
-		List<String> tags = queryFactory
-			.select(boardTag.name)
+		// 🔹 2. 태그: id + name
+		List<TagInfo> tags = queryFactory
+			.select(Projections.constructor(
+				TagInfo.class,
+				boardTag.id,
+				boardTag.name
+			))
 			.from(boardTag)
 			.where(boardTag.board.id.eq(boardId))
 			.fetch();
 
+		// 🔹 3. 본문 조회
 		return queryFactory
 			.select(Projections.constructor(
 				BoardDetailResponse.class,
