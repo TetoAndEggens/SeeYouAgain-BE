@@ -102,29 +102,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.fetchOne();
 	}
 
-	private BooleanExpression createContentTypeCondition(ContentType contentType) {
-		if (contentType == null) {
-			return null;
-		}
-		return board.contentType.eq(contentType);
-	}
-
-	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {
-		if (cursorId == null) {
-			return null;
-		}
-
-		return sortDirection == SortDirection.LATEST
-			? board.id.lt(cursorId)
-			: board.id.gt(cursorId);
-	}
-
-	private OrderSpecifier<Long> createOrderSpecifier(SortDirection sortDirection) {
-		return sortDirection == SortDirection.LATEST
-			? board.id.desc()
-			: board.id.asc();
-	}
-
 	@Override
 	public BoardDetailResponse getAnimalBoard(Long boardId) {
 		QAnimal animal = QAnimal.animal;
@@ -160,7 +137,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.where(boardTag.board.id.eq(boardId))
 			.fetch();
 
-		// 🔹 3. 본문 조회
 		return queryFactory
 			.select(Projections.constructor(
 				BoardDetailResponse.class,
@@ -237,5 +213,28 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.leftJoin(animal.breedType, breedType).fetchJoin()
 			.where(board.id.eq(boardId))
 			.fetchOne();
+	}
+
+	private BooleanExpression createContentTypeCondition(ContentType contentType) {
+		if (contentType == null) {
+			return null;
+		}
+		return board.contentType.eq(contentType);
+	}
+
+	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {
+		if (cursorId == null) {
+			return null;
+		}
+
+		return sortDirection == SortDirection.LATEST
+			? board.id.lt(cursorId)
+			: board.id.gt(cursorId);
+	}
+
+	private OrderSpecifier<Long> createOrderSpecifier(SortDirection sortDirection) {
+		return sortDirection == SortDirection.LATEST
+			? board.id.desc()
+			: board.id.asc();
 	}
 }
