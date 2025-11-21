@@ -73,4 +73,16 @@ public class Board extends BaseEntity {
 	public void updateIsDeleted(boolean isDeleted) {
 		this.isDeleted = isDeleted;
 	}
+
+	public void updateTitle(String title) {
+		this.title = title;
+	}
+
+	public void updateContent(String content) {
+		this.content = content;
+	}
+
+	public void updateContentType(ContentType contentType) {
+		this.contentType = contentType;
+	}
 }

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
+import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
@@ -81,5 +83,18 @@ public class BoardController {
 		boardService.deleteAnimalBoard(boardId, customUserDetails.getMemberId());
 
 		return ApiResponse.noContent();
+	}
+
+	@PutMapping("/{boardId}")
+	@Operation(
+		summary = "실종/목격 동물 게시글 수정 API",
+		description = "실종/목격 동물 게시글 수정 후 presigned URL 반환")
+	public ApiResponse<PresignedUrlResponse> updateAnimalBoard(
+		@PathVariable Long boardId,
+		@RequestBody @Valid UpdatingBoardRequest request,
+		@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+		PresignedUrlResponse presignedUrlResponse = boardService.updateAnimalBoard(boardId, request, customUserDetails.getMemberId());
+
+		return ApiResponse.ok(presignedUrlResponse);
 	}
 }

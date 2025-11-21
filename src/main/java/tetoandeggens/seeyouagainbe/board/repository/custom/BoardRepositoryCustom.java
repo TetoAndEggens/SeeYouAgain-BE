@@ -4,6 +4,7 @@ import java.util.List;
 
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
@@ -16,4 +17,10 @@ public interface BoardRepositoryCustom {
 	Long getAnimalBoardsCount(ContentType contentType);
 
 	BoardDetailResponse getAnimalBoard(Long boardId);
+
+	long countValidImageIds(List<Long> imageIds, Long animalId);
+
+	long countValidTagIds(List<Long> tagIds, Long boardId);
+
+	Board findByIdWithAnimal(Long boardId);
 }

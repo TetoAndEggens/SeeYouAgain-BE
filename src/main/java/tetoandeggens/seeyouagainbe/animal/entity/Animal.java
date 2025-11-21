@@ -136,4 +136,24 @@ public class Animal extends BaseEntity {
 	public void updateIsDeleted(boolean isDeleted) {
 		this.isDeleted = isDeleted;
 	}
+
+	public void updateSpecies(Species species) {
+		this.species = species;
+	}
+
+	public void updateBreedType(BreedType breedType) {
+		this.breedType = breedType;
+	}
+
+	public void updateSex(Sex sex) {
+		this.sex = sex;
+	}
+
+	public void updateColor(String color) {
+		this.color = color;
+	}
+
+	public void updateAnimalType(AnimalType animalType) {
+		this.animalType = animalType;
+	}
 }

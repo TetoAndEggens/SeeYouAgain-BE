@@ -33,9 +33,13 @@ public class BoardTag extends BaseEntity {
 	@JoinColumn(name = "board_id")
 	private Board board;
 
+	@Column(name = "is_deleted")
+	private Boolean isDeleted = false;
+
 	@Builder
 	public BoardTag(String name, Board board) {
 		this.name = name;
 		this.board = board;
+		this.isDeleted = false;
 	}
 }
