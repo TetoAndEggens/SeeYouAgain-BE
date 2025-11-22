@@ -71,4 +71,16 @@ public class Violation extends BaseEntity {
         this.board = board;
         this.chatRoom = chatRoom;
     }
+
+    public void updateViolatedStatus(ViolatedStatus status) {
+        this.violatedStatus = status;
+    }
+
+    public boolean isBoard() {
+        return this.board != null;
+    }
+
+    public boolean isChatRoom() {
+        return this.chatRoom != null;
+    }
 }
