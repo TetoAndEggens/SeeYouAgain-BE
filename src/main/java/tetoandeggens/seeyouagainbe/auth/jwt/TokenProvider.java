@@ -11,9 +11,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
+import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 import javax.crypto.SecretKey;
 import java.util.Base64;
@@ -41,6 +43,7 @@ public class TokenProvider {
 
     private SecretKey secretKey;
     private final RedisAuthService redisAuthService;
+    private final MemberRepository memberRepository;
 
     @PostConstruct
     public void init() {
@@ -151,7 +154,11 @@ public class TokenProvider {
         Long memberId = redisAuthService.getMemberId(uuid)
                 .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
 
-        CustomUserDetails customUserDetails = CustomUserDetails.fromClaims(uuid, role, memberId);
+        Member member = memberRepository.findByIdAndIsDeletedFalse(memberId)
+                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(member);
+
         return new UsernamePasswordAuthenticationToken(
                 customUserDetails,
                 null,
