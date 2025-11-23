@@ -30,9 +30,9 @@ public class ChatService {
 
 	@Transactional
 	public ChatMessageDto saveMessage(ChatMessageDto messageDto) {
-		Board board = findBoardWithMember(messageDto.boardId());
-		Member sender = findSender(messageDto.senderId());
-		Member receiver = board.getMember();
+		Board board = findBoard(messageDto.boardId());
+		Member sender = findMember(messageDto.senderId(), ChatErrorCode.SENDER_NOT_FOUND);
+		Member receiver = findMember(messageDto.receiverId(), ChatErrorCode.RECEIVER_NOT_FOUND);
 
 		ChatRoom chatRoom = findOrCreateChatRoom(messageDto, board, sender, receiver);
 		ChatMessage savedMessage = saveChatMessage(chatRoom, sender, messageDto);
@@ -51,17 +51,14 @@ public class ChatService {
 			.build();
 	}
 
-	private Board findBoardWithMember(Long boardId) {
-		Board board = boardRepository.findByIdWithMember(boardId);
-		if (board == null) {
-			throw new CustomException(ChatErrorCode.BOARD_NOT_FOUND);
-		}
-		return board;
+	private Board findBoard(Long boardId) {
+		return boardRepository.findById(boardId)
+			.orElseThrow(() -> new CustomException(ChatErrorCode.BOARD_NOT_FOUND));
 	}
 
-	private Member findSender(Long senderId) {
-		return memberRepository.findById(senderId)
-			.orElseThrow(() -> new CustomException(ChatErrorCode.SENDER_NOT_FOUND));
+	private Member findMember(Long memberId, ChatErrorCode errorCode) {
+		return memberRepository.findById(memberId)
+			.orElseThrow(() -> new CustomException(errorCode));
 	}
 
 	private ChatRoom findOrCreateChatRoom(ChatMessageDto messageDto, Board board, Member sender, Member receiver) {
