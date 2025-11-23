@@ -12,9 +12,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import tetoandeggens.seeyouagainbe.common.enums.ImageType;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 
@@ -39,13 +39,6 @@ public class ChatMessage extends BaseEntity {
 	@Column(name = "image_key", unique = true)
 	private String imageKey;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "image_type")
-	private ImageType imageType;
-
-	@Column(name = "image_size")
-	private Double imageSize;
-
 	@Column(name = "is_read")
 	private Boolean isRead;
 
@@ -59,4 +52,15 @@ public class ChatMessage extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "chat_room_id")
 	private ChatRoom chatRoom;
+
+	@Builder
+	public ChatMessage(ChatRoom chatRoom, Member sender, MessageType messageType, String content, String imageKey) {
+		this.chatRoom = chatRoom;
+		this.sender = sender;
+		this.messageType = messageType;
+		this.content = content;
+		this.imageKey = imageKey;
+		this.isRead = false;
+		this.isDeleted = false;
+	}
 }
