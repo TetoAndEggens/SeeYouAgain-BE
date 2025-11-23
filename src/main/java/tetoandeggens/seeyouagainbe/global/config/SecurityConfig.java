@@ -64,7 +64,8 @@ public class SecurityConfig {
 		"/swagger-resources/**",
 		"/webjars/**",
 		"/actuator/**",
-		"/animal/**"
+		"/animal/**",
+		"/ws-stomp/**"
 	};
 
 	private static final String[] BLACK_LIST = {
