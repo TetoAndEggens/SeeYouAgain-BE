@@ -26,8 +26,10 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
+import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 @DisplayName("TokenProvider 단위 테스트")
 @ExtendWith(MockitoExtension.class)
@@ -44,8 +46,28 @@ class TokenProviderTest {
     @Mock
     private RedisAuthService redisAuthService;
 
+    @Mock
+    private MemberRepository memberRepository;
+
     @InjectMocks
     private TokenProvider tokenProvider;
+
+    private Member createTestMember(Role testRole) {
+        Member member = Member.builder()
+                .loginId("testuser")
+                .password("encodedPassword")
+                .nickName("테스트유저")
+                .phoneNumber("01012345678")
+                .build();
+
+        ReflectionTestUtils.setField(member, "role", testRole);
+        ReflectionTestUtils.setField(member, "uuid", TEST_UUID);
+        ReflectionTestUtils.setField(member, "id", TEST_MEMBER_ID);
+        ReflectionTestUtils.setField(member, "isBanned", false);
+
+        return member;
+    }
+
 
     @BeforeEach
     void setUp() {
@@ -288,7 +310,11 @@ class TokenProviderTest {
         void getAuthenticationByAccessToken_UserRole_ReturnsAuthentication() {
             // given
             String accessToken = tokenProvider.createAccessToken(TEST_UUID, Role.USER.getRole());
+            Member testMember = createTestMember(Role.USER);
+
             given(redisAuthService.getMemberId(TEST_UUID)).willReturn(Optional.of(TEST_MEMBER_ID));
+            given(memberRepository.findByIdAndIsDeletedFalse(TEST_MEMBER_ID))
+                    .willReturn(Optional.of(testMember));
 
             // when
             Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
@@ -307,6 +333,7 @@ class TokenProviderTest {
                     .containsExactly(Role.USER.getRole());
 
             verify(redisAuthService).getMemberId(TEST_UUID);
+            verify(memberRepository).findByIdAndIsDeletedFalse(TEST_MEMBER_ID);
         }
 
         @Test
@@ -314,7 +341,11 @@ class TokenProviderTest {
         void getAuthenticationByAccessToken_AdminRole_ReturnsAuthentication() {
             // given
             String accessToken = tokenProvider.createAccessToken(TEST_UUID, Role.ADMIN.getRole());
+            Member testMember = createTestMember(Role.ADMIN);
+
             given(redisAuthService.getMemberId(TEST_UUID)).willReturn(Optional.of(TEST_MEMBER_ID));
+            given(memberRepository.findByIdAndIsDeletedFalse(TEST_MEMBER_ID))
+                    .willReturn(Optional.of(testMember));
 
             // when
             Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
@@ -328,6 +359,7 @@ class TokenProviderTest {
                     .containsExactly(Role.ADMIN.getRole());
 
             verify(redisAuthService).getMemberId(TEST_UUID);
+            verify(memberRepository).findByIdAndIsDeletedFalse(TEST_MEMBER_ID);
         }
 
         @Test

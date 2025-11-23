@@ -18,6 +18,7 @@ public class CustomUserDetails implements UserDetails {
     private final String loginId;
     private final String password;
     private final Role role;
+    private final Boolean isBanned;
 
     public CustomUserDetails(Member member) {
         this.uuid = member.getUuid();
@@ -25,11 +26,12 @@ public class CustomUserDetails implements UserDetails {
         this.loginId = member.getLoginId();
         this.password = member.getPassword();
         this.role = member.getRole();
+        this.isBanned = member.getIsBanned();
     }
 
     public static CustomUserDetails fromClaims(String uuid, String role, Long memberId) {
         String roleValue = role.startsWith("ROLE_") ? role.substring(5) : role;
-        return new CustomUserDetails(uuid, null, null, Role.valueOf(roleValue), memberId);
+        return new CustomUserDetails(uuid, null, null, Role.valueOf(roleValue), memberId, false);
     }
 
     @Override
@@ -67,11 +69,12 @@ public class CustomUserDetails implements UserDetails {
         return true;
     }
 
-    private CustomUserDetails(String uuid, String loginId, String password, Role role, Long memberId) {
+    private CustomUserDetails(String uuid, String loginId, String password, Role role, Long memberId, Boolean isBanned) {
         this.memberId = memberId;
         this.uuid = uuid;
         this.loginId = loginId;
         this.password = password;
         this.role = role;
+        this.isBanned = isBanned;
     }
 }

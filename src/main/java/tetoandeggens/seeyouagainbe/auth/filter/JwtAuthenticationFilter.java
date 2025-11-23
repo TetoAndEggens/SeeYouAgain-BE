@@ -10,9 +10,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.jwt.TokenProvider;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.util.ResponseUtil;
@@ -46,6 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (accessToken != null) {
                 tokenProvider.validateToken(accessToken);
                 Authentication authentication = tokenProvider.getAuthenticationByAccessToken(accessToken);
+
+                if (isBlackListPath(request.getRequestURI())) {
+                    checkUserBanned(authentication);
+                }
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (CustomException e) {
@@ -85,6 +92,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return Arrays.stream(whiteList)
+                .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
+    }
+
+    private void checkUserBanned(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+        if (userDetails.getIsBanned()) {
+            throw new CustomException(ACCOUNT_BANNED);
+        }
+    }
+
+    private boolean isBlackListPath(String requestURI) {
+        return Arrays.stream(blackList)
                 .anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
     }
 }
