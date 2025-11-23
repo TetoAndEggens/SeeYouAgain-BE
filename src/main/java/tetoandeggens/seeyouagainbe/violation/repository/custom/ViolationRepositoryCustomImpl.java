@@ -76,18 +76,27 @@ public class ViolationRepositoryCustomImpl implements ViolationRepositoryCustom 
                 .join(violation.reporter)
                 .join(violation.reportedMember)
                 .where(statusEq(status))
-                .orderBy(violation.createdAt.desc())
+                .orderBy(violation.id.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        Long total = queryFactory
+        long total = getTotalCount(status);
+
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    private long getTotalCount(ViolatedStatus status) {
+        Long count = queryFactory
                 .select(violation.count())
                 .from(violation)
                 .where(statusEq(status))
                 .fetchOne();
 
-        return new PageImpl<>(content, pageable, total != null ? total : 0L);
+        if (count == null) {
+            return 0L;
+        }
+        return count;
     }
 
     private BooleanExpression statusEq(ViolatedStatus status) {
