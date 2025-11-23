@@ -14,16 +14,22 @@ import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
 @Service
 public class RedisSubscriber {
 
-	private static final String CHAT_ROOM_DESTINATION_PREFIX = "/sub/chat/room/";
-
 	private final ObjectMapper objectMapper;
 	private final SimpMessageSendingOperations messagingTemplate;
 
 	public void sendMessage(String publishMessage) {
 		try {
 			ChatMessageDto chatMessage = objectMapper.readValue(publishMessage, ChatMessageDto.class);
-			String destination = CHAT_ROOM_DESTINATION_PREFIX + chatMessage.chatRoomId();
-			messagingTemplate.convertAndSend(destination, chatMessage);
+
+			messagingTemplate.convertAndSend(
+				"/queue/chat-" + chatMessage.senderId(),
+				chatMessage
+			);
+
+			messagingTemplate.convertAndSend(
+				"/queue/chat-" + chatMessage.receiverId(),
+				chatMessage
+			);
 		} catch (Exception e) {
 			log.error("메시지 처리 실패: message={}", publishMessage, e);
 		}
