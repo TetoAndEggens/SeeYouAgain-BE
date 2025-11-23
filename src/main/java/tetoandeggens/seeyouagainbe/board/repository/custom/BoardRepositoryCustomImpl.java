@@ -215,6 +215,17 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.fetchOne();
 	}
 
+	@Override
+	public Board findByIdWithMember(Long boardId) {
+		QMember member = QMember.member;
+
+		return queryFactory
+			.selectFrom(board)
+			.join(board.member, member).fetchJoin()
+			.where(board.id.eq(boardId))
+			.fetchOne();
+	}
+
 	private BooleanExpression createContentTypeCondition(ContentType contentType) {
 		if (contentType == null) {
 			return null;

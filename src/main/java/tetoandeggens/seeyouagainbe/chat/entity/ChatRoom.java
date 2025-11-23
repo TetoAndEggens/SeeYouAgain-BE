@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
@@ -59,7 +60,23 @@ public class ChatRoom extends BaseEntity {
 	@JoinColumn(name = "board_id")
 	private Board board;
 
+	@Builder
+	public ChatRoom(Board board, Member sender, Member receiver, ContentType contentType,
+		ViolatedStatus violatedStatus) {
+		this.board = board;
+		this.sender = sender;
+		this.receiver = receiver;
+		this.contentType = contentType;
+		this.violatedStatus = violatedStatus;
+		this.isDeleted = false;
+		this.lastMessageAt = LocalDateTime.now();
+	}
+
 	public void updateIsDeleted(boolean isDeleted) {
 		this.isDeleted = isDeleted;
+	}
+
+	public void updateLastMessageAt(LocalDateTime lastMessageAt) {
+		this.lastMessageAt = lastMessageAt;
 	}
 }
