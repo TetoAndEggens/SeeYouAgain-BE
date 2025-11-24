@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,9 +33,9 @@ class ViolationControllerTest extends ControllerTest {
     @MockitoBean
     private ViolationService violationService;
 
-    private RequestPostProcessor mockUserWithUuid(String uuid) {
+    private RequestPostProcessor mockUserWithMemberId(Long memberId) {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
-        when(userDetails.getUuid()).thenReturn(uuid);
+        when(userDetails.getMemberId()).thenReturn(memberId);
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
                 userDetails, null, List.of()
@@ -49,7 +48,7 @@ class ViolationControllerTest extends ControllerTest {
     @DisplayName("신고 등록 API 테스트")
     class CreateViolationTests {
 
-        private final String TEST_UUID = UUID.randomUUID().toString();
+        private final Long TEST_MEMBER_ID = 1L;
 
         @Test
         @DisplayName("게시글 신고 - 성공")
@@ -62,17 +61,17 @@ class ViolationControllerTest extends ControllerTest {
                     "스팸 게시글입니다."
             );
 
-            doNothing().when(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            doNothing().when(violationService).createViolation(anyLong(), any(ViolationCreateRequest.class));
 
             // when & then
             mockMvc.perform(post("/violation")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(asJsonString(request))
-                            .with(mockUserWithUuid(TEST_UUID)))
+                            .with(mockUserWithMemberId(TEST_MEMBER_ID)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(204));
 
-            verify(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            verify(violationService).createViolation(eq(TEST_MEMBER_ID), any(ViolationCreateRequest.class));
         }
 
         @Test
@@ -86,17 +85,17 @@ class ViolationControllerTest extends ControllerTest {
                     "욕설을 사용했습니다."
             );
 
-            doNothing().when(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            doNothing().when(violationService).createViolation(anyLong(), any(ViolationCreateRequest.class));
 
             // when & then
             mockMvc.perform(post("/violation")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(asJsonString(request))
-                            .with(mockUserWithUuid(TEST_UUID)))
+                            .with(mockUserWithMemberId(TEST_MEMBER_ID)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(204));
 
-            verify(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            verify(violationService).createViolation(eq(TEST_MEMBER_ID), any(ViolationCreateRequest.class));
         }
 
         @Test
@@ -109,10 +108,10 @@ class ViolationControllerTest extends ControllerTest {
             mockMvc.perform(post("/violation")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody)
-                            .with(mockUserWithUuid(TEST_UUID)))
+                            .with(mockUserWithMemberId(TEST_MEMBER_ID)))
                     .andExpect(status().isBadRequest());
 
-            verify(violationService, never()).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            verify(violationService, never()).createViolation(anyLong(), any(ViolationCreateRequest.class));
         }
 
         @Test
@@ -126,17 +125,17 @@ class ViolationControllerTest extends ControllerTest {
                     null
             );
 
-            doNothing().when(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            doNothing().when(violationService).createViolation(anyLong(), any(ViolationCreateRequest.class));
 
             // when & then
             mockMvc.perform(post("/violation")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(asJsonString(request))
-                            .with(mockUserWithUuid(TEST_UUID)))
+                            .with(mockUserWithMemberId(TEST_MEMBER_ID)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value(204));
 
-            verify(violationService).createViolation(any(UUID.class), any(ViolationCreateRequest.class));
+            verify(violationService).createViolation(eq(TEST_MEMBER_ID), any(ViolationCreateRequest.class));
         }
     }
 }

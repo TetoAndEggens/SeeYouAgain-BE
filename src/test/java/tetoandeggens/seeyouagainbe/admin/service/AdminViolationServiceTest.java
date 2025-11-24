@@ -199,7 +199,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     .build();
             ReflectionTestUtils.setField(violation, "id", violationId);
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
 
             // when
@@ -211,7 +211,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(result.reason()).isEqualTo(ReportReason.SPAM);
             assertThat(result.detailReason()).isEqualTo("스팸 게시글입니다.");
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
         }
 
         @Test
@@ -229,7 +229,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     .build();
             ReflectionTestUtils.setField(violation, "id", violationId);
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
 
             // when
@@ -240,7 +240,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(result.violationId()).isEqualTo(violationId);
             assertThat(result.reason()).isEqualTo(ReportReason.ABUSE);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
         }
 
         @Test
@@ -249,7 +249,7 @@ class AdminViolationServiceTest extends ServiceTest {
             // given
             Long violationId = 999L;
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -257,7 +257,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AdminErrorCode.VIOLATION_NOT_FOUND);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
         }
     }
 
@@ -285,7 +285,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     true
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -301,7 +301,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getIsDeleted()).isTrue();
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository).save(reportedMember);
             verify(boardRepository).save(board);
         }
@@ -326,7 +326,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     false
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -342,7 +342,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getIsDeleted()).isFalse();
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository).save(reportedMember);
             verify(boardRepository).save(board);
         }
@@ -367,7 +367,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     false
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(boardRepository.save(any(Board.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -381,7 +381,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getIsDeleted()).isFalse();
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.NORMAL);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(boardRepository).save(board);
             verify(memberRepository, never()).save(any(Member.class));
         }
@@ -406,7 +406,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     null  // null인 경우 기본값으로 true가 적용되어야 함
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -421,7 +421,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getIsDeleted()).isTrue();
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository).save(reportedMember);
             verify(boardRepository).save(board);
         }
@@ -451,7 +451,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     true
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -467,7 +467,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getIsDeleted()).isTrue();
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository).save(reportedMember);
             verify(chatRoomRepository).save(chatRoom);
         }
@@ -492,7 +492,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     false
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -508,7 +508,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getIsDeleted()).isFalse();
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository).save(reportedMember);
             verify(chatRoomRepository).save(chatRoom);
         }
@@ -533,7 +533,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     false
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(chatRoomRepository.save(any(ChatRoom.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -547,7 +547,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getIsDeleted()).isFalse();
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.NORMAL);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(chatRoomRepository).save(chatRoom);
             verify(memberRepository, never()).save(any(Member.class));
         }
@@ -567,7 +567,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     true
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -575,7 +575,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AdminErrorCode.VIOLATION_NOT_FOUND);
 
-            verify(violationRepository).findById(violationId);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
             verify(memberRepository, never()).save(any(Member.class));
             verify(boardRepository, never()).save(any(Board.class));
             verify(chatRoomRepository, never()).save(any(ChatRoom.class));
@@ -606,7 +606,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     true
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
@@ -646,7 +646,7 @@ class AdminViolationServiceTest extends ServiceTest {
                     true
             );
 
-            given(violationRepository.findById(violationId))
+            given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
             given(memberRepository.save(any(Member.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));

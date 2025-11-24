@@ -416,4 +416,242 @@ class ViolationRepositoryTest extends RepositoryTest {
             assertThat(savedViolation.getDetailReason()).isNull();
         }
     }
+
+    @Nested
+    @DisplayName("신고 상세 조회 (Fetch Join) 테스트")
+    class FindByIdWithAllFetchTests {
+
+        @Test
+        @DisplayName("신고 상세 조회 - 성공 (게시글 신고, 모든 연관 엔티티 로드)")
+        void findByIdWithAllFetch_Success_BoardViolation() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .board(board)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.SPAM)
+                    .detailReason("스팸 게시글입니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getId()).isEqualTo(savedViolation.getId());
+            assertThat(result.get().getReporter()).isEqualTo(reporter);
+            assertThat(result.get().getReportedMember()).isEqualTo(reportedMember);
+            assertThat(result.get().getBoard()).isEqualTo(board);
+            assertThat(result.get().getChatRoom()).isNull();
+            assertThat(result.get().getViolatedStatus()).isEqualTo(ViolatedStatus.WAITING);
+            assertThat(result.get().getReason()).isEqualTo(ReportReason.SPAM);
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - 성공 (채팅방 신고, 모든 연관 엔티티 로드)")
+        void findByIdWithAllFetch_Success_ChatRoomViolation() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .chatRoom(chatRoom)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.ABUSE)
+                    .detailReason("욕설을 사용했습니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getId()).isEqualTo(savedViolation.getId());
+            assertThat(result.get().getReporter()).isEqualTo(reporter);
+            assertThat(result.get().getReportedMember()).isEqualTo(reportedMember);
+            assertThat(result.get().getBoard()).isNull();
+            assertThat(result.get().getChatRoom()).isEqualTo(chatRoom);
+            assertThat(result.get().getViolatedStatus()).isEqualTo(ViolatedStatus.WAITING);
+            assertThat(result.get().getReason()).isEqualTo(ReportReason.ABUSE);
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - 신고 내역이 없으면 empty 반환")
+        void findByIdWithAllFetch_NotFound_ReturnsEmpty() {
+            // when
+            var result = violationRepository.findByIdWithAllFetch(999L);
+
+            // then
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - Reporter와 ReportedMember 완전히 로드됨")
+        void findByIdWithAllFetch_ReporterAndReportedMemberFullyLoaded() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .board(board)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.SPAM)
+                    .detailReason("스팸 게시글입니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            Violation loadedViolation = result.get();
+
+            // Fetch Join으로 모든 연관 엔티티 로드됨
+            assertThat(loadedViolation.getReporter()).isNotNull();
+            assertThat(loadedViolation.getReporter().getLoginId()).isEqualTo("reporter");
+            assertThat(loadedViolation.getReporter().getNickName()).isEqualTo("신고자");
+            assertThat(loadedViolation.getReporter().getPhoneNumber()).isEqualTo("01012345678");
+
+            assertThat(loadedViolation.getReportedMember()).isNotNull();
+            assertThat(loadedViolation.getReportedMember().getLoginId()).isEqualTo("reported");
+            assertThat(loadedViolation.getReportedMember().getNickName()).isEqualTo("피신고자");
+            assertThat(loadedViolation.getReportedMember().getViolatedCount()).isEqualTo(0L);
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - Board 객체 LEFT JOIN으로 선택적 로드")
+        void findByIdWithAllFetch_BoardOptionalLoad() {
+            // given: 게시글 신고
+            Violation boardViolation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .board(board)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.SPAM)
+                    .detailReason("스팸 게시글입니다.")
+                    .build();
+
+            Violation savedBoardViolation = violationRepository.save(boardViolation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedBoardViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getBoard()).isNotNull();
+            assertThat(result.get().getBoard().getTitle()).isEqualTo("테스트 게시글");
+            assertThat(result.get().getBoard().getContent()).isEqualTo("테스트 내용");
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - ChatRoom 객체 LEFT JOIN으로 선택적 로드")
+        void findByIdWithAllFetch_ChatRoomOptionalLoad() {
+            // given: 채팅방 신고
+            Violation chatViolation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .chatRoom(chatRoom)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.ABUSE)
+                    .detailReason("욕설을 사용했습니다.")
+                    .build();
+
+            Violation savedChatViolation = violationRepository.save(chatViolation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedChatViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getChatRoom()).isNotNull();
+            assertThat(result.get().getChatRoom().getSender()).isEqualTo(reporter);
+            assertThat(result.get().getChatRoom().getReceiver()).isEqualTo(reportedMember);
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - 게시글 신고에서 ChatRoom은 null")
+        void findByIdWithAllFetch_BoardViolationChatRoomIsNull() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .board(board)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.SPAM)
+                    .detailReason("스팸 게시글입니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getChatRoom()).isNull();
+            assertThat(result.get().getBoard()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - 채팅방 신고에서 Board는 null")
+        void findByIdWithAllFetch_ChatRoomViolationBoardIsNull() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .chatRoom(chatRoom)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.ABUSE)
+                    .detailReason("욕설을 사용했습니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            assertThat(result.get().getBoard()).isNull();
+            assertThat(result.get().getChatRoom()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("신고 상세 조회 - 모든 필드 정보 완전히 로드됨")
+        void findByIdWithAllFetch_AllFieldsLoaded() {
+            // given
+            Violation violation = Violation.builder()
+                    .reporter(reporter)
+                    .reportedMember(reportedMember)
+                    .board(board)
+                    .violatedStatus(ViolatedStatus.WAITING)
+                    .reason(ReportReason.SPAM)
+                    .detailReason("스팸 게시글입니다.")
+                    .build();
+
+            Violation savedViolation = violationRepository.save(violation);
+
+            // when
+            var result = violationRepository.findByIdWithAllFetch(savedViolation.getId());
+
+            // then
+            assertThat(result).isPresent();
+            Violation loadedViolation = result.get();
+
+            // 모든 필드 검증
+            assertThat(loadedViolation.getId()).isNotNull();
+            assertThat(loadedViolation.getReporter()).isNotNull();
+            assertThat(loadedViolation.getReportedMember()).isNotNull();
+            assertThat(loadedViolation.getBoard()).isNotNull();
+            assertThat(loadedViolation.getViolatedStatus()).isEqualTo(ViolatedStatus.WAITING);
+            assertThat(loadedViolation.getReason()).isEqualTo(ReportReason.SPAM);
+            assertThat(loadedViolation.getDetailReason()).isEqualTo("스팸 게시글입니다.");
+            assertThat(loadedViolation.getCreatedAt()).isNotNull();
+        }
+    }
 }
