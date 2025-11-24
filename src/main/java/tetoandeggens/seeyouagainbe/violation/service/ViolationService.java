@@ -11,35 +11,30 @@ import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.ViolationErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
-import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.violation.dto.request.ViolationCreateRequest;
 import tetoandeggens.seeyouagainbe.violation.entity.Violation;
 import tetoandeggens.seeyouagainbe.violation.repository.ViolationRepository;
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ViolationService {
     private final ViolationRepository violationRepository;
-    private final MemberRepository memberRepository;
     private final BoardRepository boardRepository;
     private final ChatRoomRepository chatRoomRepository;
 
     @Transactional
-    public void createViolation(UUID reporterUuid, ViolationCreateRequest request) {
+    public void createViolation(Long reporterMemberId, ViolationCreateRequest request) {
         validateViolationTarget(request);
 
-        Member reporter = memberRepository.findByUuidAndIsDeletedFalse(reporterUuid.toString())
-                .orElseThrow(() -> new CustomException(ViolationErrorCode.REPORTER_NOT_FOUND));
+        Member reporter = new Member(reporterMemberId);
 
         Member reportedMember;
         Board board = null;
         ChatRoom chatRoom = null;
 
         if (request.isBoard()) {
-            if (violationRepository.existsByReporterAndBoard(reporter.getId(), request.boardId())) {
+            if (violationRepository.existsByReporterAndBoard(reporterMemberId, request.boardId())) {
                 throw new CustomException(ViolationErrorCode.DUPLICATE_VIOLATION);
             }
 
@@ -48,17 +43,18 @@ public class ViolationService {
 
             reportedMember = board.getMember();
         } else {
-            if (violationRepository.existsByReporterAndChatRoom(reporter.getId(), request.chatRoomId())) {
+            if (violationRepository.existsByReporterAndChatRoom(reporterMemberId, request.chatRoomId())) {
                 throw new CustomException(ViolationErrorCode.DUPLICATE_VIOLATION);
             }
 
-            chatRoom = chatRoomRepository.findById(request.chatRoomId())
+            // fetch join으로 ChatRoom 조회 시 Member도 함께 로드하여 N+1 해결시도
+            chatRoom = chatRoomRepository.findByIdWithMembers(request.chatRoomId())
                     .orElseThrow(() -> new CustomException(ViolationErrorCode.CHATROOM_NOT_FOUND));
 
-            reportedMember = determineReportedMemberInChat(chatRoom, reporter);
+            reportedMember = determineReportedMemberInChat(chatRoom, reporterMemberId);
         }
 
-        if (reporter.getId().equals(reportedMember.getId())) {
+        if (reporterMemberId.equals(reportedMember.getId())) {
             throw new CustomException(ViolationErrorCode.SELF_REPORT_NOT_ALLOWED);
         }
 
@@ -75,10 +71,10 @@ public class ViolationService {
         violationRepository.save(violation);
     }
 
-    private Member determineReportedMemberInChat(ChatRoom chatRoom, Member reporter) {
-        if (chatRoom.getSender().getId().equals(reporter.getId())) {
+    private Member determineReportedMemberInChat(ChatRoom chatRoom, Long reporterMemberId) {
+        if (chatRoom.getSender().getId().equals(reporterMemberId)) {
             return chatRoom.getReceiver();
-        } else if (chatRoom.getReceiver().getId().equals(reporter.getId())) {
+        } else if (chatRoom.getReceiver().getId().equals(reporterMemberId)) {
             return chatRoom.getSender();
         } else {
             throw new CustomException(ViolationErrorCode.UNAUTHORIZED_CHAT_REPORT);
