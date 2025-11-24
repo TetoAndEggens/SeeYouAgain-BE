@@ -50,13 +50,19 @@ public class ChatMessage extends BaseEntity {
 	private Member sender;
 
 	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "receiver_id")
+	private Member receiver;
+
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "chat_room_id")
 	private ChatRoom chatRoom;
 
 	@Builder
-	public ChatMessage(ChatRoom chatRoom, Member sender, MessageType messageType, String content, String imageKey) {
+	public ChatMessage(ChatRoom chatRoom, Member sender, Member receiver, MessageType messageType, String content,
+		String imageKey) {
 		this.chatRoom = chatRoom;
 		this.sender = sender;
+		this.receiver = receiver;
 		this.messageType = messageType;
 		this.content = content;
 		this.imageKey = imageKey;
