@@ -167,7 +167,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 	}
 
 	@Override
-	public long countValidImageIds(java.util.List<Long> imageIds, Long animalId) {
+	public long countValidImageIds(List<Long> imageIds, Long animalId) {
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 
 		Long count = queryFactory
@@ -184,7 +184,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 	}
 
 	@Override
-	public long countValidTagIds(java.util.List<Long> tagIds, Long boardId) {
+	public long countValidTagIds(List<Long> tagIds, Long boardId) {
 		QBoardTag boardTag = QBoardTag.boardTag;
 
 		Long count = queryFactory
