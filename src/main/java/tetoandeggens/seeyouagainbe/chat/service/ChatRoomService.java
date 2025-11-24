@@ -7,7 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
@@ -27,7 +29,7 @@ public class ChatRoomService {
 	private final ChatMessageRepository chatMessageRepository;
 
 	@Transactional(readOnly = true)
-	public CursorPage<ChatRoomResponse, Long> getMyChatRooms(Long memberId, CursorPageRequest request,
+	public ChatRoomListResponse getMyChatRooms(Long memberId, CursorPageRequest request,
 		SortDirection sortDirection) {
 		List<ChatRoomResponse> chatRooms = chatRoomRepository.findChatRoomsWithDetails(
 			memberId,
@@ -36,11 +38,13 @@ public class ChatRoomService {
 			sortDirection
 		);
 
-		return CursorPage.of(chatRooms, request.size(), ChatRoomResponse::chatRoomId);
+		CursorPage<ChatRoomResponse, Long> cursorPage = CursorPage.of(chatRooms, request.size(),
+			ChatRoomResponse::chatRoomId);
+		return ChatRoomListResponse.of(cursorPage);
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPage<ChatRoomResponse, Long> getUnreadChatRooms(Long memberId, CursorPageRequest request,
+	public ChatRoomListResponse getUnreadChatRooms(Long memberId, CursorPageRequest request,
 		SortDirection sortDirection) {
 		List<ChatRoomResponse> chatRooms = chatRoomRepository.findUnreadChatRoomsWithDetails(
 			memberId,
@@ -49,11 +53,13 @@ public class ChatRoomService {
 			sortDirection
 		);
 
-		return CursorPage.of(chatRooms, request.size(), ChatRoomResponse::chatRoomId);
+		CursorPage<ChatRoomResponse, Long> cursorPage = CursorPage.of(chatRooms, request.size(),
+			ChatRoomResponse::chatRoomId);
+		return ChatRoomListResponse.of(cursorPage);
 	}
 
 	@Transactional
-	public CursorPage<ChatMessageResponse, Long> getChatMessages(Long chatRoomId, Long memberId,
+	public ChatMessageListResponse getChatMessages(Long chatRoomId, Long memberId,
 		CursorPageRequest request, SortDirection sortDirection) {
 		ChatRoom chatRoom = chatRoomRepository.findByIdWithMembers(chatRoomId)
 			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
@@ -79,6 +85,8 @@ public class ChatRoomService {
 			responses.add(ChatMessageResponse.from(message));
 		}
 
-		return CursorPage.of(responses, request.size(), ChatMessageResponse::messageId);
+		CursorPage<ChatMessageResponse, Long> cursorPage = CursorPage.of(responses, request.size(),
+			ChatMessageResponse::messageId);
+		return ChatMessageListResponse.of(cursorPage);
 	}
 }
