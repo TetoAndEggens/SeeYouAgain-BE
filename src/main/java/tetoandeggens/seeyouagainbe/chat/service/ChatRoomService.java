@@ -27,10 +27,10 @@ public class ChatRoomService {
 	private final ChatMessageRepository chatMessageRepository;
 
 	@Transactional(readOnly = true)
-	public CursorPage<ChatRoomResponse, Long> getMyChatRooms(Long userId, CursorPageRequest request,
+	public CursorPage<ChatRoomResponse, Long> getMyChatRooms(Long memberId, CursorPageRequest request,
 		SortDirection sortDirection) {
 		List<ChatRoomResponse> chatRooms = chatRoomRepository.findChatRoomsWithDetails(
-			userId,
+			memberId,
 			request.cursorId(),
 			request.size(),
 			sortDirection
@@ -40,10 +40,10 @@ public class ChatRoomService {
 	}
 
 	@Transactional(readOnly = true)
-	public CursorPage<ChatRoomResponse, Long> getUnreadChatRooms(Long userId, CursorPageRequest request,
+	public CursorPage<ChatRoomResponse, Long> getUnreadChatRooms(Long memberId, CursorPageRequest request,
 		SortDirection sortDirection) {
 		List<ChatRoomResponse> chatRooms = chatRoomRepository.findUnreadChatRoomsWithDetails(
-			userId,
+			memberId,
 			request.cursorId(),
 			request.size(),
 			sortDirection
@@ -53,19 +53,19 @@ public class ChatRoomService {
 	}
 
 	@Transactional
-	public CursorPage<ChatMessageResponse, Long> getChatMessages(Long chatRoomId, Long userId,
+	public CursorPage<ChatMessageResponse, Long> getChatMessages(Long chatRoomId, Long memberId,
 		CursorPageRequest request, SortDirection sortDirection) {
 		ChatRoom chatRoom = chatRoomRepository.findByIdWithMembers(chatRoomId)
 			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
 
 		boolean isChatRoomMember =
-			chatRoom.getSender().getId().equals(userId) || chatRoom.getReceiver().getId().equals(userId);
+			chatRoom.getSender().getId().equals(memberId) || chatRoom.getReceiver().getId().equals(memberId);
 
 		if (!isChatRoomMember) {
 			throw new CustomException(ChatErrorCode.CHAT_FORBIDDEN);
 		}
 
-		chatMessageRepository.markAsReadByChatRoomAndReceiver(chatRoomId, userId);
+		chatMessageRepository.markAsReadByChatRoomAndReceiver(chatRoomId, memberId);
 
 		List<ChatMessage> messages = chatMessageRepository.findMessagesByChatRoom(
 			chatRoomId,
