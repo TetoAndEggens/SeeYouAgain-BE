@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,16 +32,14 @@ import tetoandeggens.seeyouagainbe.violation.repository.ViolationRepository;
 @DisplayName("ViolationService 단위 테스트")
 class ViolationServiceTest extends ServiceTest {
 
-    private static final String REPORTER_UUID = UUID.randomUUID().toString();
+    private static final Long REPORTER_MEMBER_ID = 1L;
+    private static final Long REPORTED_MEMBER_ID = 2L;
 
     @Autowired
     private ViolationService violationService;
 
     @MockitoBean
     private ViolationRepository violationRepository;
-
-    @MockitoBean
-    private MemberRepository memberRepository;
 
     @MockitoBean
     private BoardRepository boardRepository;
@@ -63,7 +60,7 @@ class ViolationServiceTest extends ServiceTest {
                 .nickName("신고자")
                 .phoneNumber("01012345678")
                 .build();
-        ReflectionTestUtils.setField(reporter, "id", 1L);
+        ReflectionTestUtils.setField(reporter, "id", REPORTER_MEMBER_ID);
 
         reportedMember = Member.builder()
                 .loginId("reported")
@@ -71,7 +68,7 @@ class ViolationServiceTest extends ServiceTest {
                 .nickName("피신고자")
                 .phoneNumber("01087654321")
                 .build();
-        ReflectionTestUtils.setField(reportedMember, "id", 2L);
+        ReflectionTestUtils.setField(reportedMember, "id", REPORTED_MEMBER_ID);
 
         board = createBoard(reportedMember, "테스트 게시글", "테스트 내용");
         ReflectionTestUtils.setField(board, "id", 1L);
@@ -122,9 +119,7 @@ class ViolationServiceTest extends ServiceTest {
                     "스팸 게시글입니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndBoard(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndBoard(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
             given(boardRepository.findById(1L))
                     .willReturn(Optional.of(board));
@@ -132,32 +127,10 @@ class ViolationServiceTest extends ServiceTest {
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when & then
-            assertThatCode(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatCode(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .doesNotThrowAnyException();
 
             verify(violationRepository).save(any(Violation.class));
-        }
-
-        @Test
-        @DisplayName("게시글 신고 생성 - 신고자를 찾을 수 없으면 예외 발생")
-        void createViolation_Board_ReporterNotFound_ThrowsException() {
-            // given
-            ViolationCreateRequest request = new ViolationCreateRequest(
-                    1L,
-                    null,
-                    ReportReason.SPAM,
-                    "스팸 게시글입니다."
-            );
-
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
-                    .isInstanceOf(CustomException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.REPORTER_NOT_FOUND);
-
-            verify(violationRepository, never()).save(any(Violation.class));
         }
 
         @Test
@@ -171,15 +144,13 @@ class ViolationServiceTest extends ServiceTest {
                     "스팸 게시글입니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndBoard(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndBoard(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
             given(boardRepository.findById(1L))
                     .willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.BOARD_NOT_FOUND);
 
@@ -197,13 +168,11 @@ class ViolationServiceTest extends ServiceTest {
                     "스팸 게시글입니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndBoard(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndBoard(REPORTER_MEMBER_ID, 1L))
                     .willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.DUPLICATE_VIOLATION);
 
@@ -225,15 +194,13 @@ class ViolationServiceTest extends ServiceTest {
             Board selfBoard = createBoard(reporter, "내 게시글", "내용");
             ReflectionTestUtils.setField(selfBoard, "id", 1L);
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndBoard(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndBoard(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
             given(boardRepository.findById(1L))
                     .willReturn(Optional.of(selfBoard));
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.SELF_REPORT_NOT_ALLOWED);
 
@@ -256,17 +223,15 @@ class ViolationServiceTest extends ServiceTest {
                     "욕설을 사용했습니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndChatRoom(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndChatRoom(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
-            given(chatRoomRepository.findById(1L))
+            given(chatRoomRepository.findByIdWithMembers(1L))
                     .willReturn(Optional.of(chatRoom));
             given(violationRepository.save(any(Violation.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when & then
-            assertThatCode(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatCode(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .doesNotThrowAnyException();
 
             verify(violationRepository).save(any(Violation.class));
@@ -286,17 +251,15 @@ class ViolationServiceTest extends ServiceTest {
             ChatRoom reverseChatRoom = createChatRoom(reportedMember, reporter);
             ReflectionTestUtils.setField(reverseChatRoom, "id", 1L);
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndChatRoom(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndChatRoom(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
-            given(chatRoomRepository.findById(1L))
+            given(chatRoomRepository.findByIdWithMembers(1L))
                     .willReturn(Optional.of(reverseChatRoom));
             given(violationRepository.save(any(Violation.class)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             // when & then
-            assertThatCode(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatCode(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .doesNotThrowAnyException();
 
             verify(violationRepository).save(any(Violation.class));
@@ -313,15 +276,13 @@ class ViolationServiceTest extends ServiceTest {
                     "욕설을 사용했습니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndChatRoom(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndChatRoom(REPORTER_MEMBER_ID, 1L))
                     .willReturn(false);
-            given(chatRoomRepository.findById(1L))
+            given(chatRoomRepository.findByIdWithMembers(1L))
                     .willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.CHATROOM_NOT_FOUND);
 
@@ -339,17 +300,15 @@ class ViolationServiceTest extends ServiceTest {
                     "욕설을 사용했습니다."
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-            given(violationRepository.existsByReporterAndChatRoom(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndChatRoom(REPORTER_MEMBER_ID, 1L))
                     .willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.DUPLICATE_VIOLATION);
 
-            verify(chatRoomRepository, never()).findById(anyLong());
+            verify(chatRoomRepository, never()).findByIdWithMembers(anyLong());
             verify(violationRepository, never()).save(any(Violation.class));
         }
 
@@ -364,23 +323,15 @@ class ViolationServiceTest extends ServiceTest {
                     "욕설을 사용했습니다."
             );
 
-            Member unauthorizedMember = Member.builder()
-                    .loginId("unauthorized")
-                    .password("password123!")
-                    .nickName("비참여자")
-                    .phoneNumber("01011112222")
-                    .build();
-            ReflectionTestUtils.setField(unauthorizedMember, "id", 3L);
+            Long unauthorizedMemberId = 3L;
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(unauthorizedMember));
-            given(violationRepository.existsByReporterAndChatRoom(anyLong(), anyLong()))
+            given(violationRepository.existsByReporterAndChatRoom(unauthorizedMemberId, 1L))
                     .willReturn(false);
-            given(chatRoomRepository.findById(1L))
+            given(chatRoomRepository.findByIdWithMembers(1L))
                     .willReturn(Optional.of(chatRoom));
 
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(unauthorizedMemberId, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.UNAUTHORIZED_CHAT_REPORT);
 
@@ -403,11 +354,8 @@ class ViolationServiceTest extends ServiceTest {
                     "테스트"
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.VIOLATION_TARGET_REQUIRED);
 
@@ -425,11 +373,8 @@ class ViolationServiceTest extends ServiceTest {
                     "테스트"
             );
 
-            given(memberRepository.findByUuidAndIsDeletedFalse(REPORTER_UUID))
-                    .willReturn(Optional.of(reporter));
-
             // when & then
-            assertThatThrownBy(() -> violationService.createViolation(UUID.fromString(REPORTER_UUID), request))
+            assertThatThrownBy(() -> violationService.createViolation(REPORTER_MEMBER_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ViolationErrorCode.VIOLATION_TARGET_CONFLICT);
 
