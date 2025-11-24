@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.chat.repository.custom;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -47,7 +48,7 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 	}
 
 	@Override
-	public void markAsReadByChatRoomAndReceiver(Long chatRoomId, Long userId) {
+	public void markAsReadByChatRoomAndReceiver(Long chatRoomId, Long memberId) {
 		QChatMessage chatMessage = QChatMessage.chatMessage;
 
 		queryFactory
@@ -55,10 +56,31 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 			.set(chatMessage.isRead, true)
 			.where(
 				chatMessage.chatRoom.id.eq(chatRoomId),
-				chatMessage.receiver.id.eq(userId),
+				chatMessage.receiver.id.eq(memberId),
 				chatMessage.isRead.eq(false)
 			)
 			.execute();
+	}
+
+	@Override
+	public Optional<ChatMessage> findByIdWithChatRoomAndMembersAndValidateAccess(Long messageId, Long memberId) {
+		QChatMessage chatMessage = QChatMessage.chatMessage;
+		QMember chatRoomSender = new QMember("chatRoomSender");
+		QMember chatRoomReceiver = new QMember("chatRoomReceiver");
+
+		ChatMessage result = queryFactory
+			.selectFrom(chatMessage)
+			.join(chatMessage.chatRoom, QChatRoom.chatRoom).fetchJoin()
+			.join(QChatRoom.chatRoom.sender, chatRoomSender).fetchJoin()
+			.join(QChatRoom.chatRoom.receiver, chatRoomReceiver).fetchJoin()
+			.where(
+				chatMessage.id.eq(messageId),
+				QChatRoom.chatRoom.sender.id.eq(memberId)
+					.or(QChatRoom.chatRoom.receiver.id.eq(memberId))
+			)
+			.fetchOne();
+
+		return Optional.ofNullable(result);
 	}
 
 	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {

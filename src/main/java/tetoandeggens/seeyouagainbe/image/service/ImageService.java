@@ -12,8 +12,11 @@ import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -66,5 +69,57 @@ public class ImageService {
 		presigner.close();
 
 		return presignedUrls;
+	}
+
+	public String generateUploadPresignedUrl(String objectKey, String contentType, Duration duration) {
+		S3Presigner presigner = createPresigner();
+
+		PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+			.bucket(bucketName)
+			.key(objectKey)
+			.contentType(contentType)
+			.build();
+
+		PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+			.signatureDuration(duration)
+			.putObjectRequest(putObjectRequest)
+			.build();
+
+		PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
+		String uploadUrl = presignedRequest.url().toString();
+
+		presigner.close();
+
+		return uploadUrl;
+	}
+
+	public String generateDownloadPresignedUrl(String objectKey, Duration duration) {
+		S3Presigner presigner = createPresigner();
+
+		GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+			.bucket(bucketName)
+			.key(objectKey)
+			.build();
+
+		GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+			.signatureDuration(duration)
+			.getObjectRequest(getObjectRequest)
+			.build();
+
+		PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
+		String downloadUrl = presignedRequest.url().toString();
+
+		presigner.close();
+
+		return downloadUrl;
+	}
+
+	private S3Presigner createPresigner() {
+		AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
+
+		return S3Presigner.builder()
+			.region(Region.of(region))
+			.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+			.build();
 	}
 }

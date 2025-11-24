@@ -13,7 +13,9 @@ public interface ChatRoomRepositoryCustom {
 
 	Optional<ChatRoom> findByIdWithMembers(Long chatRoomId);
 
-	List<ChatRoomResponse> findChatRoomsWithDetails(Long userId, Long cursorId, int size, SortDirection sortDirection);
+	Optional<ChatRoom> findByIdWithMembersAndValidateAccess(Long chatRoomId, Long memberId);
 
-	List<ChatRoomResponse> findUnreadChatRoomsWithDetails(Long userId, Long cursorId, int size, SortDirection sortDirection);
+	List<ChatRoomResponse> findChatRoomsWithDetails(Long memberId, Long cursorId, int size, SortDirection sortDirection);
+
+	List<ChatRoomResponse> findUnreadChatRoomsWithDetails(Long memberId, Long cursorId, int size, SortDirection sortDirection);
 }

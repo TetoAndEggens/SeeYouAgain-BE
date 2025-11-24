@@ -3,96 +3,60 @@ package tetoandeggens.seeyouagainbe.chat.service;
 import java.time.Duration;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ImageUrlResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.UploadImageResponse;
+import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
+import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
+import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
+import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.ChatErrorCode;
+import tetoandeggens.seeyouagainbe.image.service.ImageService;
 
 @Service
 @RequiredArgsConstructor
 public class ChatImageService {
 
+	private final ChatRoomRepository chatRoomRepository;
+	private final ChatMessageRepository chatMessageRepository;
+	private final ImageService imageService;
+
 	private static final String S3_OBJECT_KEY_FORMAT = "chat-images/%d/%s_%s";
 
-	@Value("${aws.s3.bucket}")
-	private String bucketName;
+	@Transactional
+	public UploadImageResponse generateUploadUrlWithValidation(Long memberId, Long chatRoomId, String fileName,
+		String fileType) {
+		chatRoomRepository.findByIdWithMembersAndValidateAccess(chatRoomId, memberId)
+			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_FORBIDDEN));
 
-	@Value("${aws.s3.region}")
-	private String region;
+		return generateUploadUrl(chatRoomId, fileName, fileType);
+	}
 
-	@Value("${aws.s3.access-key}")
-	private String accessKey;
+	@Transactional(readOnly = true)
+	public ImageUrlResponse generateDownloadUrlWithValidation(Long memberId, Long messageId) {
+		ChatMessage message = chatMessageRepository.findByIdWithChatRoomAndMembersAndValidateAccess(messageId, memberId)
+			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_FORBIDDEN));
 
-	@Value("${aws.s3.secret-key}")
-	private String secretKey;
+		return generateDownloadUrl(message.getImageKey());
+	}
 
-	public UploadImageResponse generateUploadUrl(Long chatRoomId, String fileName, String fileType) {
-		AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
-
-		S3Presigner presigner = S3Presigner.builder()
-			.region(Region.of(region))
-			.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
-			.build();
-
+	private UploadImageResponse generateUploadUrl(Long chatRoomId, String fileName, String fileType) {
 		String uuid = UUID.randomUUID().toString();
 		String objectKey = String.format(S3_OBJECT_KEY_FORMAT, chatRoomId, uuid, fileName);
 
-		PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-			.bucket(bucketName)
-			.key(objectKey)
-			.contentType(fileType)
-			.build();
-
-		PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-			.signatureDuration(Duration.ofMinutes(5))
-			.putObjectRequest(putObjectRequest)
-			.build();
-
-		PresignedPutObjectRequest presignedRequest = presigner.presignPutObject(presignRequest);
-		String uploadUrl = presignedRequest.url().toString();
-
-		presigner.close();
+		String uploadUrl = imageService.generateUploadPresignedUrl(objectKey, fileType, Duration.ofMinutes(5));
 
 		return UploadImageResponse.builder()
-			.uploadUrl(uploadUrl)
+			.url(uploadUrl)
 			.imageS3Key(objectKey)
 			.build();
 	}
 
-	public ImageUrlResponse generateDownloadUrl(String imageKey) {
-		AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
-
-		S3Presigner presigner = S3Presigner.builder()
-			.region(Region.of(region))
-			.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
-			.build();
-
-		GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-			.bucket(bucketName)
-			.key(imageKey)
-			.build();
-
-		GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-			.signatureDuration(Duration.ofHours(1))
-			.getObjectRequest(getObjectRequest)
-			.build();
-
-		PresignedGetObjectRequest presignedRequest = presigner.presignGetObject(presignRequest);
-		String downloadUrl = presignedRequest.url().toString();
-
-		presigner.close();
+	private ImageUrlResponse generateDownloadUrl(String imageKey) {
+		String downloadUrl = imageService.generateDownloadPresignedUrl(imageKey, Duration.ofHours(1));
 
 		return ImageUrlResponse.builder()
 			.url(downloadUrl)

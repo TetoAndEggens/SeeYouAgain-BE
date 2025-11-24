@@ -22,17 +22,11 @@ import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ImageUrlResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.UploadImageResponse;
-import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
-import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
-import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.chat.service.ChatImageService;
 import tetoandeggens.seeyouagainbe.chat.service.ChatRoomService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
-import tetoandeggens.seeyouagainbe.global.exception.CustomException;
-import tetoandeggens.seeyouagainbe.global.exception.errorcode.ChatErrorCode;
 
 @Slf4j
 @Tag(name = "Chat", description = "채팅 관련 API")
@@ -43,8 +37,6 @@ public class ChatController {
 
 	private final ChatImageService chatImageService;
 	private final ChatRoomService chatRoomService;
-	private final ChatRoomRepository chatRoomRepository;
-	private final ChatMessageRepository chatMessageRepository;
 
 	@Operation(summary = "내 전체 채팅방 목록 조회",
 		description = "내가 참여한 모든 채팅방 목록을 조회")
@@ -96,22 +88,14 @@ public class ChatController {
 		return ResponseEntity.ok(response);
 	}
 
-	@Operation(summary = "이미지 업로드 URL 발급", description = "채팅 이미지 업로드를 위한 Presigned URL을 발급합니다.")
+	@Operation(summary = "이미지 업로드 URL 발급", description = "채팅 이미지 업로드를 위한 Presigned URL을 발급")
 	@PostMapping("/upload-url")
 	public ResponseEntity<UploadImageResponse> getUploadUrl(
-		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@AuthenticationPrincipal CustomUserDetails customUserDetails,
 		@Valid @RequestBody UploadImageRequest request
 	) {
-		Long userId = userDetails.getMemberId();
-
-		ChatRoom chatRoom = chatRoomRepository.findById(request.chatRoomId())
-			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
-
-		if (!chatRoom.getSender().getId().equals(userId) && !chatRoom.getReceiver().getId().equals(userId)) {
-			throw new CustomException(ChatErrorCode.CHAT_FORBIDDEN);
-		}
-
-		UploadImageResponse response = chatImageService.generateUploadUrl(
+		UploadImageResponse response = chatImageService.generateUploadUrlWithValidation(
+			customUserDetails.getMemberId(),
 			request.chatRoomId(),
 			request.fileName(),
 			request.fileType()
@@ -120,23 +104,16 @@ public class ChatController {
 		return ResponseEntity.ok(response);
 	}
 
-	@Operation(summary = "이미지 조회 URL 발급", description = "채팅 이미지 조회를 위한 Presigned URL을 발급합니다.")
+	@Operation(summary = "이미지 조회 URL 발급", description = "채팅 이미지 조회를 위한 Presigned URL을 발급")
 	@GetMapping("/images/{messageId}")
 	public ResponseEntity<ImageUrlResponse> getImageUrl(
-		@AuthenticationPrincipal CustomUserDetails userDetails,
+		@AuthenticationPrincipal CustomUserDetails customUserDetails,
 		@PathVariable Long messageId
 	) {
-		Long userId = userDetails.getMemberId();
-
-		ChatMessage message = chatMessageRepository.findById(messageId)
-			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_MESSAGE_NOT_FOUND));
-
-		ChatRoom chatRoom = message.getChatRoom();
-		if (!chatRoom.getSender().getId().equals(userId) && !chatRoom.getReceiver().getId().equals(userId)) {
-			throw new CustomException(ChatErrorCode.CHAT_FORBIDDEN);
-		}
-
-		ImageUrlResponse response = chatImageService.generateDownloadUrl(message.getImageKey());
+		ImageUrlResponse response = chatImageService.generateDownloadUrlWithValidation(
+			customUserDetails.getMemberId(),
+			messageId
+		);
 
 		return ResponseEntity.ok(response);
 	}
