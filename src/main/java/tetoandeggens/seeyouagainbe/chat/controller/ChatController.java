@@ -18,13 +18,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.chat.dto.request.UploadImageRequest;
-import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
-import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ImageUrlResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.UploadImageResponse;
 import tetoandeggens.seeyouagainbe.chat.service.ChatImageService;
 import tetoandeggens.seeyouagainbe.chat.service.ChatRoomService;
-import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 
@@ -41,12 +40,12 @@ public class ChatController {
 	@Operation(summary = "내 전체 채팅방 목록 조회",
 		description = "내가 참여한 모든 채팅방 목록을 조회")
 	@GetMapping("/rooms")
-	public ResponseEntity<CursorPage<ChatRoomResponse, Long>> getMyChatRooms(
+	public ResponseEntity<ChatRoomListResponse> getMyChatRooms(
 		@AuthenticationPrincipal CustomUserDetails customUserDetails,
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection
 	) {
-		CursorPage<ChatRoomResponse, Long> response = chatRoomService.getMyChatRooms(
+		ChatRoomListResponse response = chatRoomService.getMyChatRooms(
 			customUserDetails.getMemberId(),
 			request,
 			sortDirection
@@ -57,12 +56,12 @@ public class ChatController {
 	@Operation(summary = "읽지 않은 메시지가 있는 채팅방 목록 조회",
 		description = "읽지 않은 메시지가 있는 채팅방 목록만 조회")
 	@GetMapping("/rooms/unread")
-	public ResponseEntity<CursorPage<ChatRoomResponse, Long>> getUnreadChatRooms(
+	public ResponseEntity<ChatRoomListResponse> getUnreadChatRooms(
 		@AuthenticationPrincipal CustomUserDetails customUserDetails,
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection
 	) {
-		CursorPage<ChatRoomResponse, Long> response = chatRoomService.getUnreadChatRooms(
+		ChatRoomListResponse response = chatRoomService.getUnreadChatRooms(
 			customUserDetails.getMemberId(),
 			request,
 			sortDirection
@@ -73,13 +72,13 @@ public class ChatController {
 	@Operation(summary = "채팅방 메시지 조회",
 		description = "채팅방의 메시지를 커서 기반 페이지네이션으로 조회하고 읽지 않은 메시지를 읽음 처리")
 	@GetMapping("/rooms/{chatRoomId}/messages")
-	public ResponseEntity<CursorPage<ChatMessageResponse, Long>> getChatMessages(
+	public ResponseEntity<ChatMessageListResponse> getChatMessages(
 		@AuthenticationPrincipal CustomUserDetails customUserDetails,
 		@PathVariable Long chatRoomId,
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection
 	) {
-		CursorPage<ChatMessageResponse, Long> response = chatRoomService.getChatMessages(
+		ChatMessageListResponse response = chatRoomService.getChatMessages(
 			chatRoomId,
 			customUserDetails.getMemberId(),
 			request,
