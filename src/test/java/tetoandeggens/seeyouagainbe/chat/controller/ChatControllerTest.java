@@ -16,7 +16,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import tetoandeggens.seeyouagainbe.chat.dto.request.UploadImageRequest;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ImageUrlResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.UploadImageResponse;
@@ -63,9 +65,10 @@ class ChatControllerTest extends ControllerTest {
 			);
 
 			CursorPage<ChatRoomResponse, Long> page = CursorPage.of(responses, 10, ChatRoomResponse::chatRoomId);
+			ChatRoomListResponse response = ChatRoomListResponse.of(page);
 
 			given(chatRoomService.getMyChatRooms(eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)))
-				.willReturn(page);
+				.willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/chat/rooms")
@@ -73,11 +76,11 @@ class ChatControllerTest extends ControllerTest {
 					.param("sortDirection", "LATEST")
 					.with(mockUser(memberId)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data").isArray())
-				.andExpect(jsonPath("$.data[0].chatRoomId").value(1))
-				.andExpect(jsonPath("$.data[0].boardTitle").value("분실물 찾습니다"))
-				.andExpect(jsonPath("$.data[0].otherMemberNickname").value("수신자"))
-				.andExpect(jsonPath("$.data[0].unreadCount").value(3));
+				.andExpect(jsonPath("$.chatRooms.data").isArray())
+				.andExpect(jsonPath("$.chatRooms.data[0].chatRoomId").value(1))
+				.andExpect(jsonPath("$.chatRooms.data[0].boardTitle").value("분실물 찾습니다"))
+				.andExpect(jsonPath("$.chatRooms.data[0].otherMemberNickname").value("수신자"))
+				.andExpect(jsonPath("$.chatRooms.data[0].unreadCount").value(3));
 
 			verify(chatRoomService).getMyChatRooms(eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST));
 		}
@@ -103,9 +106,10 @@ class ChatControllerTest extends ControllerTest {
 			);
 
 			CursorPage<ChatRoomResponse, Long> page = CursorPage.of(responses, 10, ChatRoomResponse::chatRoomId);
+			ChatRoomListResponse response = ChatRoomListResponse.of(page);
 
 			given(chatRoomService.getUnreadChatRooms(eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)))
-				.willReturn(page);
+				.willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/chat/rooms/unread")
@@ -113,9 +117,9 @@ class ChatControllerTest extends ControllerTest {
 					.param("sortDirection", "LATEST")
 					.with(mockUser(memberId)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data").isArray())
-				.andExpect(jsonPath("$.data[0].chatRoomId").value(1))
-				.andExpect(jsonPath("$.data[0].unreadCount").value(5));
+				.andExpect(jsonPath("$.chatRooms.data").isArray())
+				.andExpect(jsonPath("$.chatRooms.data[0].chatRoomId").value(1))
+				.andExpect(jsonPath("$.chatRooms.data[0].unreadCount").value(5));
 
 			verify(chatRoomService).getUnreadChatRooms(eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST));
 		}
@@ -143,10 +147,11 @@ class ChatControllerTest extends ControllerTest {
 			);
 
 			CursorPage<ChatMessageResponse, Long> page = CursorPage.of(messages, 20, ChatMessageResponse::messageId);
+			ChatMessageListResponse response = ChatMessageListResponse.of(page);
 
 			given(chatRoomService.getChatMessages(
 				eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)
-			)).willReturn(page);
+			)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/chat/rooms/{chatRoomId}/messages", chatRoomId)
@@ -154,10 +159,10 @@ class ChatControllerTest extends ControllerTest {
 					.param("sortDirection", "LATEST")
 					.with(mockUser(memberId)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data").isArray())
-				.andExpect(jsonPath("$.data[0].messageId").value(1))
-				.andExpect(jsonPath("$.data[0].content").value("안녕하세요"))
-				.andExpect(jsonPath("$.data[0].messageType").value("TEXT"));
+				.andExpect(jsonPath("$.messages.data").isArray())
+				.andExpect(jsonPath("$.messages.data[0].messageId").value(1))
+				.andExpect(jsonPath("$.messages.data[0].content").value("안녕하세요"))
+				.andExpect(jsonPath("$.messages.data[0].messageType").value("TEXT"));
 
 			verify(chatRoomService).getChatMessages(
 				eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)

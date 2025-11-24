@@ -17,7 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import tetoandeggens.seeyouagainbe.board.entity.Board;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
@@ -113,15 +115,15 @@ class ChatRoomServiceTest extends ServiceTest {
 				.willReturn(mockResponses);
 
 			// when
-			CursorPage<ChatRoomResponse, Long> result = chatRoomService.getMyChatRooms(
+			ChatRoomListResponse result = chatRoomService.getMyChatRooms(
 				memberId, request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.getData()).hasSize(1);
-			assertThat(result.getData().get(0).chatRoomId()).isEqualTo(1L);
-			assertThat(result.getData().get(0).otherMemberNickname()).isEqualTo("수신자");
+			assertThat(result.chatRooms().getData()).hasSize(1);
+			assertThat(result.chatRooms().getData().get(0).chatRoomId()).isEqualTo(1L);
+			assertThat(result.chatRooms().getData().get(0).otherMemberNickname()).isEqualTo("수신자");
 
 			verify(chatRoomRepository).findChatRoomsWithDetails(memberId, null, 10, sortDirection);
 		}
@@ -153,14 +155,14 @@ class ChatRoomServiceTest extends ServiceTest {
 				.willReturn(mockResponses);
 
 			// when
-			CursorPage<ChatRoomResponse, Long> result = chatRoomService.getUnreadChatRooms(
+			ChatRoomListResponse result = chatRoomService.getUnreadChatRooms(
 				memberId, request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.getData()).hasSize(1);
-			assertThat(result.getData().get(0).unreadCount()).isEqualTo(5L);
+			assertThat(result.chatRooms().getData()).hasSize(1);
+			assertThat(result.chatRooms().getData().get(0).unreadCount()).isEqualTo(5L);
 
 			verify(chatRoomRepository).findUnreadChatRoomsWithDetails(memberId, null, 10, sortDirection);
 		}
@@ -177,14 +179,14 @@ class ChatRoomServiceTest extends ServiceTest {
 				.willReturn(new ArrayList<>());
 
 			// when
-			CursorPage<ChatRoomResponse, Long> result = chatRoomService.getMyChatRooms(
+			ChatRoomListResponse result = chatRoomService.getMyChatRooms(
 				memberId, request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.getData()).isEmpty();
-			assertThat(result.isHasNext()).isFalse();
+			assertThat(result.chatRooms().getData()).isEmpty();
+			assertThat(result.chatRooms().isHasNext()).isFalse();
 
 			verify(chatRoomRepository).findChatRoomsWithDetails(memberId, null, 10, sortDirection);
 		}
@@ -211,14 +213,14 @@ class ChatRoomServiceTest extends ServiceTest {
 				.willReturn(messages);
 
 			// when
-			CursorPage<ChatMessageResponse, Long> result = chatRoomService.getChatMessages(
+			ChatMessageListResponse result = chatRoomService.getChatMessages(
 				chatRoomId, memberId, request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.getData()).hasSize(1);
-			assertThat(result.getData().get(0).content()).isEqualTo("테스트 메시지");
+			assertThat(result.messages().getData()).hasSize(1);
+			assertThat(result.messages().getData().get(0).content()).isEqualTo("테스트 메시지");
 
 			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
 			verify(chatMessageRepository).markAsReadByChatRoomAndReceiver(chatRoomId, memberId);
@@ -242,13 +244,13 @@ class ChatRoomServiceTest extends ServiceTest {
 				.willReturn(messages);
 
 			// when
-			CursorPage<ChatMessageResponse, Long> result = chatRoomService.getChatMessages(
+			ChatMessageListResponse result = chatRoomService.getChatMessages(
 				chatRoomId, memberId, request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.getData()).hasSize(1);
+			assertThat(result.messages().getData()).hasSize(1);
 
 			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
 			verify(chatMessageRepository).markAsReadByChatRoomAndReceiver(chatRoomId, memberId);
