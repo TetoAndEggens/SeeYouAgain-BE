@@ -33,7 +33,7 @@ public class ViolationController {
             @Valid @RequestBody ViolationCreateRequest request
     ) {
         violationService.createViolation(
-                UUID.fromString(userDetails.getUuid()),
+                userDetails.getMemberId(),
                 request
         );
 

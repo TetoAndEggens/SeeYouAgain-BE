@@ -39,7 +39,7 @@ public class AdminViolationService {
     }
 
     public ViolationDetailResponse getViolationDetail(Long violationId) {
-        Violation violation = violationRepository.findById(violationId)
+        Violation violation = violationRepository.findByIdWithAllFetch(violationId)
                 .orElseThrow(() -> new CustomException(AdminErrorCode.VIOLATION_NOT_FOUND));
 
         return buildViolationDetailResponse(violation);
@@ -47,14 +47,14 @@ public class AdminViolationService {
 
     @Transactional
     public void processViolation(Long violationId, ViolationProcessRequest request) {
-        Violation violation = violationRepository.findById(violationId)
+        Violation violation = violationRepository.findByIdWithAllFetch(violationId)
                 .orElseThrow(() -> new CustomException(AdminErrorCode.VIOLATION_NOT_FOUND));
 
         boolean shouldDeleteContent = determineDeleteContent(request);
 
         violation.updateViolatedStatus(request.violatedStatus());
 
-        if (request.violatedStatus() == ViolatedStatus.VIOLATED) { // 위반으로 판단된 경우
+        if (request.violatedStatus() == ViolatedStatus.VIOLATED) {  // 위반으로 판단된 경우
             handleViolatedCase(violation, shouldDeleteContent);
         } else { // 위반 아님으로 처리된 경우
             handleNormalCase(violation);
