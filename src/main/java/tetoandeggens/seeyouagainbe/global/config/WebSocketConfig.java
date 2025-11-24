@@ -9,6 +9,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.chat.handler.StompHandler;
+import tetoandeggens.seeyouagainbe.chat.handler.WebSocketHandshakeInterceptor;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -16,10 +17,11 @@ import tetoandeggens.seeyouagainbe.chat.handler.StompHandler;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
 	private final StompHandler stompHandler;
+	private final WebSocketHandshakeInterceptor handshakeInterceptor;
 
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry config) {
-		config.enableSimpleBroker("/sub");
+		config.enableSimpleBroker("/queue");
 		config.setApplicationDestinationPrefixes("/pub");
 	}
 
@@ -27,6 +29,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry.addEndpoint("/ws-stomp")
 			.setAllowedOriginPatterns("*")
+			.addInterceptors(handshakeInterceptor)
 			.withSockJS();
 	}
 
