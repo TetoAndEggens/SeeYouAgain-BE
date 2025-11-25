@@ -25,8 +25,8 @@ public class RedisPublisher {
 			String jsonMessage = objectMapper.writeValueAsString(message);
 			redisTemplate.convertAndSend(channelTopic.getTopic(), jsonMessage);
 		} catch (JsonProcessingException e) {
-			log.error("메시지 발행 실패 (DB에는 저장됨): chatRoomId={}, messageType={}",
-				message.chatRoomId(), message.messageType(), e);
+			log.error("메시지 발행 실패 (DB에는 저장됨): chatRoomId={}",
+				message.chatRoomId(), e);
 		}
 	}
 }
