@@ -2,8 +2,6 @@ package tetoandeggens.seeyouagainbe.chat.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,15 +27,8 @@ public class ChatMessage extends BaseEntity {
 	@Column(name = "chat_message_id")
 	private Long id;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "message_type")
-	private MessageType messageType;
-
 	@Column(name = "content")
 	private String content;
-
-	@Column(name = "image_key", unique = true)
-	private String imageKey;
 
 	@Column(name = "is_read")
 	private Boolean isRead;
@@ -58,14 +49,11 @@ public class ChatMessage extends BaseEntity {
 	private ChatRoom chatRoom;
 
 	@Builder
-	public ChatMessage(ChatRoom chatRoom, Member sender, Member receiver, MessageType messageType, String content,
-		String imageKey) {
+	public ChatMessage(ChatRoom chatRoom, Member sender, Member receiver, String content) {
 		this.chatRoom = chatRoom;
 		this.sender = sender;
 		this.receiver = receiver;
-		this.messageType = messageType;
 		this.content = content;
-		this.imageKey = imageKey;
 		this.isRead = false;
 		this.isDeleted = false;
 	}
