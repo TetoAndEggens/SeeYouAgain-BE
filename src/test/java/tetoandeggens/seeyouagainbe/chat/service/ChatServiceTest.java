@@ -10,8 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
@@ -21,28 +23,28 @@ import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
-import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.ChatErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
+@ExtendWith(MockitoExtension.class)
 @DisplayName("ChatService 단위 테스트")
-class ChatServiceTest extends ServiceTest {
+class ChatServiceTest {
 
-	@Autowired
+	@InjectMocks
 	private ChatService chatService;
 
-	@MockitoBean
+	@Mock
 	private ChatRoomRepository chatRoomRepository;
 
-	@MockitoBean
+	@Mock
 	private ChatMessageRepository chatMessageRepository;
 
-	@MockitoBean
+	@Mock
 	private BoardRepository boardRepository;
 
-	@MockitoBean
+	@Mock
 	private MemberRepository memberRepository;
 
 	private Board testBoard;
@@ -54,29 +56,29 @@ class ChatServiceTest extends ServiceTest {
 	@BeforeEach
 	void setUp() {
 		testBoard = mock(Board.class);
-		given(testBoard.getId()).willReturn(1L);
-		given(testBoard.getContentType()).willReturn(ContentType.MISSING);
+		lenient().when(testBoard.getId()).thenReturn(1L);
+		lenient().when(testBoard.getContentType()).thenReturn(ContentType.MISSING);
 
 		sender = mock(Member.class);
-		given(sender.getId()).willReturn(1L);
-		given(sender.getLoginId()).willReturn("sender123");
-		given(sender.getNickName()).willReturn("발신자");
+		lenient().when(sender.getId()).thenReturn(1L);
+		lenient().when(sender.getLoginId()).thenReturn("sender123");
+		lenient().when(sender.getNickName()).thenReturn("발신자");
 
 		receiver = mock(Member.class);
-		given(receiver.getId()).willReturn(2L);
-		given(receiver.getLoginId()).willReturn("receiver123");
-		given(receiver.getNickName()).willReturn("수신자");
+		lenient().when(receiver.getId()).thenReturn(2L);
+		lenient().when(receiver.getLoginId()).thenReturn("receiver123");
+		lenient().when(receiver.getNickName()).thenReturn("수신자");
 
 		chatRoom = mock(ChatRoom.class);
-		given(chatRoom.getId()).willReturn(1L);
-		given(chatRoom.getBoard()).willReturn(testBoard);
-		given(chatRoom.getSender()).willReturn(sender);
-		given(chatRoom.getReceiver()).willReturn(receiver);
+		lenient().when(chatRoom.getId()).thenReturn(1L);
+		lenient().when(chatRoom.getBoard()).thenReturn(testBoard);
+		lenient().when(chatRoom.getSender()).thenReturn(sender);
+		lenient().when(chatRoom.getReceiver()).thenReturn(receiver);
 
 		chatMessage = mock(ChatMessage.class);
-		given(chatMessage.getChatRoom()).willReturn(chatRoom);
-		given(chatMessage.getSender()).willReturn(sender);
-		given(chatMessage.getContent()).willReturn("테스트 메시지");
+		lenient().when(chatMessage.getChatRoom()).thenReturn(chatRoom);
+		lenient().when(chatMessage.getSender()).thenReturn(sender);
+		lenient().when(chatMessage.getContent()).thenReturn("테스트 메시지");
 	}
 
 	@Nested
