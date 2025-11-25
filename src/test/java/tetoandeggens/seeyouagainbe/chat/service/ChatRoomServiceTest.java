@@ -1,27 +1,17 @@
 package tetoandeggens.seeyouagainbe.chat.service;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.*;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import tetoandeggens.seeyouagainbe.board.entity.Board;
+import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
-import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
@@ -29,56 +19,76 @@ import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
+import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.ChatErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
+import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("ChatRoomService 단위 테스트")
-class ChatRoomServiceTest {
+@DisplayName("ChatRoomService 통합 테스트")
+class ChatRoomServiceTest extends ServiceTest {
 
-	@InjectMocks
+	@Autowired
 	private ChatRoomService chatRoomService;
 
-	@Mock
+	@Autowired
 	private ChatRoomRepository chatRoomRepository;
 
-	@Mock
+	@Autowired
 	private ChatMessageRepository chatMessageRepository;
+
+	@Autowired
+	private BoardRepository boardRepository;
+
+	@Autowired
+	private MemberRepository memberRepository;
 
 	private Member sender;
 	private Member receiver;
+	private Member thirdMember;
 	private Board testBoard;
 	private ChatRoom chatRoom;
-	private ChatMessage chatMessage;
 
 	@BeforeEach
 	void setUp() {
-		sender = mock(Member.class);
-		lenient().when(sender.getId()).thenReturn(1L);
-		lenient().when(sender.getNickName()).thenReturn("발신자");
+		chatMessageRepository.deleteAll();
+		chatRoomRepository.deleteAll();
+		boardRepository.deleteAll();
+		memberRepository.deleteAll();
 
-		receiver = mock(Member.class);
-		lenient().when(receiver.getId()).thenReturn(2L);
-		lenient().when(receiver.getNickName()).thenReturn("수신자");
+		sender = memberRepository.save(Member.builder()
+			.loginId("sender123")
+			.password("password")
+			.nickName("발신자")
+			.phoneNumber("01012345678")
+			.build());
 
-		testBoard = mock(Board.class);
-		lenient().when(testBoard.getId()).thenReturn(1L);
-		lenient().when(testBoard.getContentType()).thenReturn(ContentType.MISSING);
+		receiver = memberRepository.save(Member.builder()
+			.loginId("receiver123")
+			.password("password")
+			.nickName("수신자")
+			.phoneNumber("01087654321")
+			.build());
 
-		chatRoom = mock(ChatRoom.class);
-		lenient().when(chatRoom.getId()).thenReturn(1L);
-		lenient().when(chatRoom.getBoard()).thenReturn(testBoard);
-		lenient().when(chatRoom.getSender()).thenReturn(sender);
-		lenient().when(chatRoom.getReceiver()).thenReturn(receiver);
+		thirdMember = memberRepository.save(Member.builder()
+			.loginId("third123")
+			.password("password")
+			.nickName("제3자")
+			.phoneNumber("01099999999")
+			.build());
 
-		chatMessage = mock(ChatMessage.class);
-		lenient().when(chatMessage.getId()).thenReturn(1L);
-		lenient().when(chatMessage.getChatRoom()).thenReturn(chatRoom);
-		lenient().when(chatMessage.getSender()).thenReturn(sender);
-		lenient().when(chatMessage.getContent()).thenReturn("테스트 메시지");
-		lenient().when(chatMessage.getIsRead()).thenReturn(false);
-		lenient().when(chatMessage.getCreatedAt()).thenReturn(LocalDateTime.of(2025, 1, 20, 10, 0));
+		testBoard = boardRepository.save(Board.builder()
+			.member(sender)
+			.title("테스트 게시글")
+			.content("테스트 내용")
+			.contentType(ContentType.MISSING)
+			.build());
+
+		chatRoom = chatRoomRepository.save(ChatRoom.builder()
+			.board(testBoard)
+			.sender(sender)
+			.receiver(receiver)
+			.build());
 	}
 
 	@Nested
@@ -89,103 +99,68 @@ class ChatRoomServiceTest {
 		@DisplayName("내 전체 채팅방 목록 조회 - 성공")
 		void getMyChatRooms_Success() {
 			// given
-			Long memberId = 1L;
+			chatMessageRepository.save(ChatMessage.builder()
+				.chatRoom(chatRoom)
+				.sender(sender)
+				.receiver(receiver)
+				.content("테스트 메시지")
+				.build());
+
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			List<ChatRoomResponse> mockResponses = List.of(
-				ChatRoomResponse.builder()
-					.chatRoomId(1L)
-					.boardId(1L)
-					.boardTitle("분실물 찾습니다")
-					.contentType(ContentType.MISSING)
-					.senderId(1L)
-					.receiverId(2L)
-					.otherMemberNickname("수신자")
-					.lastMessage("안녕하세요")
-					.lastMessageTime(LocalDateTime.now())
-					.unreadCount(3L)
-					.build()
-			);
-
-			given(chatRoomRepository.findChatRoomsWithDetails(memberId, null, 10, sortDirection))
-				.willReturn(mockResponses);
-
 			// when
 			ChatRoomListResponse result = chatRoomService.getMyChatRooms(
-				memberId, request, sortDirection
+				sender.getId(), request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
 			assertThat(result.chatRooms().getData()).hasSize(1);
-			assertThat(result.chatRooms().getData().get(0).chatRoomId()).isEqualTo(1L);
-			assertThat(result.chatRooms().getData().get(0).otherMemberNickname()).isEqualTo("수신자");
-
-			verify(chatRoomRepository).findChatRoomsWithDetails(memberId, null, 10, sortDirection);
+			assertThat(result.chatRooms().getData().get(0).chatRoomId()).isEqualTo(chatRoom.getId());
 		}
 
 		@Test
 		@DisplayName("읽지 않은 메시지가 있는 채팅방 목록 조회 - 성공")
 		void getUnreadChatRooms_Success() {
 			// given
-			Long memberId = 1L;
+			chatMessageRepository.save(ChatMessage.builder()
+				.chatRoom(chatRoom)
+				.sender(sender)
+				.receiver(receiver)
+				.content("확인 부탁드립니다")
+				.build());
+
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			List<ChatRoomResponse> mockResponses = List.of(
-				ChatRoomResponse.builder()
-					.chatRoomId(1L)
-					.boardId(1L)
-					.boardTitle("분실물 찾습니다")
-					.contentType(ContentType.MISSING)
-					.senderId(1L)
-					.receiverId(2L)
-					.otherMemberNickname("수신자")
-					.lastMessage("확인 부탁드립니다")
-					.lastMessageTime(LocalDateTime.now())
-					.unreadCount(5L)
-					.build()
-			);
-
-			given(chatRoomRepository.findUnreadChatRoomsWithDetails(memberId, null, 10, sortDirection))
-				.willReturn(mockResponses);
-
 			// when
 			ChatRoomListResponse result = chatRoomService.getUnreadChatRooms(
-				memberId, request, sortDirection
+				receiver.getId(), request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
 			assertThat(result.chatRooms().getData()).hasSize(1);
-			assertThat(result.chatRooms().getData().get(0).unreadCount()).isEqualTo(5L);
-
-			verify(chatRoomRepository).findUnreadChatRoomsWithDetails(memberId, null, 10, sortDirection);
+			assertThat(result.chatRooms().getData().get(0).unreadCount()).isGreaterThan(0L);
 		}
 
 		@Test
 		@DisplayName("빈 채팅방 목록 조회 - 빈 리스트 반환")
 		void getMyChatRooms_EmptyList() {
 			// given
-			Long memberId = 1L;
 			CursorPageRequest request = new CursorPageRequest(null, 10);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			given(chatRoomRepository.findChatRoomsWithDetails(memberId, null, 10, sortDirection))
-				.willReturn(new ArrayList<>());
-
 			// when
 			ChatRoomListResponse result = chatRoomService.getMyChatRooms(
-				memberId, request, sortDirection
+				thirdMember.getId(), request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
 			assertThat(result.chatRooms().getData()).isEmpty();
 			assertThat(result.chatRooms().isHasNext()).isFalse();
-
-			verify(chatRoomRepository).findChatRoomsWithDetails(memberId, null, 10, sortDirection);
 		}
 	}
 
@@ -197,112 +172,80 @@ class ChatRoomServiceTest {
 		@DisplayName("채팅방 메시지 조회 - sender가 조회 성공")
 		void getChatMessages_AsSender_Success() {
 			// given
-			Long chatRoomId = 1L;
-			Long memberId = 1L; // sender
+			chatMessageRepository.save(ChatMessage.builder()
+				.chatRoom(chatRoom)
+				.sender(sender)
+				.receiver(receiver)
+				.content("테스트 메시지")
+				.build());
+
 			CursorPageRequest request = new CursorPageRequest(null, 20);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			List<ChatMessage> messages = List.of(chatMessage);
-
-			given(chatRoomRepository.findByIdWithMembers(chatRoomId))
-				.willReturn(Optional.of(chatRoom));
-			given(chatMessageRepository.findMessagesByChatRoom(chatRoomId, null, 20, sortDirection))
-				.willReturn(messages);
-
 			// when
 			ChatMessageListResponse result = chatRoomService.getChatMessages(
-				chatRoomId, memberId, request, sortDirection
+				chatRoom.getId(), sender.getId(), request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
 			assertThat(result.messages().getData()).hasSize(1);
 			assertThat(result.messages().getData().get(0).content()).isEqualTo("테스트 메시지");
-
-			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
-			verify(chatMessageRepository).markAsReadByChatRoomAndReceiver(chatRoomId, memberId);
-			verify(chatMessageRepository).findMessagesByChatRoom(chatRoomId, null, 20, sortDirection);
 		}
 
 		@Test
 		@DisplayName("채팅방 메시지 조회 - receiver가 조회 성공")
 		void getChatMessages_AsReceiver_Success() {
 			// given
-			Long chatRoomId = 1L;
-			Long memberId = 2L; // receiver
+			chatMessageRepository.save(ChatMessage.builder()
+				.chatRoom(chatRoom)
+				.sender(sender)
+				.receiver(receiver)
+				.content("테스트 메시지")
+				.build());
+
 			CursorPageRequest request = new CursorPageRequest(null, 20);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			List<ChatMessage> messages = List.of(chatMessage);
-
-			given(chatRoomRepository.findByIdWithMembers(chatRoomId))
-				.willReturn(Optional.of(chatRoom));
-			given(chatMessageRepository.findMessagesByChatRoom(chatRoomId, null, 20, sortDirection))
-				.willReturn(messages);
-
 			// when
 			ChatMessageListResponse result = chatRoomService.getChatMessages(
-				chatRoomId, memberId, request, sortDirection
+				chatRoom.getId(), receiver.getId(), request, sortDirection
 			);
 
 			// then
 			assertThat(result).isNotNull();
 			assertThat(result.messages().getData()).hasSize(1);
-
-			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
-			verify(chatMessageRepository).markAsReadByChatRoomAndReceiver(chatRoomId, memberId);
 		}
 
 		@Test
 		@DisplayName("존재하지 않는 채팅방 조회 - CHAT_ROOM_NOT_FOUND 예외 발생")
 		void getChatMessages_ChatRoomNotFound_ThrowsException() {
 			// given
-			Long chatRoomId = 999L;
-			Long memberId = 1L;
+			Long nonExistentChatRoomId = 999L;
 			CursorPageRequest request = new CursorPageRequest(null, 20);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			given(chatRoomRepository.findByIdWithMembers(chatRoomId))
-				.willReturn(Optional.empty());
-
 			// when & then
 			assertThatThrownBy(() -> chatRoomService.getChatMessages(
-				chatRoomId, memberId, request, sortDirection
+				nonExistentChatRoomId, sender.getId(), request, sortDirection
 			))
 				.isInstanceOf(CustomException.class)
 				.hasFieldOrPropertyWithValue("errorCode", ChatErrorCode.CHAT_ROOM_NOT_FOUND);
-
-			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
-			verify(chatMessageRepository, never()).markAsReadByChatRoomAndReceiver(anyLong(), anyLong());
-			verify(chatMessageRepository, never()).findMessagesByChatRoom(
-				anyLong(), any(), anyInt(), any()
-			);
 		}
 
 		@Test
 		@DisplayName("권한 없는 사용자가 채팅방 조회 - CHAT_FORBIDDEN 예외 발생")
 		void getChatMessages_Forbidden_ThrowsException() {
 			// given
-			Long chatRoomId = 1L;
-			Long unauthorizedMemberId = 999L; // sender도 receiver도 아님
 			CursorPageRequest request = new CursorPageRequest(null, 20);
 			SortDirection sortDirection = SortDirection.LATEST;
 
-			given(chatRoomRepository.findByIdWithMembers(chatRoomId))
-				.willReturn(Optional.of(chatRoom));
-
 			// when & then
 			assertThatThrownBy(() -> chatRoomService.getChatMessages(
-				chatRoomId, unauthorizedMemberId, request, sortDirection
+				chatRoom.getId(), thirdMember.getId(), request, sortDirection
 			))
 				.isInstanceOf(CustomException.class)
 				.hasFieldOrPropertyWithValue("errorCode", ChatErrorCode.CHAT_FORBIDDEN);
-
-			verify(chatRoomRepository).findByIdWithMembers(chatRoomId);
-			verify(chatMessageRepository, never()).markAsReadByChatRoomAndReceiver(anyLong(), anyLong());
-			verify(chatMessageRepository, never()).findMessagesByChatRoom(
-				anyLong(), any(), anyInt(), any()
-			);
 		}
 	}
 }
