@@ -18,7 +18,6 @@ import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.entity.MessageType;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
@@ -77,7 +76,6 @@ class ChatServiceTest extends ServiceTest {
 		chatMessage = mock(ChatMessage.class);
 		given(chatMessage.getChatRoom()).willReturn(chatRoom);
 		given(chatMessage.getSender()).willReturn(sender);
-		given(chatMessage.getMessageType()).willReturn(MessageType.TEXT);
 		given(chatMessage.getContent()).willReturn("테스트 메시지");
 	}
 
@@ -90,7 +88,6 @@ class ChatServiceTest extends ServiceTest {
 		void saveMessage_WithExistingChatRoom_Success() {
 			// given
 			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.TEXT)
 				.boardId(1L)
 				.senderId(1L)
 				.receiverId(2L)
@@ -109,7 +106,6 @@ class ChatServiceTest extends ServiceTest {
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.messageType()).isEqualTo(MessageType.TEXT);
 			assertThat(result.boardId()).isEqualTo(1L);
 			assertThat(result.senderId()).isEqualTo(1L);
 			assertThat(result.receiverId()).isEqualTo(2L);
@@ -128,7 +124,6 @@ class ChatServiceTest extends ServiceTest {
 		void saveMessage_WithNewChatRoom_Success() {
 			// given
 			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.TEXT)
 				.boardId(1L)
 				.senderId(1L)
 				.receiverId(2L)
@@ -148,47 +143,10 @@ class ChatServiceTest extends ServiceTest {
 
 			// then
 			assertThat(result).isNotNull();
-			assertThat(result.messageType()).isEqualTo(MessageType.TEXT);
 			assertThat(result.boardId()).isEqualTo(1L);
 
 			verify(chatRoomRepository).findByBoardAndMembers(1L, 1L, 2L);
 			verify(chatRoomRepository).save(any(ChatRoom.class));
-			verify(chatMessageRepository).save(any(ChatMessage.class));
-		}
-
-		@Test
-		@DisplayName("이미지 메시지 저장 - 성공")
-		void saveMessage_ImageType_Success() {
-			// given
-			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.IMAGE)
-				.boardId(1L)
-				.senderId(1L)
-				.receiverId(2L)
-				.imageKey("chat-images/1/uuid_image.jpg")
-				.build();
-
-			ChatMessage imageMessage = mock(ChatMessage.class);
-			given(imageMessage.getChatRoom()).willReturn(chatRoom);
-			given(imageMessage.getSender()).willReturn(sender);
-			given(imageMessage.getMessageType()).willReturn(MessageType.IMAGE);
-			given(imageMessage.getImageKey()).willReturn("chat-images/1/uuid_image.jpg");
-
-			given(boardRepository.findById(1L)).willReturn(Optional.of(testBoard));
-			given(memberRepository.findById(1L)).willReturn(Optional.of(sender));
-			given(memberRepository.findById(2L)).willReturn(Optional.of(receiver));
-			given(chatRoomRepository.findByBoardAndMembers(1L, 1L, 2L))
-				.willReturn(Optional.of(chatRoom));
-			given(chatMessageRepository.save(any(ChatMessage.class))).willReturn(imageMessage);
-
-			// when
-			ChatMessageDto result = chatService.saveMessage(messageDto);
-
-			// then
-			assertThat(result).isNotNull();
-			assertThat(result.messageType()).isEqualTo(MessageType.IMAGE);
-			assertThat(result.imageKey()).isEqualTo("chat-images/1/uuid_image.jpg");
-
 			verify(chatMessageRepository).save(any(ChatMessage.class));
 		}
 	}
@@ -202,7 +160,6 @@ class ChatServiceTest extends ServiceTest {
 		void saveMessage_BoardNotFound_ThrowsException() {
 			// given
 			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.TEXT)
 				.boardId(999L)
 				.senderId(1L)
 				.receiverId(2L)
@@ -226,7 +183,6 @@ class ChatServiceTest extends ServiceTest {
 		void saveMessage_SenderNotFound_ThrowsException() {
 			// given
 			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.TEXT)
 				.boardId(1L)
 				.senderId(999L)
 				.receiverId(2L)
@@ -251,7 +207,6 @@ class ChatServiceTest extends ServiceTest {
 		void saveMessage_ReceiverNotFound_ThrowsException() {
 			// given
 			ChatMessageDto messageDto = ChatMessageDto.builder()
-				.messageType(MessageType.TEXT)
 				.boardId(1L)
 				.senderId(1L)
 				.receiverId(999L)

@@ -18,7 +18,6 @@ import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.entity.MessageType;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
@@ -107,7 +106,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 					.chatRoom(chatRoom)
 					.sender(msgSender)
 					.receiver(msgReceiver)
-					.messageType(MessageType.TEXT)
 					.content("메시지 " + i)
 					.build());
 			}
@@ -209,7 +207,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.TEXT)
 				.content("읽지 않은 메시지 1")
 				.build());
 
@@ -217,7 +214,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.TEXT)
 				.content("읽지 않은 메시지 2")
 				.build());
 
@@ -244,7 +240,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.TEXT)
 				.content("상대방 메시지")
 				.build());
 
@@ -252,7 +247,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(receiver)
 				.receiver(sender)
-				.messageType(MessageType.TEXT)
 				.content("내 메시지")
 				.build());
 
@@ -285,9 +279,7 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.IMAGE)
-				.imageKey("chat-images/1/test.jpg")
-				.build());
+					.build());
 
 			// when
 			Optional<ChatMessage> result = chatMessageRepository
@@ -306,9 +298,7 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.IMAGE)
-				.imageKey("chat-images/1/test.jpg")
-				.build());
+					.build());
 
 			// when
 			Optional<ChatMessage> result = chatMessageRepository
@@ -327,9 +317,7 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.IMAGE)
-				.imageKey("chat-images/1/test.jpg")
-				.build());
+					.build());
 
 			// when
 			Optional<ChatMessage> result = chatMessageRepository
@@ -363,7 +351,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.TEXT)
 				.content("텍스트 메시지입니다")
 				.build());
 
@@ -371,30 +358,7 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 			ChatMessage found = chatMessageRepository.findById(textMessage.getId()).orElseThrow();
 
 			// then
-			assertThat(found.getMessageType()).isEqualTo(MessageType.TEXT);
-			assertThat(found.getContent()).isEqualTo("텍스트 메시지입니다");
-			assertThat(found.getImageKey()).isNull();
-		}
-
-		@Test
-		@DisplayName("이미지 메시지 저장 및 조회 - 성공")
-		void saveAndFind_ImageMessage() {
-			// given
-			ChatMessage imageMessage = chatMessageRepository.save(ChatMessage.builder()
-				.chatRoom(chatRoom)
-				.sender(sender)
-				.receiver(receiver)
-				.messageType(MessageType.IMAGE)
-				.imageKey("chat-images/1/uuid_image.jpg")
-				.build());
-
-			// when
-			ChatMessage found = chatMessageRepository.findById(imageMessage.getId()).orElseThrow();
-
-			// then
-			assertThat(found.getMessageType()).isEqualTo(MessageType.IMAGE);
-			assertThat(found.getImageKey()).isEqualTo("chat-images/1/uuid_image.jpg");
-			assertThat(found.getContent()).isNull();
+				assertThat(found.getContent()).isEqualTo("텍스트 메시지입니다");
 		}
 	}
 }

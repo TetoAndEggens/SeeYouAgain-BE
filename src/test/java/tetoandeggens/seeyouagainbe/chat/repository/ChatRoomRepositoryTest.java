@@ -17,7 +17,6 @@ import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.entity.MessageType;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
@@ -210,7 +209,6 @@ class ChatRoomRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom)
 				.sender(sender)
 				.receiver(receiver)
-				.messageType(MessageType.TEXT)
 				.content("첫 번째 메시지")
 				.build());
 
@@ -218,7 +216,6 @@ class ChatRoomRepositoryTest extends RepositoryTest {
 				.chatRoom(chatRoom2)
 				.sender(receiver)
 				.receiver(sender)
-				.messageType(MessageType.TEXT)
 				.content("두 번째 메시지")
 				.build());
 

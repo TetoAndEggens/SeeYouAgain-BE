@@ -18,19 +18,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
-import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.entity.MessageType;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatMessageRepository;
 import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
-import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
-import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.ChatErrorCode;
@@ -78,7 +74,6 @@ class ChatRoomServiceTest extends ServiceTest {
 		given(chatMessage.getId()).willReturn(1L);
 		given(chatMessage.getChatRoom()).willReturn(chatRoom);
 		given(chatMessage.getSender()).willReturn(sender);
-		given(chatMessage.getMessageType()).willReturn(MessageType.TEXT);
 		given(chatMessage.getContent()).willReturn("테스트 메시지");
 		given(chatMessage.getIsRead()).willReturn(false);
 		given(chatMessage.getCreatedAt()).willReturn(LocalDateTime.of(2025, 1, 20, 10, 0));
