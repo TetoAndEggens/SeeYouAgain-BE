@@ -54,6 +54,9 @@ public record BoardResponse(
 	LocalDateTime updatedAt,
 
 	@Schema(description = "해시태그", example = "[\"강아지\", \"실종\"]")
-	List<String> tags
+	List<String> tags,
+
+	@Schema(description = "북마크 여부", example = "true")
+	Boolean isBookmarked
 ) {
 }

@@ -21,6 +21,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
+import tetoandeggens.seeyouagainbe.animal.entity.QBookMark;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
@@ -37,7 +38,7 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 	public List<AnimalResponse> getAbandonedAnimals(
 		CursorPageRequest request, SortDirection sortDirection, AnimalType animalType,
 		String startDate, String endDate, Species species, String breedType,
-		NeuteredState neuteredState, Sex sex, String city, String town
+		NeuteredState neuteredState, Sex sex, String city, String town, Long memberId
 	) {
 
 		BooleanBuilder builder = createFilterConditions(animalType, startDate, endDate, species, breedType,
@@ -50,6 +51,9 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 		QBreedType bt = QBreedType.breedType;
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QAnimalS3Profile subProfile = new QAnimalS3Profile("subProfile");
+		QBookMark bookMark = QBookMark.bookMark;
+
+		BooleanBuilder bookMarkExistsCondition = createBookMarkCondition(bookMark, memberId);
 
 		return queryFactory
 			.select(Projections.constructor(
@@ -64,7 +68,11 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 				animal.sex,
 				animal.processState,
 				profileEntity.profile,
-				animal.animalType
+				animal.animalType,
+				JPAExpressions.selectOne()
+					.from(bookMark)
+					.where(bookMarkExistsCondition)
+					.exists()
 			))
 			.from(animal)
 			.leftJoin(animal.breedType, bt)
@@ -100,10 +108,11 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 	}
 
 	@Override
-	public AnimalDetailResponse getAnimal(Long animalId) {
+	public AnimalDetailResponse getAnimal(Long animalId, Long memberId) {
 		QBreedType bt = QBreedType.breedType;
 		QAnimalLocation al = QAnimalLocation.animalLocation;
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
+		QBookMark bookMark = QBookMark.bookMark;
 
 		List<String> profiles = queryFactory
 			.select(profileEntity.profile)
@@ -112,6 +121,8 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 			.orderBy(profileEntity.id.asc())
 			.limit(3)
 			.fetch();
+
+		BooleanBuilder bookMarkExistsCondition = createBookMarkCondition(bookMark, memberId);
 
 		return queryFactory
 			.select(Projections.constructor(
@@ -135,7 +146,11 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 				animal.neuteredState,
 				al.name,
 				al.address,
-				animal.centerPhone
+				animal.centerPhone,
+				JPAExpressions.selectOne()
+					.from(bookMark)
+					.where(bookMarkExistsCondition)
+					.exists()
 			))
 			.from(animal)
 			.leftJoin(animal.breedType, bt)
@@ -152,7 +167,7 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 		CursorPageRequest request, SortDirection sortDirection, AnimalType animalType,
 		Double minLongitude, Double minLatitude, Double maxLongitude, Double maxLatitude,
 		String startDate, String endDate, Species species, String breedType,
-		NeuteredState neuteredState, Sex sex, String city, String town
+		NeuteredState neuteredState, Sex sex, String city, String town, Long memberId
 	) {
 		QAnimalLocation al = QAnimalLocation.animalLocation;
 
@@ -170,6 +185,9 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 		QBreedType bt = QBreedType.breedType;
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QAnimalS3Profile subProfile = new QAnimalS3Profile("subProfile");
+		QBookMark bookMark = QBookMark.bookMark;
+
+		BooleanBuilder bookMarkExistsCondition = createBookMarkCondition(bookMark, memberId);
 
 		return queryFactory
 			.select(Projections.constructor(
@@ -184,7 +202,11 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 				animal.sex,
 				animal.processState,
 				profileEntity.profile,
-				animal.animalType
+				animal.animalType,
+				JPAExpressions.selectOne()
+					.from(bookMark)
+					.where(bookMarkExistsCondition)
+					.exists()
 			))
 			.from(animal)
 			.innerJoin(animal.animalLocation, al)
@@ -303,5 +325,15 @@ public class AnimalRepositoryCustomImpl implements AnimalRepositoryCustom {
 			minLongitude,
 			maxLongitude
 		);
+	}
+
+	private BooleanBuilder createBookMarkCondition(QBookMark bookMark, Long memberId) {
+		BooleanBuilder condition = new BooleanBuilder();
+		condition.and(bookMark.animal.eq(animal));
+		if (memberId != null) {
+			condition.and(bookMark.member.id.eq(memberId));
+		}
+		condition.and(bookMark.isDeleted.eq(false));
+		return condition;
 	}
 }

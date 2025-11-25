@@ -14,6 +14,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -30,11 +31,13 @@ public class AnimalService {
 	public AnimalListResponse getAbandonedAnimalList(CursorPageRequest request, SortDirection sortDirection,
 		String startDate, String endDate, Species species, String breedType, NeuteredState neuteredState, Sex sex,
 		String city,
-		String town) {
+		String town, CustomUserDetails customUserDetails) {
+
+		Long memberId = getMemberId(customUserDetails);
 
 		List<AnimalResponse> responses = animalRepository.getAbandonedAnimals(request, sortDirection,
 			AnimalType.ABANDONED,
-			startDate, endDate, species, breedType, neuteredState, sex, city, town);
+			startDate, endDate, species, breedType, neuteredState, sex, city, town, memberId);
 
 		CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
 			responses,
@@ -50,8 +53,10 @@ public class AnimalService {
 	}
 
 	@Transactional(readOnly = true)
-	public AnimalDetailResponse getAnimal(Long animalId) {
-		AnimalDetailResponse response = animalRepository.getAnimal(animalId);
+	public AnimalDetailResponse getAnimal(Long animalId, CustomUserDetails customUserDetails) {
+		Long memberId = getMemberId(customUserDetails);
+
+		AnimalDetailResponse response = animalRepository.getAnimal(animalId, memberId);
 
 		if (response == null) {
 			throw new CustomException(AnimalErrorCode.ANIMAL_NOT_FOUND);
@@ -64,11 +69,13 @@ public class AnimalService {
 	public AnimalListResponse getAnimalListWithCoordinates(
 		CursorPageRequest request, SortDirection sortDirection, AnimalType animalType, Double minLongitude,
 		Double minLatitude, Double maxLongitude, Double maxLatitude, String startDate, String endDate, Species species,
-		String breedType, NeuteredState neuteredState, Sex sex, String city, String town
+		String breedType, NeuteredState neuteredState, Sex sex, String city, String town, CustomUserDetails customUserDetails
 	) {
+		Long memberId = getMemberId(customUserDetails);
+
 		List<AnimalResponse> responses = animalRepository.getAnimalListWithCoordinates(
 			request, sortDirection, animalType, minLongitude, minLatitude, maxLongitude, maxLatitude,
-			startDate, endDate, species, breedType, neuteredState, sex, city, town
+			startDate, endDate, species, breedType, neuteredState, sex, city, town, memberId
 		);
 
 		CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
@@ -83,5 +90,12 @@ public class AnimalService {
 		);
 
 		return AnimalListResponse.of(totalCount.intValue(), cursorPage);
+	}
+
+	private Long getMemberId(CustomUserDetails customUserDetails) {
+		if (customUserDetails == null) {
+			return null;
+		}
+		return customUserDetails.getMemberId();
 	}
 }

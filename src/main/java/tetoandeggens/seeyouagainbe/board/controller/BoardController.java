@@ -55,9 +55,10 @@ public class BoardController {
 	public ApiResponse<BoardListResponse> getAnimalBoardList(
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection,
-		@PathVariable(required = false) String type
+		@PathVariable(required = false) String type,
+		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
 	) {
-		BoardListResponse animalBoardList = boardService.getAnimalBoardList(request, sortDirection, type);
+		BoardListResponse animalBoardList = boardService.getAnimalBoardList(request, sortDirection, type, customUserDetails);
 
 		return ApiResponse.ok(animalBoardList);
 	}
@@ -67,8 +68,10 @@ public class BoardController {
 		summary = "실종/목격 동물 게시글 조회 API",
 		description = "실종/목격 동물 게시글 조회")
 	public ApiResponse<BoardDetailResponse> getAnimalBoard(
-		@PathVariable Long boardId) {
-		BoardDetailResponse response = boardService.getAnimalBoard(boardId);
+		@PathVariable Long boardId,
+		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
+	) {
+		BoardDetailResponse response = boardService.getAnimalBoard(boardId, customUserDetails);
 
 		return ApiResponse.ok(response);
 	}

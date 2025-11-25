@@ -44,6 +44,9 @@ public record AnimalResponse(
 	String profile,
 
 	@Schema(description = "동물 타입", example = "실종")
-	AnimalType animalType
+	AnimalType animalType,
+
+	@Schema(description = "북마크 여부", example = "true")
+	Boolean isBookmarked
 ) {
 }

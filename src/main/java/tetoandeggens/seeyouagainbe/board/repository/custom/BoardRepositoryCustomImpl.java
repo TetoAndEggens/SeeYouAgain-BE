@@ -4,6 +4,7 @@ import static tetoandeggens.seeyouagainbe.board.entity.QBoard.*;
 
 import java.util.List;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimal;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
+import tetoandeggens.seeyouagainbe.animal.entity.QBookMark;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
@@ -34,7 +36,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 
 	@Override
 	public List<BoardResponse> getAnimalBoards(
-		CursorPageRequest request, SortDirection sortDirection, ContentType contentType
+		CursorPageRequest request, SortDirection sortDirection, ContentType contentType, Long memberId
 	) {
 		BooleanExpression cursorCondition = createCursorCondition(request.cursorId(), sortDirection);
 		BooleanExpression typeCondition = createContentTypeCondition(contentType);
@@ -46,6 +48,9 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QAnimalS3Profile subProfile = new QAnimalS3Profile("subProfile");
 		QAnimalLocation animalLocation = QAnimalLocation.animalLocation;
+		QBookMark bookMark = QBookMark.bookMark;
+
+		BooleanBuilder bookMarkExistsCondition = createBookMarkCondition(bookMark, animal, memberId);
 
 		return queryFactory
 			.select(Projections.constructor(
@@ -63,7 +68,11 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				profileEntity.profile,
 				board.createdAt,
 				board.updatedAt,
-				Expressions.constant(java.util.Collections.emptyList())
+				Expressions.constant(java.util.Collections.emptyList()),
+				JPAExpressions.selectOne()
+					.from(bookMark)
+					.where(bookMarkExistsCondition)
+					.exists()
 			))
 			.from(board)
 			.join(board.animal, animal)
@@ -103,13 +112,14 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 	}
 
 	@Override
-	public BoardDetailResponse getAnimalBoard(Long boardId) {
+	public BoardDetailResponse getAnimalBoard(Long boardId, Long memberId) {
 		QAnimal animal = QAnimal.animal;
 		QBreedType bt = QBreedType.breedType;
 		QMember member = QMember.member;
 		QAnimalLocation animalLocation = QAnimalLocation.animalLocation;
 		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
 		QBoardTag boardTag = QBoardTag.boardTag;
+		QBookMark bookMark = QBookMark.bookMark;
 
 		List<ProfileInfo> profiles = queryFactory
 			.select(Projections.constructor(
@@ -137,6 +147,8 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.where(boardTag.board.id.eq(boardId))
 			.fetch();
 
+		BooleanBuilder bookMarkExistsCondition = createBookMarkCondition(bookMark, animal, memberId);
+
 		return queryFactory
 			.select(Projections.constructor(
 				BoardDetailResponse.class,
@@ -155,7 +167,11 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				board.createdAt,
 				board.updatedAt,
 				Expressions.constant(tags),
-				Expressions.constant(profiles)
+				Expressions.constant(profiles),
+				JPAExpressions.selectOne()
+					.from(bookMark)
+					.where(bookMarkExistsCondition)
+					.exists()
 			))
 			.from(board)
 			.join(board.animal, animal)
@@ -215,17 +231,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.fetchOne();
 	}
 
-	@Override
-	public Board findByIdWithMember(Long boardId) {
-		QMember member = QMember.member;
-
-		return queryFactory
-			.selectFrom(board)
-			.join(board.member, member).fetchJoin()
-			.where(board.id.eq(boardId))
-			.fetchOne();
-	}
-
 	private BooleanExpression createContentTypeCondition(ContentType contentType) {
 		if (contentType == null) {
 			return null;
@@ -247,5 +252,15 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		return sortDirection == SortDirection.LATEST
 			? board.id.desc()
 			: board.id.asc();
+	}
+
+	private BooleanBuilder createBookMarkCondition(QBookMark bookMark, QAnimal animal, Long memberId) {
+		BooleanBuilder condition = new BooleanBuilder();
+		condition.and(bookMark.animal.eq(animal));
+		if (memberId != null) {
+			condition.and(bookMark.member.id.eq(memberId));
+		}
+		condition.and(bookMark.isDeleted.eq(false));
+		return condition;
 	}
 }

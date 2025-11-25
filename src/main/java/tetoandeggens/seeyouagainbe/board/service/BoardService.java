@@ -18,6 +18,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
@@ -65,14 +66,16 @@ public class BoardService {
 
 	@Transactional(readOnly = true)
 	public BoardListResponse getAnimalBoardList(
-		CursorPageRequest request, SortDirection sortDirection, String type) {
+		CursorPageRequest request, SortDirection sortDirection, String type, CustomUserDetails customUserDetails) {
+		Long memberId = getMemberId(customUserDetails);
+
 		ContentType contentType = null;
 		if (type != null && !type.isBlank()) {
 			contentType = ContentType.fromCode(type.toUpperCase());
 		}
 
 		List<BoardResponse> responses = boardRepository.getAnimalBoards(
-			request, sortDirection, contentType);
+			request, sortDirection, contentType, memberId);
 
 		List<BoardResponse> responsesWithTags = attachTagsToResponses(responses);
 
@@ -88,8 +91,10 @@ public class BoardService {
 	}
 
 	@Transactional(readOnly = true)
-	public BoardDetailResponse getAnimalBoard(Long boardId) {
-		BoardDetailResponse response = boardRepository.getAnimalBoard(boardId);
+	public BoardDetailResponse getAnimalBoard(Long boardId, CustomUserDetails customUserDetails) {
+		Long memberId = getMemberId(customUserDetails);
+
+		BoardDetailResponse response = boardRepository.getAnimalBoard(boardId, memberId);
 
 		if (response == null) {
 			throw new CustomException(BoardErrorCode.BOARD_NOT_FOUND);
@@ -282,6 +287,7 @@ public class BoardService {
 				.createdAt(response.createdAt())
 				.updatedAt(response.updatedAt())
 				.tags(tagsMap.getOrDefault(response.boardId(), List.of()))
+				.isBookmarked(response.isBookmarked())
 				.build();
 			result.add(newResponse);
 		}
@@ -301,5 +307,12 @@ public class BoardService {
 		if (validCount != tagIds.size()) {
 			throw new CustomException(BoardErrorCode.INVALID_TAG_IDS);
 		}
+	}
+
+	private Long getMemberId(CustomUserDetails customUserDetails) {
+		if (customUserDetails == null) {
+			return null;
+		}
+		return customUserDetails.getMemberId();
 	}
 }
