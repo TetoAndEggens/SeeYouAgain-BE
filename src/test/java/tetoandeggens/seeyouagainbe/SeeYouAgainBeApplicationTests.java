@@ -1,12 +1,10 @@
 package tetoandeggens.seeyouagainbe;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles("test")
-@SpringBootTest
-class SeeYouAgainBeApplicationTests {
+import tetoandeggens.seeyouagainbe.global.RedisTestContainer;
+
+class SeeYouAgainBeApplicationTests extends RedisTestContainer {
 
 	@Test
 	void contextLoads() {
