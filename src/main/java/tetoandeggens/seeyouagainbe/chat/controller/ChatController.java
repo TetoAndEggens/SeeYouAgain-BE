@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
@@ -21,7 +20,6 @@ import tetoandeggens.seeyouagainbe.chat.service.ChatRoomService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 
-@Slf4j
 @Tag(name = "Chat", description = "채팅 관련 API")
 @RestController
 @RequestMapping("/chat")
