@@ -40,13 +40,11 @@ public class ChatService {
 		chatRoom.updateLastMessageAt(LocalDateTime.now());
 
 		return ChatMessageDto.builder()
-			.messageType(savedMessage.getMessageType())
 			.chatRoomId(chatRoom.getId())
 			.boardId(board.getId())
 			.senderId(sender.getId())
 			.receiverId(receiver.getId())
 			.content(savedMessage.getContent())
-			.imageKey(savedMessage.getImageKey())
 			.time(savedMessage.getCreatedAt())
 			.build();
 	}
@@ -84,9 +82,7 @@ public class ChatService {
 		ChatMessage chatMessage = ChatMessage.builder()
 			.chatRoom(chatRoom)
 			.sender(sender)
-			.messageType(messageDto.messageType())
 			.content(messageDto.content())
-			.imageKey(messageDto.imageKey())
 			.build();
 		return chatMessageRepository.save(chatMessage);
 	}

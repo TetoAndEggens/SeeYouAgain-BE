@@ -5,8 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,12 +15,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
-import tetoandeggens.seeyouagainbe.chat.dto.request.UploadImageRequest;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
-import tetoandeggens.seeyouagainbe.chat.dto.response.ImageUrlResponse;
-import tetoandeggens.seeyouagainbe.chat.dto.response.UploadImageResponse;
-import tetoandeggens.seeyouagainbe.chat.service.ChatImageService;
 import tetoandeggens.seeyouagainbe.chat.service.ChatRoomService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -34,7 +28,6 @@ import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 @RequiredArgsConstructor
 public class ChatController {
 
-	private final ChatImageService chatImageService;
 	private final ChatRoomService chatRoomService;
 
 	@Operation(summary = "내 전체 채팅방 목록 조회",
@@ -84,36 +77,6 @@ public class ChatController {
 			request,
 			sortDirection
 		);
-		return ResponseEntity.ok(response);
-	}
-
-	@Operation(summary = "이미지 업로드 URL 발급", description = "채팅 이미지 업로드를 위한 Presigned URL을 발급")
-	@PostMapping("/upload-url")
-	public ResponseEntity<UploadImageResponse> getUploadUrl(
-		@AuthenticationPrincipal CustomUserDetails customUserDetails,
-		@Valid @RequestBody UploadImageRequest request
-	) {
-		UploadImageResponse response = chatImageService.generateUploadUrlWithValidation(
-			customUserDetails.getMemberId(),
-			request.chatRoomId(),
-			request.fileName(),
-			request.fileType()
-		);
-
-		return ResponseEntity.ok(response);
-	}
-
-	@Operation(summary = "이미지 조회 URL 발급", description = "채팅 이미지 조회를 위한 Presigned URL을 발급")
-	@GetMapping("/images/{messageId}")
-	public ResponseEntity<ImageUrlResponse> getImageUrl(
-		@AuthenticationPrincipal CustomUserDetails customUserDetails,
-		@PathVariable Long messageId
-	) {
-		ImageUrlResponse response = chatImageService.generateDownloadUrlWithValidation(
-			customUserDetails.getMemberId(),
-			messageId
-		);
-
 		return ResponseEntity.ok(response);
 	}
 }
