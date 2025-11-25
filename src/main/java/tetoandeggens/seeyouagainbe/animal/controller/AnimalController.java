@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.animal.controller;
 
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.service.AnimalService;
+import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
@@ -44,10 +46,11 @@ public class AnimalController {
 		@RequestParam(required = false) NeuteredState neuteredState,
 		@RequestParam(required = false) Sex sex,
 		@RequestParam(required = false) String city,
-		@RequestParam(required = false) String town
+		@RequestParam(required = false) String town,
+		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
 	) {
 		AnimalListResponse response = animalService.getAbandonedAnimalList(request, sortDirection,
-			startDate, endDate, species, breedType, neuteredState, sex, city, town);
+			startDate, endDate, species, breedType, neuteredState, sex, city, town, customUserDetails);
 
 		return ApiResponse.ok(response);
 	}
@@ -57,9 +60,10 @@ public class AnimalController {
 		summary = "유기 동물 조회 API",
 		description = "유기 동물 조회")
 	public ApiResponse<AnimalDetailResponse> getAnimal(
-		@PathVariable Long animalId
+		@PathVariable Long animalId,
+		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
 	) {
-		AnimalDetailResponse response = animalService.getAnimal(animalId);
+		AnimalDetailResponse response = animalService.getAnimal(animalId, customUserDetails);
 
 		return ApiResponse.ok(response);
 	}
@@ -83,11 +87,12 @@ public class AnimalController {
 		@RequestParam(required = false) NeuteredState neuteredState,
 		@RequestParam(required = false) Sex sex,
 		@RequestParam(required = false) String city,
-		@RequestParam(required = false) String town
+		@RequestParam(required = false) String town,
+		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
 	) {
 		AnimalListResponse response = animalService.getAnimalListWithCoordinates(
 			request, sortDirection, animalType, minLongitude, minLatitude, maxLongitude, maxLatitude, startDate,
-			endDate, species, breedType, neuteredState, sex, city, town
+			endDate, species, breedType, neuteredState, sex, city, town, customUserDetails
 		);
 
 		return ApiResponse.ok(response);

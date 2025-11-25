@@ -17,20 +17,20 @@ public interface AnimalRepositoryCustom {
 		AnimalType animalType,
 		String startDate, String endDate, Species species, String breedType, NeuteredState neuteredState, Sex sex,
 		String city,
-		String town);
+		String town, Long memberId);
 
 	Long getAbandonedAnimalsCount(AnimalType animalType, String startDate, String endDate, Species species,
 		String breedType,
 		NeuteredState neuteredState,
 		Sex sex, String city, String town);
 
-	AnimalDetailResponse getAnimal(Long animalId);
+	AnimalDetailResponse getAnimal(Long animalId, Long memberId);
 
 	List<AnimalResponse> getAnimalListWithCoordinates(
 		CursorPageRequest request, SortDirection sortDirection, AnimalType animalType, Double minLongitude,
 		Double minLatitude,
 		Double maxLongitude, Double maxLatitude, String startDate, String endDate, Species species, String breedType,
-		NeuteredState neuteredState, Sex sex, String city, String town
+		NeuteredState neuteredState, Sex sex, String city, String town, Long memberId
 	);
 
 	Long getAnimalsCountWithCoordinates(

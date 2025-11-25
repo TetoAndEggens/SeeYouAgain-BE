@@ -58,6 +58,9 @@ public record BoardDetailResponse(
 	List<TagInfo> tags,
 
 	@Schema(description = "프로필 url 리스트 (최대 3개)", example = "[\"https://프로필1.com\", \"https://프로필2.com\", \"https://프로필3.com\"]")
-	List<ProfileInfo> profiles
+	List<ProfileInfo> profiles,
+
+	@Schema(description = "북마크 여부", example = "true")
+	Boolean isBookmarked
 ) {
 }

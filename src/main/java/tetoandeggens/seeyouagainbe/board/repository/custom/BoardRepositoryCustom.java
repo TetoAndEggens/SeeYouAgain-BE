@@ -12,17 +12,15 @@ import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 public interface BoardRepositoryCustom {
 
 	List<BoardResponse> getAnimalBoards(CursorPageRequest request, SortDirection sortDirection,
-		ContentType contentType);
+		ContentType contentType, Long memberId);
 
 	Long getAnimalBoardsCount(ContentType contentType);
 
-	BoardDetailResponse getAnimalBoard(Long boardId);
+	BoardDetailResponse getAnimalBoard(Long boardId, Long memberId);
 
 	long countValidImageIds(List<Long> imageIds, Long animalId);
 
 	long countValidTagIds(List<Long> tagIds, Long boardId);
 
 	Board findByIdWithAnimal(Long boardId);
-
-	Board findByIdWithMember(Long boardId);
 }

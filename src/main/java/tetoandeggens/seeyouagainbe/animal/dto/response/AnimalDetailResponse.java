@@ -73,6 +73,9 @@ public record AnimalDetailResponse(
 	String centerAddress,
 
 	@Schema(description = "보호소 전화번호", example = "02-1234-5678")
-	String centerPhone
+	String centerPhone,
+
+	@Schema(description = "북마크 여부", example = "true")
+	Boolean isBookmarked
 ) {
 }
