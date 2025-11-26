@@ -1,9 +1,10 @@
 package tetoandeggens.seeyouagainbe.admin.service;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,20 +23,16 @@ import tetoandeggens.seeyouagainbe.admin.dto.request.ViolationProcessRequest;
 import tetoandeggens.seeyouagainbe.admin.dto.response.ViolationDetailResponse;
 import tetoandeggens.seeyouagainbe.admin.dto.response.ViolationListResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
-import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.enums.ReportReason;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AdminErrorCode;
+import tetoandeggens.seeyouagainbe.global.response.PageResponse;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
-import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.violation.entity.Violation;
 import tetoandeggens.seeyouagainbe.violation.repository.ViolationRepository;
-
-import java.util.List;
 
 @DisplayName("AdminViolationService 단위 테스트")
 class AdminViolationServiceTest extends ServiceTest {
@@ -45,15 +42,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
     @MockitoBean
     private ViolationRepository violationRepository;
-
-    @MockitoBean
-    private MemberRepository memberRepository;
-
-    @MockitoBean
-    private BoardRepository boardRepository;
-
-    @MockitoBean
-    private ChatRoomRepository chatRoomRepository;
 
     private Member reporter;
     private Member reportedMember;
@@ -116,26 +104,28 @@ class AdminViolationServiceTest extends ServiceTest {
                     "피신고자1",
                     "BOARD",
                     1L,
-                    null
+                    LocalDateTime.now()
             );
 
-            Page<ViolationListResponse> expectedPage = new PageImpl<>(
+            Page<ViolationListResponse> page = new PageImpl<>(
                     List.of(response1),
                     pageable,
                     1
             );
 
             given(violationRepository.findViolationList(null, pageable))
-                    .willReturn(expectedPage);
+                    .willReturn(page);
 
             // when
-            Page<ViolationListResponse> result = adminViolationService.getViolationList(null, pageable);
+            PageResponse<ViolationListResponse> result = adminViolationService.getViolationList(null, pageable);
 
             // then
             assertThat(result).isNotNull();
             assertThat(result.getContent()).hasSize(1);
             assertThat(result.getContent().get(0).violationId()).isEqualTo(1L);
             assertThat(result.getContent().get(0).violatedStatus()).isEqualTo(ViolatedStatus.WAITING);
+            assertThat(result.getPage()).isEqualTo(0);
+            assertThat(result.getSize()).isEqualTo(20);
 
             verify(violationRepository).findViolationList(null, pageable);
         }
@@ -153,20 +143,20 @@ class AdminViolationServiceTest extends ServiceTest {
                     "피신고자1",
                     "BOARD",
                     1L,
-                    null
+                    LocalDateTime.now()
             );
 
-            Page<ViolationListResponse> expectedPage = new PageImpl<>(
+            Page<ViolationListResponse> page = new PageImpl<>(
                     List.of(response1),
                     pageable,
                     1
             );
 
             given(violationRepository.findViolationList(ViolatedStatus.WAITING, pageable))
-                    .willReturn(expectedPage);
+                    .willReturn(page);
 
             // when
-            Page<ViolationListResponse> result = adminViolationService.getViolationList(
+            PageResponse<ViolationListResponse> result = adminViolationService.getViolationList(
                     ViolatedStatus.WAITING,
                     pageable
             );
@@ -287,10 +277,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -302,8 +288,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository).save(reportedMember);
-            verify(boardRepository).save(board);
+            // save()는 더 이상 호출되지 않음 (Dirty Checking)
         }
 
         @Test
@@ -328,10 +313,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -343,8 +324,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository).save(reportedMember);
-            verify(boardRepository).save(board);
         }
 
         @Test
@@ -369,8 +348,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -382,8 +359,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.NORMAL);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(boardRepository).save(board);
-            verify(memberRepository, never()).save(any(Member.class));
         }
 
         @Test
@@ -408,10 +383,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -422,8 +393,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(board.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository).save(reportedMember);
-            verify(boardRepository).save(board);
         }
     }
 
@@ -453,10 +422,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(chatRoomRepository.save(any(ChatRoom.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -468,8 +433,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository).save(reportedMember);
-            verify(chatRoomRepository).save(chatRoom);
         }
 
         @Test
@@ -494,10 +457,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(chatRoomRepository.save(any(ChatRoom.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -509,8 +468,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.VIOLATED);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository).save(reportedMember);
-            verify(chatRoomRepository).save(chatRoom);
         }
 
         @Test
@@ -535,8 +492,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(chatRoomRepository.save(any(ChatRoom.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -548,8 +503,6 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(chatRoom.getViolatedStatus()).isEqualTo(ViolatedStatus.NORMAL);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(chatRoomRepository).save(chatRoom);
-            verify(memberRepository, never()).save(any(Member.class));
         }
     }
 
@@ -576,9 +529,6 @@ class AdminViolationServiceTest extends ServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", AdminErrorCode.VIOLATION_NOT_FOUND);
 
             verify(violationRepository).findByIdWithAllFetch(violationId);
-            verify(memberRepository, never()).save(any(Member.class));
-            verify(boardRepository, never()).save(any(Board.class));
-            verify(chatRoomRepository, never()).save(any(ChatRoom.class));
         }
     }
 
@@ -608,10 +558,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -620,7 +566,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(reportedMember.getViolatedCount()).isEqualTo(1);
             assertThat(reportedMember.getIsBanned()).isFalse();
 
-            verify(memberRepository).save(reportedMember);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
         }
 
         @Test
@@ -648,10 +594,6 @@ class AdminViolationServiceTest extends ServiceTest {
 
             given(violationRepository.findByIdWithAllFetch(violationId))
                     .willReturn(Optional.of(violation));
-            given(memberRepository.save(any(Member.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
-            given(boardRepository.save(any(Board.class)))
-                    .willAnswer(invocation -> invocation.getArgument(0));
 
             // when
             adminViolationService.processViolation(violationId, request);
@@ -660,7 +602,7 @@ class AdminViolationServiceTest extends ServiceTest {
             assertThat(reportedMember.getViolatedCount()).isEqualTo(3L);
             assertThat(reportedMember.getIsBanned()).isTrue();
 
-            verify(memberRepository).save(reportedMember);
+            verify(violationRepository).findByIdWithAllFetch(violationId);
         }
     }
 }

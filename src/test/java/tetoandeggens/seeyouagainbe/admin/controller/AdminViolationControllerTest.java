@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,7 @@ import tetoandeggens.seeyouagainbe.common.enums.ReportReason;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AdminErrorCode;
+import tetoandeggens.seeyouagainbe.global.response.PageResponse;
 
 @WebMvcTest(AdminViolationController.class)
 @DisplayName("AdminViolationController 통합 테스트")
@@ -59,22 +61,25 @@ class AdminViolationControllerTest {
             // given
             ViolationListResponse response1 = new ViolationListResponse(
                     1L, ViolatedStatus.WAITING, ReportReason.SPAM,
-                    "신고자1", "피신고자1", "BOARD", 1L, null
+                    "신고자1", "피신고자1", "BOARD", 1L, LocalDateTime.now()
             );
 
             ViolationListResponse response2 = new ViolationListResponse(
                     2L, ViolatedStatus.VIOLATED, ReportReason.ABUSE,
-                    "신고자2", "피신고자2", "CHAT_ROOM", 2L, null
+                    "신고자2", "피신고자2", "CHAT_ROOM", 2L, LocalDateTime.now()
             );
 
-            Page<ViolationListResponse> expectedPage = new PageImpl<>(
+            Page<ViolationListResponse> page = new PageImpl<>(
                     List.of(response1, response2),
                     PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt")),
                     2
             );
 
+            // PageResponse를 직접 생성
+            PageResponse<ViolationListResponse> expectedResponse = PageResponse.of(page);
+
             given(adminViolationService.getViolationList(isNull(), any(Pageable.class)))
-                    .willReturn(expectedPage);
+                    .willReturn(expectedResponse);
 
             // when & then
             mockMvc.perform(get("/admin/violations")
@@ -86,7 +91,10 @@ class AdminViolationControllerTest {
                     .andExpect(jsonPath("$.data.content").isArray())
                     .andExpect(jsonPath("$.data.content.length()").value(2))
                     .andExpect(jsonPath("$.data.content[0].violationId").value(1))
-                    .andExpect(jsonPath("$.data.totalElements").value(2));
+                    .andExpect(jsonPath("$.data.totalElements").value(2))
+                    .andExpect(jsonPath("$.data.page").value(0))
+                    .andExpect(jsonPath("$.data.size").value(20))
+                    .andExpect(jsonPath("$.data.totalPages").value(1));
 
             verify(adminViolationService).getViolationList(isNull(), any(Pageable.class));
         }
@@ -97,17 +105,19 @@ class AdminViolationControllerTest {
             // given
             ViolationListResponse response = new ViolationListResponse(
                     1L, ViolatedStatus.WAITING, ReportReason.SPAM,
-                    "신고자1", "피신고자1", "BOARD", 1L, null
+                    "신고자1", "피신고자1", "BOARD", 1L, LocalDateTime.now()
             );
 
-            Page<ViolationListResponse> expectedPage = new PageImpl<>(
+            Page<ViolationListResponse> page = new PageImpl<>(
                     List.of(response),
                     PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt")),
                     1
             );
 
+            PageResponse<ViolationListResponse> expectedResponse = PageResponse.of(page);
+
             given(adminViolationService.getViolationList(eq(ViolatedStatus.WAITING), any(Pageable.class)))
-                    .willReturn(expectedPage);
+                    .willReturn(expectedResponse);
 
             // when & then
             mockMvc.perform(get("/admin/violations")
@@ -128,17 +138,19 @@ class AdminViolationControllerTest {
             // given
             ViolationListResponse response = new ViolationListResponse(
                     1L, ViolatedStatus.VIOLATED, ReportReason.SPAM,
-                    "신고자1", "피신고자1", "BOARD", 1L, null
+                    "신고자1", "피신고자1", "BOARD", 1L, LocalDateTime.now()
             );
 
-            Page<ViolationListResponse> expectedPage = new PageImpl<>(
+            Page<ViolationListResponse> page = new PageImpl<>(
                     List.of(response),
                     PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt")),
                     1
             );
 
+            PageResponse<ViolationListResponse> expectedResponse = PageResponse.of(page);
+
             given(adminViolationService.getViolationList(eq(ViolatedStatus.VIOLATED), any(Pageable.class)))
-                    .willReturn(expectedPage);
+                    .willReturn(expectedResponse);
 
             // when & then
             mockMvc.perform(get("/admin/violations")
@@ -165,7 +177,7 @@ class AdminViolationControllerTest {
             Long violationId = 1L;
             ViolationDetailResponse response = new ViolationDetailResponse(
                     violationId, ViolatedStatus.WAITING, ReportReason.SPAM,
-                    "스팸 게시글입니다.", null, null, null, null, null
+                    "스팸 게시글입니다.", null, null, null, null, LocalDateTime.now()
             );
 
             given(adminViolationService.getViolationDetail(violationId))
