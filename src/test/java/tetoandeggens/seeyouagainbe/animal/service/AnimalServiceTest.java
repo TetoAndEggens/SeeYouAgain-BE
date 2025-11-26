@@ -94,6 +94,7 @@ class AnimalServiceTest extends ServiceTest {
 				null,
 				null,
 				null,
+				null,
 				null
 			);
 
@@ -101,6 +102,8 @@ class AnimalServiceTest extends ServiceTest {
 			assertThat(response.animalCount()).isEqualTo(2);
 			assertThat(response.animal().getData()).hasSize(2);
 			assertThat(response.animal().isHasNext()).isFalse();
+			assertThat(response.animal().getData().get(0).isBookmarked()).isFalse();
+			assertThat(response.animal().getData().get(1).isBookmarked()).isFalse();
 		}
 
 		@Test
@@ -142,6 +145,7 @@ class AnimalServiceTest extends ServiceTest {
 				null,
 				null,
 				null,
+				null,
 				null
 			);
 
@@ -149,6 +153,7 @@ class AnimalServiceTest extends ServiceTest {
 			assertThat(response.animalCount()).isEqualTo(1);
 			assertThat(response.animal().getData()).hasSize(1);
 			assertThat(response.animal().getData().get(0).breedType()).isEqualTo("치와와");
+			assertThat(response.animal().getData().get(0).isBookmarked()).isFalse();
 		}
 
 		@Test
@@ -190,6 +195,7 @@ class AnimalServiceTest extends ServiceTest {
 				null,
 				Sex.M,
 				null,
+				null,
 				null
 			);
 
@@ -197,6 +203,7 @@ class AnimalServiceTest extends ServiceTest {
 			assertThat(response.animalCount()).isEqualTo(1);
 			assertThat(response.animal().getData()).hasSize(1);
 			assertThat(response.animal().getData().get(0).sex()).isEqualTo(Sex.M);
+			assertThat(response.animal().getData().get(0).isBookmarked()).isFalse();
 		}
 
 		@Test
@@ -238,7 +245,8 @@ class AnimalServiceTest extends ServiceTest {
 				NeuteredState.Y,
 				Sex.M,
 				"서울특별시",
-				"강남구"
+				"강남구",
+				null
 			);
 
 			// then
@@ -247,6 +255,7 @@ class AnimalServiceTest extends ServiceTest {
 			assertThat(response.animal().getData().get(0).species()).isEqualTo(Species.DOG);
 			assertThat(response.animal().getData().get(0).sex()).isEqualTo(Sex.M);
 			assertThat(response.animal().getData().get(0).city()).isEqualTo("서울특별시");
+			assertThat(response.animal().getData().get(0).isBookmarked()).isFalse();
 		}
 
 		@Test
@@ -281,6 +290,7 @@ class AnimalServiceTest extends ServiceTest {
 			AnimalListResponse response = animalService.getAbandonedAnimalList(
 				request,
 				SortDirection.LATEST,
+				null,
 				null,
 				null,
 				null,
@@ -338,6 +348,7 @@ class AnimalServiceTest extends ServiceTest {
 				null,
 				null,
 				null,
+				null,
 				null
 			);
 
@@ -362,6 +373,7 @@ class AnimalServiceTest extends ServiceTest {
 				null,
 				null,
 				Species.DOG,
+				null,
 				null,
 				null,
 				null,
@@ -460,7 +472,7 @@ class AnimalServiceTest extends ServiceTest {
 
 			// when
 			AnimalDetailResponse response = animalService.getAnimal(
-				animal.getId());
+				animal.getId(), null);
 
 			// then
 			assertThat(response).isNotNull();
@@ -481,13 +493,14 @@ class AnimalServiceTest extends ServiceTest {
 			assertThat(response.centerName()).isEqualTo("서울 유기견 보호소");
 			assertThat(response.centerAddress()).isEqualTo("서울특별시 강남구");
 			assertThat(response.centerPhone()).isEqualTo("02-1234-5678");
+			assertThat(response.isBookmarked()).isFalse();
 		}
 
 		@Test
 		@DisplayName("유기 동물 상세 조회 - 존재하지 않는 ID로 조회시 예외 발생")
 		void getAnimal_ThrowsException_WhenNotExists() {
 			// when & then
-			assertThatThrownBy(() -> animalService.getAnimal(999L))
+			assertThatThrownBy(() -> animalService.getAnimal(999L, null))
 				.isInstanceOf(tetoandeggens.seeyouagainbe.global.exception.CustomException.class)
 				.hasMessageContaining(AnimalErrorCode.ANIMAL_NOT_FOUND.getMessage());
 		}
