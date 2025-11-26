@@ -72,6 +72,10 @@ public class ChatRoom extends BaseEntity {
 		this.lastMessageAt = LocalDateTime.now();
 	}
 
+    public void updateViolatedStatus(ViolatedStatus violatedStatus) {
+        this.violatedStatus = violatedStatus;
+    }
+
 	public void updateIsDeleted(boolean isDeleted) {
 		this.isDeleted = isDeleted;
 	}
