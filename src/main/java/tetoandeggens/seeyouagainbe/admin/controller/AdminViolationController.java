@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -36,12 +35,10 @@ public class AdminViolationController {
     public ApiResponse<PageResponse<ViolationListResponse>> getViolationList(
             @Parameter(description = "신고 상태 (WAITING, VIOLATED, NORMAL)")
             @RequestParam(required = false) ViolatedStatus status,
-
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        Page<ViolationListResponse> page = adminViolationService.getViolationList(status, pageable);
-        PageResponse<ViolationListResponse> response = PageResponse.of(page);
+        PageResponse<ViolationListResponse> response = adminViolationService.getViolationList(status, pageable);
         return ApiResponse.ok(response);
     }
 
@@ -66,7 +63,6 @@ public class AdminViolationController {
     public ApiResponse<Void> processViolation(
             @Parameter(description = "신고 ID")
             @PathVariable Long violationId,
-
             @Valid @RequestBody ViolationProcessRequest request
     ) {
         adminViolationService.processViolation(violationId, request);
