@@ -71,6 +71,7 @@ public class SecurityConfig {
 	private static final String[] BLACK_LIST = {
 		"/auth/logout",
 		"/auth/withdrawal",
+        "/board/**",
         "/violation/**"
 	};
 
