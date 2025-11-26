@@ -62,7 +62,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 
 			// when
 			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -89,7 +89,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 
 			// when
 			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -122,7 +122,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 
 			// when
 			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -175,7 +175,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 
 			// when
 			List<AnimalResponse> results = animalRepository.getAbandonedAnimals(
-				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null
+				request, SortDirection.LATEST, null, null, null, null, null, null, null, null, null, null
 			);
 
 			// then
@@ -296,7 +296,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 
 			// when
 			AnimalDetailResponse result = animalRepository.getAnimal(
-				animal.getId());
+				animal.getId(), null);
 
 			// then
 			assertThat(result).isNotNull();
@@ -326,7 +326,7 @@ class AnimalRepositoryTest extends RepositoryTest {
 		void getAnimal_ReturnsNull_WhenNotExists() {
 			// when
 			AnimalDetailResponse result = animalRepository.getAnimal(
-				999L);
+				999L, null);
 
 			// then
 			assertThat(result).isNull();

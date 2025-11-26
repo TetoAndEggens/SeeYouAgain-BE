@@ -74,7 +74,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -97,7 +98,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 
@@ -136,7 +138,8 @@ class AnimalControllerTest extends ControllerTest {
 				any(NeuteredState.class),
 				any(Sex.class),
 				anyString(),
-				anyString()
+				anyString(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -165,7 +168,8 @@ class AnimalControllerTest extends ControllerTest {
 				eq(NeuteredState.Y),
 				eq(Sex.M),
 				eq("서울특별시"),
-				eq("강남구")
+				eq("강남구"),
+				any()
 			);
 		}
 
@@ -204,7 +208,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -224,7 +229,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 
@@ -247,7 +253,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -267,7 +274,8 @@ class AnimalControllerTest extends ControllerTest {
 				isNull(),
 				isNull(),
 				isNull(),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 
@@ -279,6 +287,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(status().isBadRequest());
 
 			verify(animalService, never()).getAbandonedAnimalList(
+				any(),
 				any(),
 				any(),
 				any(),
@@ -324,7 +333,7 @@ class AnimalControllerTest extends ControllerTest {
 				.centerPhone("02-1234-5678")
 				.build();
 
-			given(animalService.getAnimal(animalId))
+			given(animalService.getAnimal(eq(animalId), any()))
 				.willReturn(response);
 
 			// when & then
@@ -355,7 +364,7 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.data.centerAddress").value("서울특별시 강남구"))
 				.andExpect(jsonPath("$.data.centerPhone").value("02-1234-5678"));
 
-			verify(animalService).getAnimal(animalId);
+			verify(animalService).getAnimal(eq(animalId), any());
 		}
 
 		@Test
@@ -364,14 +373,14 @@ class AnimalControllerTest extends ControllerTest {
 			// given
 			Long animalId = 999L;
 
-			given(animalService.getAnimal(animalId))
+			given(animalService.getAnimal(eq(animalId), any()))
 				.willThrow(new CustomException(AnimalErrorCode.ANIMAL_NOT_FOUND));
 
 			// when & then
 			mockMvc.perform(get("/animal/{animalId}", animalId))
 				.andExpect(status().isNotFound());
 
-			verify(animalService).getAnimal(animalId);
+			verify(animalService).getAnimal(eq(animalId), any());
 		}
 	}
 
@@ -407,7 +416,7 @@ class AnimalControllerTest extends ControllerTest {
 			given(animalService.getAnimalListWithCoordinates(
 				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
-				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()
 			)).willReturn(response);
 
 			// when & then
@@ -427,7 +436,7 @@ class AnimalControllerTest extends ControllerTest {
 			verify(animalService).getAnimalListWithCoordinates(
 				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				eq(126.8), eq(37.4), eq(127.1), eq(37.7),
-				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()
 			);
 		}
 
@@ -444,7 +453,7 @@ class AnimalControllerTest extends ControllerTest {
 				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				anyString(), anyString(), any(Species.class), anyString(),
-				any(NeuteredState.class), any(Sex.class), anyString(), anyString()
+				any(NeuteredState.class), any(Sex.class), anyString(), anyString(), any()
 			)).willReturn(response);
 
 			// when & then
@@ -471,7 +480,7 @@ class AnimalControllerTest extends ControllerTest {
 				any(CursorPageRequest.class), eq(SortDirection.LATEST), any(),
 				eq(126.8), eq(37.4), eq(127.1), eq(37.7),
 				eq("20250101"), eq("20250131"), eq(Species.DOG), eq("치와와"),
-				eq(NeuteredState.Y), eq(Sex.M), eq("서울특별시"), eq("중구")
+				eq(NeuteredState.Y), eq(Sex.M), eq("서울특별시"), eq("중구"), any()
 			);
 		}
 
@@ -487,7 +496,8 @@ class AnimalControllerTest extends ControllerTest {
 				.andExpect(status().isBadRequest());
 
 			verify(animalService, never()).getAnimalListWithCoordinates(
-				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()
+				any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+				any()
 			);
 		}
 
@@ -503,7 +513,7 @@ class AnimalControllerTest extends ControllerTest {
 			given(animalService.getAnimalListWithCoordinates(
 				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
-				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()
 			)).willReturn(response);
 
 			// when & then
@@ -521,7 +531,7 @@ class AnimalControllerTest extends ControllerTest {
 			verify(animalService).getAnimalListWithCoordinates(
 				any(CursorPageRequest.class), any(SortDirection.class), any(),
 				anyDouble(), anyDouble(), anyDouble(), anyDouble(),
-				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+				isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()
 			);
 		}
 	}

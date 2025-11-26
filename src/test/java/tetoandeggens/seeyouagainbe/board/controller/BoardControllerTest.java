@@ -208,7 +208,8 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -223,7 +224,8 @@ class BoardControllerTest extends ControllerTest {
 			verify(boardService).getAnimalBoardList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.LATEST),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 
@@ -239,7 +241,8 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				eq("MISSING")
+				eq("MISSING"),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -251,7 +254,8 @@ class BoardControllerTest extends ControllerTest {
 			verify(boardService).getAnimalBoardList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.LATEST),
-				eq("MISSING")
+				eq("MISSING"),
+				any()
 			);
 		}
 
@@ -267,7 +271,8 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.OLDEST),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -280,7 +285,8 @@ class BoardControllerTest extends ControllerTest {
 			verify(boardService).getAnimalBoardList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.OLDEST),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 
@@ -296,7 +302,8 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				isNull()
+				isNull(),
+				any()
 			)).willReturn(response);
 
 			// when & then
@@ -309,7 +316,8 @@ class BoardControllerTest extends ControllerTest {
 			verify(boardService).getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				isNull()
+				isNull(),
+				any()
 			);
 		}
 	}
@@ -345,10 +353,11 @@ class BoardControllerTest extends ControllerTest {
 				List.of(
 					new ProfileInfo(1L, "profile1.jpg"),
 					new ProfileInfo(2L, "profile2.jpg")
-				)
+				),
+				true
 			);
 
-			given(boardService.getAnimalBoard(boardId))
+			given(boardService.getAnimalBoard(eq(boardId), any()))
 				.willReturn(response);
 
 			// when & then
@@ -363,7 +372,7 @@ class BoardControllerTest extends ControllerTest {
 				.andExpect(jsonPath("$.data.profiles").isArray())
 				.andExpect(jsonPath("$.data.profiles.length()").value(2));
 
-			verify(boardService).getAnimalBoard(boardId);
+			verify(boardService).getAnimalBoard(eq(boardId), any());
 		}
 
 		@Test
@@ -372,14 +381,14 @@ class BoardControllerTest extends ControllerTest {
 			// given
 			Long boardId = 999L;
 
-			given(boardService.getAnimalBoard(boardId))
+			given(boardService.getAnimalBoard(eq(boardId), any()))
 				.willThrow(new CustomException(BoardErrorCode.BOARD_NOT_FOUND));
 
 			// when & then
 			mockMvc.perform(get("/board/{boardId}", boardId))
 				.andExpect(status().isNotFound());
 
-			verify(boardService).getAnimalBoard(boardId);
+			verify(boardService).getAnimalBoard(eq(boardId), any());
 		}
 	}
 
