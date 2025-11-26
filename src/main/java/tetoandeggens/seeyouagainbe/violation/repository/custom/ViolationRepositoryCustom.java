@@ -4,6 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import tetoandeggens.seeyouagainbe.admin.dto.response.ViolationListResponse;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
+import tetoandeggens.seeyouagainbe.violation.entity.Violation;
+
+import java.util.Optional;
 
 public interface ViolationRepositoryCustom {
 
@@ -18,4 +21,7 @@ public interface ViolationRepositoryCustom {
             ViolatedStatus status,
             Pageable pageable
     );
+
+    // 신고 상세 조회 또는 신고 처리 시 사용
+    Optional<Violation> findByIdWithAllFetch(Long violationId);
 }

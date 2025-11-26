@@ -11,8 +11,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import tetoandeggens.seeyouagainbe.admin.dto.response.ViolationListResponse;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
+import tetoandeggens.seeyouagainbe.violation.entity.Violation;
 
 import java.util.List;
+import java.util.Optional;
 
 import static tetoandeggens.seeyouagainbe.violation.entity.QViolation.violation;
 
@@ -84,6 +86,21 @@ public class ViolationRepositoryCustomImpl implements ViolationRepositoryCustom 
         long total = getTotalCount(status);
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+    @Override
+    public Optional<Violation> findByIdWithAllFetch(Long violationId) {
+        Violation result = queryFactory
+                .selectFrom(violation)
+                .distinct()  // 중복 엔티티 제거
+                .join(violation.reporter).fetchJoin()
+                .join(violation.reportedMember).fetchJoin()
+                .leftJoin(violation.board).fetchJoin()
+                .leftJoin(violation.chatRoom).fetchJoin()
+                .where(violation.id.eq(violationId))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 
     private long getTotalCount(ViolatedStatus status) {
