@@ -9,14 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 import tetoandeggens.seeyouagainbe.admin.dto.request.ViolationProcessRequest;
 import tetoandeggens.seeyouagainbe.admin.dto.response.*;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
-import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatRoom;
-import tetoandeggens.seeyouagainbe.chat.repository.ChatRoomRepository;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AdminErrorCode;
+import tetoandeggens.seeyouagainbe.global.response.PageResponse;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
-import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.violation.entity.Violation;
 import tetoandeggens.seeyouagainbe.violation.repository.ViolationRepository;
 
@@ -27,15 +25,13 @@ import tetoandeggens.seeyouagainbe.violation.repository.ViolationRepository;
 public class AdminViolationService {
 
     private final ViolationRepository violationRepository;
-    private final MemberRepository memberRepository;
-    private final BoardRepository boardRepository;
-    private final ChatRoomRepository chatRoomRepository;
 
-    public Page<ViolationListResponse> getViolationList(
+    public PageResponse<ViolationListResponse> getViolationList(
             ViolatedStatus status,
             Pageable pageable
     ) {
-        return violationRepository.findViolationList(status, pageable);
+        Page<ViolationListResponse> page = violationRepository.findViolationList(status, pageable);
+        return PageResponse.of(page);
     }
 
     public ViolationDetailResponse getViolationDetail(Long violationId) {
@@ -77,7 +73,6 @@ public class AdminViolationService {
         // 피신고자 위반 횟수 증가 및 자동 정지 처리
         Member reportedMember = violation.getReportedMember();
         reportedMember.increaseViolatedCount();
-        memberRepository.save(reportedMember);
 
         log.info("위반 횟수 증가 - memberId: {}, violatedCount: {}, isBanned: {}",
                 reportedMember.getId(),
@@ -91,6 +86,7 @@ public class AdminViolationService {
         }
     }
 
+    // 위반 아님으로 처리된 경우 콘텐츠 상태만 업데이트
     private void handleNormalCase(Violation violation) {
         updateContentViolatedStatus(violation, ViolatedStatus.NORMAL);
     }
@@ -101,14 +97,10 @@ public class AdminViolationService {
             Board board = violation.getBoard();
             board.updateIsDeleted(true);
             board.updateViolatedStatus(ViolatedStatus.VIOLATED);
-            boardRepository.save(board);
-            log.info("게시물 삭제 처리 - boardId: {}, violatedStatus: VIOLATED", board.getId());
         } else if (violation.getChatRoom() != null) {
             ChatRoom chatRoom = violation.getChatRoom();
             chatRoom.updateIsDeleted(true);
             chatRoom.updateViolatedStatus(ViolatedStatus.VIOLATED);
-            chatRoomRepository.save(chatRoom);
-            log.info("채팅방 삭제 처리 - chatRoomId: {}, violatedStatus: VIOLATED", chatRoom.getId());
         }
     }
 
@@ -118,16 +110,10 @@ public class AdminViolationService {
             Board board = violation.getBoard();
             board.updateViolatedStatus(status);
             board.updateIsDeleted(false);
-            boardRepository.save(board);
-            log.info("게시물 위반 상태 수정 - boardId: {}, violatedStatus: {}",
-                    board.getId(), status);
         } else if (violation.getChatRoom() != null) {
             ChatRoom chatRoom = violation.getChatRoom();
             chatRoom.updateViolatedStatus(status);
             chatRoom.updateIsDeleted(false);
-            chatRoomRepository.save(chatRoom);
-            log.info("채팅방 위반 상태 수정 - chatRoomId: {}, violatedStatus: {}",
-                    chatRoom.getId(), status);
         }
     }
 
