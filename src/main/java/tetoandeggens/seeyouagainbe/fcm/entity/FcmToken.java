@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
@@ -46,4 +47,37 @@ public class FcmToken extends BaseEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "member_id")
 	private Member member;
+
+    @Builder
+    public FcmToken(String token, String deviceId, DeviceType deviceType,
+                    LocalDateTime lastUsedAt, Member member) {
+        this.token = token;
+        this.deviceId = deviceId;
+        this.deviceType = deviceType;
+        this.lastUsedAt = lastUsedAt != null ? lastUsedAt : LocalDateTime.now();
+        this.member = member;
+    }
+
+    public void updateToken(String newToken) {
+        this.token = newToken;
+        this.lastUsedAt = LocalDateTime.now();
+    }
+
+    public void updateLastUsedAt() {
+        this.lastUsedAt = LocalDateTime.now();
+    }
+
+    public boolean isExpired(int expirationDays) {
+        LocalDateTime expirationDate = LocalDateTime.now().minusDays(expirationDays);
+        return this.lastUsedAt.isBefore(expirationDate);
+    }
+
+    public boolean needsRefresh() {
+        LocalDateTime refreshDate = LocalDateTime.now().minusDays(30);
+        return this.lastUsedAt.isBefore(refreshDate);
+    }
+
+    public boolean isSameDevice(String deviceId) {
+        return this.deviceId.equals(deviceId);
+    }
 }
