@@ -72,7 +72,9 @@ public class SecurityConfig {
 		"/auth/logout",
 		"/auth/withdrawal",
         "/board/**",
-        "/violation/**"
+        "/violation/**",
+        "/notifications/**",
+        "/fcm/**"
 	};
 
 	private static final String[] ADMINLIST = {
