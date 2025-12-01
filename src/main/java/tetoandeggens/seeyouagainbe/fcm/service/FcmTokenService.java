@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tetoandeggens.seeyouagainbe.fcm.dto.request.FcmTokenRequest;
 import tetoandeggens.seeyouagainbe.fcm.dto.response.FcmTokenResponse;
+import tetoandeggens.seeyouagainbe.fcm.entity.DeviceType;
 import tetoandeggens.seeyouagainbe.fcm.entity.FcmToken;
 import tetoandeggens.seeyouagainbe.fcm.repository.FcmTokenRepository;
+import tetoandeggens.seeyouagainbe.fcm.util.DeviceTypeValidator;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.FcmErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -26,33 +28,43 @@ public class FcmTokenService {
     private final FcmTokenRepository fcmTokenRepository;
     private final MemberRepository memberRepository;
     private final FirebaseMessagingService firebaseMessagingService;
+    private final DeviceTypeValidator deviceTypeValidator;
 
     @Transactional
-    public FcmTokenResponse saveOrUpdateToken(Long memberId, FcmTokenRequest request) {
+    public FcmTokenResponse saveOrUpdateToken(
+            Long memberId,
+            FcmTokenRequest request,
+            String userAgent
+    ) {
+        // 1. Member 조회
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(FcmErrorCode.MEMBER_NOT_FOUND));
 
+        // 2. Firebase 토큰 유효성 검증
         if (!firebaseMessagingService.isValidToken(request.token())) {
             log.warn("유효하지 않은 FCM 토큰 - MemberId: {}, Token: {}...",
                     memberId, request.token().substring(0, 20));
             throw new CustomException(FcmErrorCode.INVALID_TOKEN);
         }
 
-        FcmToken fcmToken = fcmTokenRepository.findByMemberIdAndDeviceId(memberId, request.deviceId())
+        // 3. User-Agent에서 deviceType 자동 추출
+        DeviceType deviceType = deviceTypeValidator.validateAndExtractDeviceType(userAgent);
+
+        // 4. 기존 토큰 존재 여부 확인 및 저장/업데이트
+        FcmToken fcmToken = fcmTokenRepository
+                .findByMemberIdAndDeviceId(memberId, request.deviceId())
                 .map(existingToken -> {
                     existingToken.updateToken(request.token());
-                    log.info("FCM 토큰 업데이트 완료 - MemberId: {}, DeviceId: {}", memberId, request.deviceId());
                     return existingToken;
                 })
                 .orElseGet(() -> {
                     FcmToken newToken = FcmToken.builder()
                             .token(request.token())
                             .deviceId(request.deviceId())
-                            .deviceType(request.deviceType())
+                            .deviceType(deviceType)
                             .lastUsedAt(LocalDateTime.now())
                             .member(member)
                             .build();
-                    log.info("새 FCM 토큰 저장 완료 - MemberId: {}, DeviceId: {}", memberId, request.deviceId());
                     return fcmTokenRepository.save(newToken);
                 });
 
@@ -65,7 +77,6 @@ public class FcmTokenService {
                 .ifPresent(token -> {
                     if (token.needsRefresh()) {
                         token.updateLastUsedAt();
-                        log.info("FCM 토큰 갱신 완료 - MemberId: {}, DeviceId: {}", memberId, deviceId);
                     }
                 });
     }
@@ -75,9 +86,7 @@ public class FcmTokenService {
         FcmToken fcmToken = fcmTokenRepository.findByMemberIdAndDeviceId(memberId, deviceId)
                 .orElseThrow(() -> new CustomException(FcmErrorCode.TOKEN_NOT_FOUND));
 
-
         fcmTokenRepository.delete(fcmToken);
-        log.info("FCM 토큰 삭제 완료 - MemberId: {}, DeviceId: {}", memberId, deviceId);
     }
 
     public List<FcmTokenResponse> getTokensByMemberId(Long memberId) {
@@ -91,8 +100,6 @@ public class FcmTokenService {
         LocalDateTime expirationDate = LocalDateTime.now().minusDays(expirationDays);
         List<FcmToken> expiredTokens = fcmTokenRepository.findExpiredTokens(expirationDate);
 
-        log.info("만료된 FCM 토큰 정리 시작 - 개수: {}", expiredTokens.size());
-
         expiredTokens.forEach(token -> {
             try {
                 fcmTokenRepository.delete(token);
@@ -101,7 +108,5 @@ public class FcmTokenService {
                 log.error("만료된 FCM 토큰 삭제 실패 - TokenId: {}", token.getId(), e);
             }
         });
-
-        log.info("만료된 FCM 토큰 정리 완료 - 처리된 개수: {}", expiredTokens.size());
     }
 }
