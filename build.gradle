@@ -95,6 +95,15 @@ dependencies {
 
     // WebSocket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // Firebase SDK
+    implementation 'com.google.firebase:firebase-admin:9.7.0'
+
+    // Spring Retry
+    implementation 'org.springframework.retry:spring-retry'
+
+    // AOP
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
 
 dependencyManagement {
