@@ -3,7 +3,6 @@ package tetoandeggens.seeyouagainbe.fcm.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
@@ -14,7 +13,6 @@ import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/fcm/tokens")
 @RequiredArgsConstructor
@@ -25,20 +23,19 @@ public class FcmTokenController {
     @PostMapping
     @Operation(
             summary = "FCM 토큰 등록 API",
-            description = "클라이언트로부터 FCM 토큰을 받아 저장 또는 업데이트"
+            description = "클라이언트로부터 FCM 토큰을 받아 저장 또는 업데이트. " +
+                    "기기 타입은 User-Agent 헤더를 통해 서버에서 자동으로 결정됩니다."
     )
     public ApiResponse<FcmTokenResponse> registerToken(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody FcmTokenRequest request
+            @Valid @RequestBody FcmTokenRequest request,
+            @RequestHeader(value = "User-Agent", required = false) String userAgent
     ) {
-        log.info("FCM 토큰 등록 요청 - MemberId: {}, DeviceId: {}",
-                userDetails.getMemberId(), request.deviceId());
-
         FcmTokenResponse response = fcmTokenService.saveOrUpdateToken(
                 userDetails.getMemberId(),
-                request
+                request,
+                userAgent
         );
-
         return ApiResponse.created(response);
     }
 
@@ -51,11 +48,7 @@ public class FcmTokenController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String deviceId
     ) {
-        log.info("FCM 토큰 갱신 요청 - MemberId: {}, DeviceId: {}",
-                userDetails.getMemberId(), deviceId);
-
         fcmTokenService.refreshTokenIfNeeded(userDetails.getMemberId(), deviceId);
-
         return ApiResponse.noContent();
     }
 
@@ -68,11 +61,7 @@ public class FcmTokenController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String deviceId
     ) {
-        log.info("FCM 토큰 삭제 요청 - MemberId: {}, DeviceId: {}",
-                userDetails.getMemberId(), deviceId);
-
         fcmTokenService.deleteToken(userDetails.getMemberId(), deviceId);
-
         return ApiResponse.noContent();
     }
 
@@ -84,12 +73,7 @@ public class FcmTokenController {
     public ApiResponse<List<FcmTokenResponse>> getTokens(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        log.info("FCM 토큰 목록 조회 요청 - MemberId: {}", userDetails.getMemberId());
-
-        List<FcmTokenResponse> tokens = fcmTokenService.getTokensByMemberId(
-                userDetails.getMemberId()
-        );
-
+        List<FcmTokenResponse> tokens = fcmTokenService.getTokensByMemberId(userDetails.getMemberId());
         return ApiResponse.ok(tokens);
     }
 }
