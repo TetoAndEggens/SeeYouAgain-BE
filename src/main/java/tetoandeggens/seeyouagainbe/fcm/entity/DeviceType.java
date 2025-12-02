@@ -10,7 +10,8 @@ import java.util.Arrays;
 public enum DeviceType {
     WEB("WEB", "웹"),
     ANDROID("ANDROID", "안드로이드"),
-    IOS("IOS", "iOS");
+    IOS("IOS", "iOS"),
+    ETC("ETC", "그외");
 
     private final String code;
     private final String description;
