@@ -18,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tetoandeggens.seeyouagainbe.global.ControllerTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.FcmErrorCode;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.NotificationKeywordErrorCode;
 import tetoandeggens.seeyouagainbe.notification.dto.request.BulkUpdateKeywordsRequest;
 import tetoandeggens.seeyouagainbe.notification.dto.request.NotificationKeywordRequest;
 import tetoandeggens.seeyouagainbe.notification.dto.response.BulkUpdateKeywordsResponse;
@@ -159,7 +160,7 @@ class NotificationKeywordControllerTest extends ControllerTest {
             );
 
             given(notificationKeywordService.subscribe(anyLong(), any(NotificationKeywordRequest.class)))
-                    .willThrow(new CustomException(FcmErrorCode.KEYWORD_ALREADY_SUBSCRIBED));
+                    .willThrow(new CustomException(NotificationKeywordErrorCode.KEYWORD_ALREADY_SUBSCRIBED));
 
             // when & then
             mockMvc.perform(post(BASE_URL)
@@ -196,7 +197,7 @@ class NotificationKeywordControllerTest extends ControllerTest {
         @DisplayName("키워드 구독 해제 - 키워드가 존재하지 않으면 실패")
         void unsubscribeKeyword_Fail_KeywordNotFound() throws Exception {
             // given
-            doThrow(new CustomException(FcmErrorCode.KEYWORD_NOT_FOUND))
+            doThrow(new CustomException(NotificationKeywordErrorCode.KEYWORD_NOT_FOUND))
                     .when(notificationKeywordService).unsubscribe(anyLong(), anyLong());
 
             // when & then

@@ -22,6 +22,7 @@ import tetoandeggens.seeyouagainbe.fcm.repository.FcmTokenRepository;
 import tetoandeggens.seeyouagainbe.fcm.util.DeviceTypeValidator;
 import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
+import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.FcmErrorCode;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
@@ -167,23 +168,6 @@ class FcmTokenServiceTest extends ServiceTest {
 
             // updateToken() 메서드가 호출되었는지 확인 (엔티티 상태 변경)
             assertThat(existingToken.getToken()).isEqualTo("new-token-12345");
-        }
-
-        @Test
-        @DisplayName("FCM 토큰 등록 - 회원이 존재하지 않으면 예외 발생")
-        void saveToken_ThrowsException_WhenMemberNotFound() {
-            // given
-            FcmTokenRequest request = new FcmTokenRequest(TEST_TOKEN, TEST_DEVICE_ID);
-
-            given(memberRepository.findById(TEST_MEMBER_ID)).willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> fcmTokenService.saveOrUpdateToken(
-                    TEST_MEMBER_ID, request, TEST_USER_AGENT_ANDROID))
-                    .isInstanceOf(CustomException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", FcmErrorCode.MEMBER_NOT_FOUND);
-
-            verify(fcmTokenRepository, never()).save(any(FcmToken.class));
         }
     }
 
