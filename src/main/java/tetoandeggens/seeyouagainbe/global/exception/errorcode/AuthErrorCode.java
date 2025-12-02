@@ -45,7 +45,10 @@ public enum AuthErrorCode implements ErrorCode {
     SOCIAL_TOKEN_REFRESH_FAILED("AUTH_024", "소셜 로그인 토큰 갱신에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Ban 관련
-    ACCOUNT_BANNED("AUTH_025", "신고 누적으로 계정이 정지되었습니다.", HttpStatus.FORBIDDEN);
+    ACCOUNT_BANNED("AUTH_025", "신고 누적으로 계정이 정지되었습니다.", HttpStatus.FORBIDDEN),
+
+    // Push 알림 관련
+    PUSH_DISABLED("AUTH_026", "푸시 알림이 비활성화되어 있습니다.", HttpStatus.FORBIDDEN);
 
     private final String code;
     private final String message;
