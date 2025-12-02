@@ -23,8 +23,7 @@ public class FcmTokenController {
     @PostMapping
     @Operation(
             summary = "FCM 토큰 등록 API",
-            description = "클라이언트로부터 FCM 토큰을 받아 저장 또는 업데이트. " +
-                    "기기 타입은 User-Agent 헤더를 통해 서버에서 자동으로 결정됩니다."
+            description = "클라이언트로부터 FCM 토큰을 받아 저장 또는 업데이트"
     )
     public ApiResponse<FcmTokenResponse> registerToken(
             @AuthenticationPrincipal CustomUserDetails userDetails,

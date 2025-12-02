@@ -67,17 +67,8 @@ public class FcmToken extends BaseEntity {
         this.lastUsedAt = LocalDateTime.now();
     }
 
-    public boolean isExpired(int expirationDays) {
-        LocalDateTime expirationDate = LocalDateTime.now().minusDays(expirationDays);
-        return this.lastUsedAt.isBefore(expirationDate);
-    }
-
     public boolean needsRefresh() {
         LocalDateTime refreshDate = LocalDateTime.now().minusDays(30);
         return this.lastUsedAt.isBefore(refreshDate);
-    }
-
-    public boolean isSameDevice(String deviceId) {
-        return this.deviceId.equals(deviceId);
     }
 }
