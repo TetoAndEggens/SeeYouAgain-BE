@@ -16,7 +16,7 @@ import tetoandeggens.seeyouagainbe.notification.service.NotificationKeywordServi
 import java.util.List;
 
 @RestController
-@RequestMapping("/notifications/keywords")
+@RequestMapping("/notification/keyword")
 @RequiredArgsConstructor
 public class NotificationKeywordController {
 
@@ -65,7 +65,7 @@ public class NotificationKeywordController {
         return ApiResponse.noContent();
     }
 
-    @PutMapping("/bulk")
+    @PutMapping("/updateAll")
     @Operation(
             summary = "키워드 일괄 업데이트 API (추천)",
             description = "추가할 키워드와 삭제할 키워드를 한 번에 처리합니다. " +
