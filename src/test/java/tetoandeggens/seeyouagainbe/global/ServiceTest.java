@@ -6,6 +6,7 @@ import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
+import tetoandeggens.seeyouagainbe.global.config.FirebaseConfig;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -17,4 +18,7 @@ public abstract class ServiceTest {
 
 	@MockitoBean
 	protected ChannelTopic channelTopic;
+
+    @MockitoBean
+    protected FirebaseConfig firebaseConfig;
 }
