@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.notification.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -8,7 +9,7 @@ public record BulkUpdateKeywordsRequest(
         @Valid
         List<NotificationKeywordRequest> keywordsToAdd,
 
-        List<Long> keywordIdsToDelete
+        List<@NotNull Long> keywordIdsToDelete
 ) {
     public boolean hasKeywordsToAdd() {
         return keywordsToAdd != null && !keywordsToAdd.isEmpty();
