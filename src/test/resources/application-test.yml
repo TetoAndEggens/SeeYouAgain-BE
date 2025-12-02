@@ -108,8 +108,6 @@ aws:
 
 firebase:
   project-id: test-project-id
-  service-account:
-    path: classpath:firebase-test-dummy.json
 
 logging:
   level:
