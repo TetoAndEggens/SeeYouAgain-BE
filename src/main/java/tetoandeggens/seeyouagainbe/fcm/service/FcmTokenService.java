@@ -16,8 +16,8 @@ import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -90,9 +90,15 @@ public class FcmTokenService {
     }
 
     public List<FcmTokenResponse> getTokensByMemberId(Long memberId) {
-        return fcmTokenRepository.findAllByMemberId(memberId).stream()
-                .map(FcmTokenResponse::from)
-                .collect(Collectors.toList());
+        List<FcmToken> fcmTokens = fcmTokenRepository.findAllByMemberId(memberId);
+        List<FcmTokenResponse> responses = new ArrayList<>();
+
+        for (FcmToken token : fcmTokens) {
+            FcmTokenResponse response = FcmTokenResponse.from(token);
+            responses.add(response);
+        }
+
+        return responses;
     }
 
     @Transactional
@@ -103,7 +109,6 @@ public class FcmTokenService {
         expiredTokens.forEach(token -> {
             try {
                 fcmTokenRepository.delete(token);
-                log.info("만료된 FCM 토큰 삭제 완료 - TokenId: {}", token.getId());
             } catch (Exception e) {
                 log.error("만료된 FCM 토큰 삭제 실패 - TokenId: {}", token.getId(), e);
             }

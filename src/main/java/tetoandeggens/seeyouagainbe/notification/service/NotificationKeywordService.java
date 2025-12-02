@@ -17,7 +17,6 @@ import tetoandeggens.seeyouagainbe.notification.repository.NotificationKeywordRe
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,9 +28,15 @@ public class NotificationKeywordService {
     private final MemberRepository memberRepository;
 
     public List<NotificationKeywordResponse> getSubscribedKeywords(Long memberId) {
-        return notificationKeywordRepository.findAllByMemberId(memberId).stream()
-                .map(NotificationKeywordResponse::from)
-                .collect(Collectors.toList());
+        List<NotificationKeyword> keywords = notificationKeywordRepository.findAllByMemberId(memberId);
+        List<NotificationKeywordResponse> responses = new ArrayList<>();
+
+        for (NotificationKeyword keyword : keywords) {
+            NotificationKeywordResponse response = NotificationKeywordResponse.from(keyword);
+            responses.add(response);
+        }
+
+        return responses;
     }
 
     @Transactional
@@ -56,7 +61,6 @@ public class NotificationKeywordService {
                 .build();
 
         NotificationKeyword savedKeyword = notificationKeywordRepository.save(keyword);
-        log.info("키워드 구독 완료 - MemberId: {}, Keyword: {}", memberId, request.keyword());
 
         return NotificationKeywordResponse.from(savedKeyword);
     }
@@ -77,7 +81,6 @@ public class NotificationKeywordService {
     ) {
         // 1. 요청이 비어있는지 확인
         if (request.isEmpty()) {
-            log.warn("빈 일괄 업데이트 요청 - MemberId: {}", memberId);
             return BulkUpdateKeywordsResponse.of(new ArrayList<>(), new ArrayList<>());
         }
 
@@ -93,20 +96,13 @@ public class NotificationKeywordService {
         List<Long> deletedKeywordIds = new ArrayList<>();
         if (request.hasKeywordsToDelete()) {
             deletedKeywordIds = deleteKeywords(memberId, request.keywordIdsToDelete());
-            log.info("키워드 일괄 삭제 완료 - MemberId: {}, 삭제 개수: {}",
-                    memberId, deletedKeywordIds.size());
         }
 
         // 4. 추가 처리 (나중에 추가)
         List<NotificationKeywordResponse> addedKeywords = new ArrayList<>();
         if (request.hasKeywordsToAdd()) {
             addedKeywords = addKeywords(memberId, member, request.keywordsToAdd());
-            log.info("키워드 일괄 추가 완료 - MemberId: {}, 추가 개수: {}",
-                    memberId, addedKeywords.size());
         }
-
-        log.info("키워드 일괄 업데이트 완료 - MemberId: {}, 추가: {}개, 삭제: {}개",
-                memberId, addedKeywords.size(), deletedKeywordIds.size());
 
         return BulkUpdateKeywordsResponse.of(addedKeywords, deletedKeywordIds);
     }
@@ -123,12 +119,8 @@ public class NotificationKeywordService {
 
                 notificationKeywordRepository.delete(keyword);
                 deletedIds.add(keywordId);
-
-                log.debug("키워드 삭제 - KeywordId: {}, Keyword: {}",
-                        keywordId, keyword.getKeyword());
             } catch (Exception e) {
                 log.error("키워드 삭제 실패 - KeywordId: {}", keywordId, e);
-                // 하나 실패해도 계속 진행 (선택적 처리)
             }
         }
 
@@ -155,8 +147,6 @@ public class NotificationKeywordService {
                         );
 
                 if (exists) {
-                    log.warn("이미 구독 중인 키워드 - MemberId: {}, Keyword: {}",
-                            memberId, request.keyword());
                     continue; // 중복은 스킵
                 }
 
@@ -170,9 +160,6 @@ public class NotificationKeywordService {
 
                 NotificationKeyword savedKeyword = notificationKeywordRepository.save(keyword);
                 addedKeywords.add(NotificationKeywordResponse.from(savedKeyword));
-
-                log.debug("키워드 추가 - Keyword: {}, Type: {}, Category: {}",
-                        request.keyword(), request.keywordType(), request.keywordCategoryType());
             } catch (Exception e) {
                 log.error("키워드 추가 실패 - Keyword: {}", request.keyword(), e);
             }

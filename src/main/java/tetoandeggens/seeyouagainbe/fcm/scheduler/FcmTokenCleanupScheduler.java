@@ -12,7 +12,6 @@ import tetoandeggens.seeyouagainbe.fcm.service.FcmTokenService;
 public class FcmTokenCleanupScheduler {
 
     private static final int EXPIRATION_DAYS = 60;
-
     private final FcmTokenService fcmTokenService;
 
     @Scheduled(cron = "0 0 2 * * *")
