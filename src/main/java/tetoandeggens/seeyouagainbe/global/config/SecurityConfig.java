@@ -73,7 +73,7 @@ public class SecurityConfig {
 		"/auth/withdrawal",
         "/board/**",
         "/violation/**",
-        "/notifications/**",
+        "/notification/**",
         "/fcm/**"
 	};
 
