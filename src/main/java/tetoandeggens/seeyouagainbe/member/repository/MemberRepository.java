@@ -17,6 +17,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByPhoneNumberAndIsDeletedFalse(String phoneNumber);
 
+    boolean existsByIdAndIsPushEnabled(Long id, boolean isPushEnabled);
+
     Optional<Member> findByPhoneNumberAndIsDeletedFalse(String phoneNumber);
 
     Optional<Member> findBySocialIdKakaoAndIsDeletedFalse(String socialIdKakao);
