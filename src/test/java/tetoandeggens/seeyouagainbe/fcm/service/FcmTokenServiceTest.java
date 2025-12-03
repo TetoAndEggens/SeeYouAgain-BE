@@ -163,7 +163,6 @@ class FcmTokenServiceTest extends ServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.deviceId()).isEqualTo(TEST_DEVICE_ID);
 
-            // ✅ 수정: 기존 토큰 업데이트는 Dirty Checking으로 처리되므로 save() 호출 안 함
             verify(fcmTokenRepository, never()).save(any(FcmToken.class));
 
             // updateToken() 메서드가 호출되었는지 확인 (엔티티 상태 변경)
@@ -196,11 +195,8 @@ class FcmTokenServiceTest extends ServiceTest {
                     .doesNotThrowAnyException();
 
             // then
-            // ✅ 수정: Dirty Checking으로 처리되므로 save() 호출 안 함
             verify(fcmTokenRepository, never()).save(any());
 
-            // needsRefresh()가 true이므로 updateLastUsedAt() 호출됨 (엔티티 상태 변경)
-            // 실제로 lastUsedAt이 갱신되었는지 확인
             assertThat(token.getLastUsedAt()).isAfter(LocalDateTime.now().minusSeconds(5));
         }
 
@@ -228,7 +224,6 @@ class FcmTokenServiceTest extends ServiceTest {
             // then
             verify(fcmTokenRepository, never()).save(any(FcmToken.class));
 
-            // ✅ 수정: needsRefresh()가 false이므로 lastUsedAt 변경 안 됨
             assertThat(token.getLastUsedAt()).isEqualTo(recentTime);
         }
     }
