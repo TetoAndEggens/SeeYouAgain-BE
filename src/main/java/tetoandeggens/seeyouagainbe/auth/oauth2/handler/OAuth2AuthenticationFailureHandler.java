@@ -10,8 +10,12 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationFa
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
+import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 
 import java.io.IOException;
+import java.util.List;
+
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.REDIRECT_URI_PARAM_COOKIE_NAME;
 
 @Slf4j
 @Component
@@ -23,6 +27,11 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    private static final List<String> ALLOWED_LOCAL_ORIGINS = List.of(
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+    );
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -31,12 +40,24 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         log.error("[OAuth2Failure] 소셜 로그인 실패: {}", exception.getMessage());
 
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+        String targetFrontendUrl = determineTargetUrl(request);
+
+        String redirectUrl = UriComponentsBuilder.fromUriString(targetFrontendUrl)
                 .path("/auth/error")
                 .queryParam("message", "social_login_failed")
                 .build()
                 .toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    }
+
+    private String determineTargetUrl(HttpServletRequest request) {
+        String redirectUriFromCookie = CookieUtil.resolveCookieValue(request, REDIRECT_URI_PARAM_COOKIE_NAME);
+
+        if (redirectUriFromCookie != null && ALLOWED_LOCAL_ORIGINS.contains(redirectUriFromCookie)) {
+            return redirectUriFromCookie;
+        }
+
+        return frontendUrl;
     }
 }
