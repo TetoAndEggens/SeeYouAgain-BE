@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.chat.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -14,6 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
+import tetoandeggens.seeyouagainbe.global.util.AesEncryptionConverter;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 
 @Entity
@@ -28,6 +30,7 @@ public class ChatMessage extends BaseEntity {
 	private Long id;
 
 	@Column(name = "content")
+	@Convert(converter = AesEncryptionConverter.class)
 	private String content;
 
 	@Column(name = "is_read")
