@@ -9,6 +9,7 @@ import tetoandeggens.seeyouagainbe.global.exception.errorcode.NotificationKeywor
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 import tetoandeggens.seeyouagainbe.notification.dto.request.BulkUpdateKeywordsRequest;
+import tetoandeggens.seeyouagainbe.notification.dto.request.KeywordCheckDto;
 import tetoandeggens.seeyouagainbe.notification.dto.request.NotificationKeywordRequest;
 import tetoandeggens.seeyouagainbe.notification.dto.response.BulkUpdateKeywordsResponse;
 import tetoandeggens.seeyouagainbe.notification.dto.response.NotificationKeywordResponse;
@@ -16,7 +17,9 @@ import tetoandeggens.seeyouagainbe.notification.entity.NotificationKeyword;
 import tetoandeggens.seeyouagainbe.notification.repository.NotificationKeywordRepository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,12 +35,19 @@ public class NotificationKeywordService {
 
     @Transactional
     public NotificationKeywordResponse subscribe(Long memberId, NotificationKeywordRequest request) {
+
         if (!memberRepository.existsByIdAndIsPushEnabled(memberId, true)) {
             throw new CustomException(AuthErrorCode.PUSH_DISABLED);
         }
 
-        if (notificationKeywordRepository.existsByMemberIdAndKeywordAndKeywordTypeAndKeywordCategoryType(
-                memberId, request.keyword(), request.keywordType(), request.keywordCategoryType())) {
+        boolean exists = notificationKeywordRepository.existsByMemberIdAndKeyword(
+                memberId,
+                request.keyword(),
+                request.keywordType(),
+                request.keywordCategoryType()
+        );
+
+        if (exists) {
             throw new CustomException(NotificationKeywordErrorCode.KEYWORD_ALREADY_SUBSCRIBED);
         }
 
@@ -55,10 +65,12 @@ public class NotificationKeywordService {
 
     @Transactional
     public void unsubscribe(Long memberId, Long keywordId) {
-        NotificationKeyword keyword = notificationKeywordRepository.findByIdAndMemberId(keywordId, memberId)
-                .orElseThrow(() -> new CustomException(NotificationKeywordErrorCode.KEYWORD_NOT_FOUND));
 
-        notificationKeywordRepository.delete(keyword);
+        long deletedCount = notificationKeywordRepository.deleteByIdAndMemberId(keywordId, memberId);
+
+        if (deletedCount == 0) {
+            throw new CustomException(NotificationKeywordErrorCode.KEYWORD_NOT_FOUND);
+        }
     }
 
     @Transactional
@@ -66,55 +78,57 @@ public class NotificationKeywordService {
             Long memberId,
             BulkUpdateKeywordsRequest request
     ) {
+
         if (!memberRepository.existsByIdAndIsPushEnabled(memberId, true)) {
             throw new CustomException(AuthErrorCode.PUSH_DISABLED);
         }
 
-        List<Long> deletedKeywordIds = new ArrayList<>();
-        if (request.hasKeywordsToDelete()) {
-            deletedKeywordIds = deleteKeywords(memberId, request.keywordIdsToDelete());
-        }
+        List<Long> deletedKeywordIds = request.hasKeywordsToDelete()
+                ? notificationKeywordRepository.deleteByIdsAndMemberId(request.keywordIdsToDelete(), memberId)
+                : List.of();
 
-        List<NotificationKeywordResponse> addedKeywords = new ArrayList<>();
-        if (request.hasKeywordsToAdd()) {
-            addedKeywords = addKeywords(memberId, request.keywordsToAdd());
-        }
+        List<NotificationKeywordResponse> addedKeywords = request.hasKeywordsToAdd()
+                ? addKeywordsBulk(memberId, request.keywordsToAdd())
+                : List.of();
 
         return BulkUpdateKeywordsResponse.of(addedKeywords, deletedKeywordIds);
     }
 
-    private List<Long> deleteKeywords(Long memberId, List<Long> keywordIdsToDelete) {
-        List<NotificationKeyword> keywordsToDelete = notificationKeywordRepository
-                .findAllByIdInAndMemberIdOptimized(keywordIdsToDelete, memberId);
-
-        List<Long> validIds = new ArrayList<>();
-        for (NotificationKeyword keyword : keywordsToDelete) {
-            validIds.add(keyword.getId());
-        }
-
-        if (!validIds.isEmpty()) {
-            notificationKeywordRepository.deleteAllByIdInBatch(validIds);
-        }
-
-        return validIds;
-    }
-
-    private List<NotificationKeywordResponse> addKeywords(
+    private List<NotificationKeywordResponse> addKeywordsBulk(
             Long memberId,
             List<NotificationKeywordRequest> keywordsToAdd
     ) {
-        List<NotificationKeyword> newKeywords = new ArrayList<>();
-
+        List<KeywordCheckDto> keywordCheckDtos = new ArrayList<>();
         for (NotificationKeywordRequest request : keywordsToAdd) {
-            boolean exists = notificationKeywordRepository
-                    .existsByMemberIdAndKeywordOptimized(
-                            memberId,
-                            request.keyword(),
-                            request.keywordType(),
-                            request.keywordCategoryType()
-                    );
+            keywordCheckDtos.add(new KeywordCheckDto(
+                    request.keyword(),
+                    request.keywordType(),
+                    request.keywordCategoryType()
+            ));
+        }
 
-            if (!exists) {
+        List<NotificationKeywordResponse> existingKeywords =
+                notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(memberId, keywordCheckDtos);
+
+        Set<String> existingKeywordSet = new HashSet<>();
+        for (NotificationKeywordResponse existing : existingKeywords) {
+            String key = createKeywordKey(
+                    existing.keyword(),
+                    existing.keywordType(),
+                    existing.keywordCategoryType()
+            );
+            existingKeywordSet.add(key);
+        }
+
+        List<NotificationKeyword> newKeywords = new ArrayList<>();
+        for (NotificationKeywordRequest request : keywordsToAdd) {
+            String key = createKeywordKey(
+                    request.keyword(),
+                    request.keywordType(),
+                    request.keywordCategoryType()
+            );
+
+            if (!existingKeywordSet.contains(key)) {
                 NotificationKeyword keyword = NotificationKeyword.builder()
                         .keyword(request.keyword())
                         .keywordType(request.keywordType())
@@ -127,7 +141,7 @@ public class NotificationKeywordService {
         }
 
         if (newKeywords.isEmpty()) {
-            return new ArrayList<>();
+            return List.of();
         }
 
         List<NotificationKeyword> savedKeywords = notificationKeywordRepository.saveAll(newKeywords);
@@ -138,5 +152,9 @@ public class NotificationKeywordService {
         }
 
         return responses;
+    }
+
+    private String createKeywordKey(String keyword, Object keywordType, Object keywordCategoryType) {
+        return keyword + "|" + keywordType + "|" + keywordCategoryType;
     }
 }
