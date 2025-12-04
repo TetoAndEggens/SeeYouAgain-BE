@@ -56,8 +56,7 @@ class NotificationKeywordControllerTest extends ControllerTest {
                     TEST_KEYWORD_ID,
                     TEST_KEYWORD,
                     KeywordType.ABANDONED,
-                    KeywordCategoryType.BREED,
-                    LocalDateTime.now()
+                    KeywordCategoryType.BREED
             );
 
             given(notificationKeywordService.subscribe(anyLong(), any(NotificationKeywordRequest.class)))
@@ -220,9 +219,9 @@ class NotificationKeywordControllerTest extends ControllerTest {
             // given
             List<NotificationKeywordResponse> responses = List.of(
                     new NotificationKeywordResponse(1L, TEST_KEYWORD,
-                            KeywordType.ABANDONED, KeywordCategoryType.BREED, LocalDateTime.now()),
+                            KeywordType.ABANDONED, KeywordCategoryType.BREED),
                     new NotificationKeywordResponse(2L, "서울",
-                            KeywordType.WITNESS, KeywordCategoryType.LOCATION, LocalDateTime.now())
+                            KeywordType.WITNESS, KeywordCategoryType.LOCATION)
             );
 
             given(notificationKeywordService.getSubscribedKeywords(anyLong()))
@@ -285,7 +284,7 @@ class NotificationKeywordControllerTest extends ControllerTest {
 
             List<NotificationKeywordResponse> addedKeywords = List.of(
                     new NotificationKeywordResponse(2L, TEST_KEYWORD,
-                            KeywordType.ABANDONED, KeywordCategoryType.BREED, LocalDateTime.now())
+                            KeywordType.ABANDONED, KeywordCategoryType.BREED)
             );
 
             BulkUpdateKeywordsResponse response = BulkUpdateKeywordsResponse.of(
@@ -329,7 +328,7 @@ class NotificationKeywordControllerTest extends ControllerTest {
 
             List<NotificationKeywordResponse> addedKeywords = List.of(
                     new NotificationKeywordResponse(1L, TEST_KEYWORD,
-                            KeywordType.ABANDONED, KeywordCategoryType.BREED, LocalDateTime.now())
+                            KeywordType.ABANDONED, KeywordCategoryType.BREED)
             );
 
             BulkUpdateKeywordsResponse response = BulkUpdateKeywordsResponse.of(

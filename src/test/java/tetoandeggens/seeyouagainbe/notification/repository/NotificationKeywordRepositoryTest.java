@@ -556,10 +556,6 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
             assertThat(responses).hasSize(2);
             assertThat(responses).extracting(NotificationKeywordResponse::keyword)
                     .containsExactlyInAnyOrder(TEST_KEYWORD_BREED, TEST_KEYWORD_REGION);
-
-            // createdAt이 최신순으로 정렬되었는지 확인
-            assertThat(responses.get(0).createdAt())
-                    .isAfterOrEqualTo(responses.get(1).createdAt());
         }
 
         @Test
