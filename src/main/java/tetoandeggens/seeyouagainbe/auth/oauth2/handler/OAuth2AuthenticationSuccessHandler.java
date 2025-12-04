@@ -20,14 +20,17 @@ import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.OAuth2TokenExtract
 import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
+import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static tetoandeggens.seeyouagainbe.global.constants.AuthCommonConstants.REDIRECT_URI_PARAM_COOKIE_NAME;
 import static tetoandeggens.seeyouagainbe.global.constants.AuthVerificationConstants.*;
 
 @Slf4j
@@ -45,6 +48,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
+
+    private static final List<String> ALLOWED_LOCAL_ORIGINS = List.of(
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+    );
 
     @Override
     @Transactional
@@ -69,8 +77,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         OAuth2AttributeExtractorProvider extractor = attributeExtractors.get(extractorBeanName);
 
         if (extractor == null) {
-            log.error("[OAuth2Success] AttributeExtractor를 찾을 수 없음 - provider: {}",
-                    provider.getRegistrationId());
+            log.error("[OAuth2Success] AttributeExtractor를 찾을 수 없음 - provider: {}", provider.getRegistrationId());
             return;
         }
 
@@ -81,9 +88,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         Optional<Member> memberOptional = findMemberBySocialId(provider, socialId);
 
         if (memberOptional.isPresent()) {
-            handleExistingMember(memberOptional.get(), response);
+            handleExistingMember(request, memberOptional.get(), response);
         } else {
-            handleNewMember(provider, socialId, profileImageUrl, oauthRefreshToken, response);
+            handleNewMember(request, provider, socialId, profileImageUrl, oauthRefreshToken, response);
         }
     }
 
@@ -95,7 +102,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         };
     }
 
-    private void handleExistingMember(Member member, HttpServletResponse response) throws IOException {
+    private void handleExistingMember(HttpServletRequest request, Member member, HttpServletResponse response) throws IOException {
         UserTokenResponse tokens = tokenProvider.createLoginToken(
                 member.getUuid(),
                 member.getRole()
@@ -118,7 +125,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 tokenProvider.getRefreshTokenExpirationMs()
         );
 
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+        String targetFrontendUrl = determineTargetUrl(request);
+
+        String redirectUrl = UriComponentsBuilder.fromUriString(targetFrontendUrl)
                 .path("/auth/callback")
                 .queryParam("status", "login")
                 .build()
@@ -128,6 +137,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private void handleNewMember(
+            HttpServletRequest request,
             OAuth2Provider provider,
             String socialId,
             String profileImageUrl,
@@ -151,11 +161,23 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         cookieService.setSocialTempTokenCookie(response, tempToken, VERIFICATION_TIME * 60L);
 
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+        String targetFrontendUrl = determineTargetUrl(request);
+
+        String redirectUrl = UriComponentsBuilder.fromUriString(targetFrontendUrl)
                 .path("/auth/social-signup")
                 .build()
                 .toUriString();
 
         response.sendRedirect(redirectUrl);
+    }
+
+    private String determineTargetUrl(HttpServletRequest request) {
+        String redirectUriFromCookie = CookieUtil.resolveCookieValue(request, REDIRECT_URI_PARAM_COOKIE_NAME);
+
+        if (redirectUriFromCookie != null && ALLOWED_LOCAL_ORIGINS.contains(redirectUriFromCookie)) {
+            return redirectUriFromCookie;
+        }
+
+        return frontendUrl;
     }
 }
