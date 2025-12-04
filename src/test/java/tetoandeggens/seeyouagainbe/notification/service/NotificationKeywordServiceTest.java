@@ -6,7 +6,6 @@ import static org.mockito.BDDMockito.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -110,7 +109,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordAndKeywordTypeAndKeywordCategoryType(
+            given(notificationKeywordRepository.existsByMemberIdAndKeyword(
                     TEST_MEMBER_ID, TEST_KEYWORD, KeywordType.ABANDONED, KeywordCategoryType.BREED))
                     .willReturn(false);
             given(notificationKeywordRepository.save(any(NotificationKeyword.class)))
@@ -145,7 +144,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordAndKeywordTypeAndKeywordCategoryType(
+            given(notificationKeywordRepository.existsByMemberIdAndKeyword(
                     TEST_MEMBER_ID, "서울", KeywordType.WITNESS, KeywordCategoryType.LOCATION))
                     .willReturn(false);
             given(notificationKeywordRepository.save(any(NotificationKeyword.class)))
@@ -198,7 +197,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordAndKeywordTypeAndKeywordCategoryType(
+            given(notificationKeywordRepository.existsByMemberIdAndKeyword(
                     TEST_MEMBER_ID, TEST_KEYWORD, KeywordType.ABANDONED, KeywordCategoryType.BREED))
                     .willReturn(true);
 
@@ -219,34 +218,28 @@ class NotificationKeywordServiceTest extends ServiceTest {
         @DisplayName("키워드 구독 해제 - 성공")
         void unsubscribeKeyword_Success() {
             // given
-            Member member = createTestMember();
-            NotificationKeyword keyword = createTestKeyword(member);
-
-            given(notificationKeywordRepository.findByIdAndMemberId(TEST_KEYWORD_ID, TEST_MEMBER_ID))
-                    .willReturn(Optional.of(keyword));
-            willDoNothing().given(notificationKeywordRepository).delete(keyword);
+            given(notificationKeywordRepository.deleteByIdAndMemberId(TEST_KEYWORD_ID, TEST_MEMBER_ID))
+                    .willReturn(1L); // 1개 삭제됨
 
             // when
             assertThatCode(() -> notificationKeywordService.unsubscribe(TEST_MEMBER_ID, TEST_KEYWORD_ID))
                     .doesNotThrowAnyException();
 
             // then
-            verify(notificationKeywordRepository).delete(keyword);
+            verify(notificationKeywordRepository).deleteByIdAndMemberId(TEST_KEYWORD_ID, TEST_MEMBER_ID);
         }
 
         @Test
         @DisplayName("키워드 구독 해제 - 키워드가 존재하지 않으면 예외 발생")
         void unsubscribeKeyword_ThrowsException_WhenKeywordNotFound() {
             // given
-            given(notificationKeywordRepository.findByIdAndMemberId(TEST_KEYWORD_ID, TEST_MEMBER_ID))
-                    .willReturn(Optional.empty());
+            given(notificationKeywordRepository.deleteByIdAndMemberId(TEST_KEYWORD_ID, TEST_MEMBER_ID))
+                    .willReturn(0L); // 삭제된 행 없음
 
             // when & then
             assertThatThrownBy(() -> notificationKeywordService.unsubscribe(TEST_MEMBER_ID, TEST_KEYWORD_ID))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", NotificationKeywordErrorCode.KEYWORD_NOT_FOUND);
-
-            verify(notificationKeywordRepository, never()).delete(any(NotificationKeyword.class));
         }
     }
 
@@ -272,9 +265,12 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    anyLong(), anyString(), any(), any()))
-                    .willReturn(false);
+
+            // 중복 확인 - 존재하는 키워드 없음
+            given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
+                    eq(TEST_MEMBER_ID), anyList()))
+                    .willReturn(List.of());
+
             given(notificationKeywordRepository.saveAll(anyList()))
                     .willAnswer(invocation -> {
                         List<NotificationKeyword> keywords = invocation.getArgument(0);
@@ -298,9 +294,6 @@ class NotificationKeywordServiceTest extends ServiceTest {
         @DisplayName("키워드 일괄 업데이트 - 삭제만 있는 경우 성공")
         void bulkUpdateKeywords_Success_OnlyDelete() {
             // given
-            Member member = createTestMember();
-            NotificationKeyword keyword1 = createTestKeyword(member);
-            NotificationKeyword keyword2 = createAnotherTestKeyword(member);
             List<Long> keywordIdsToDelete = List.of(1L, 2L);
 
             BulkUpdateKeywordsRequest request = new BulkUpdateKeywordsRequest(
@@ -310,9 +303,8 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.findAllByIdInAndMemberIdOptimized(keywordIdsToDelete, TEST_MEMBER_ID))
-                    .willReturn(List.of(keyword1, keyword2));
-            willDoNothing().given(notificationKeywordRepository).deleteAllByIdInBatch(anyList());
+            given(notificationKeywordRepository.deleteByIdsAndMemberId(keywordIdsToDelete, TEST_MEMBER_ID))
+                    .willReturn(List.of(1L, 2L)); // 삭제된 ID 리스트 반환
 
             // when
             BulkUpdateKeywordsResponse response = notificationKeywordService.bulkUpdateKeywords(
@@ -321,16 +313,13 @@ class NotificationKeywordServiceTest extends ServiceTest {
             // then
             assertThat(response.addedKeywords()).isEmpty();
             assertThat(response.deletedKeywordIds()).hasSize(2);
-            verify(notificationKeywordRepository).deleteAllByIdInBatch(anyList());
+            verify(notificationKeywordRepository).deleteByIdsAndMemberId(keywordIdsToDelete, TEST_MEMBER_ID);
         }
 
         @Test
         @DisplayName("키워드 일괄 업데이트 - 추가와 삭제 모두 있는 경우 성공")
         void bulkUpdateKeywords_Success_AddAndDelete() {
             // given
-            Member member = createTestMember();
-            NotificationKeyword existingKeyword = createTestKeyword(member);
-
             List<NotificationKeywordRequest> keywordsToAdd = List.of(
                     new NotificationKeywordRequest("말티즈", KeywordType.ABANDONED,
                             KeywordCategoryType.BREED)
@@ -344,18 +333,22 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            given(notificationKeywordRepository.findAllByIdInAndMemberIdOptimized(keywordIdsToDelete, TEST_MEMBER_ID))
-                    .willReturn(List.of(existingKeyword));
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    anyLong(), anyString(), any(), any()))
-                    .willReturn(false);
+
+            // 삭제
+            given(notificationKeywordRepository.deleteByIdsAndMemberId(keywordIdsToDelete, TEST_MEMBER_ID))
+                    .willReturn(List.of(1L));
+
+            // 중복 확인
+            given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
+                    eq(TEST_MEMBER_ID), anyList()))
+                    .willReturn(List.of());
+
             given(notificationKeywordRepository.saveAll(anyList()))
                     .willAnswer(invocation -> {
                         List<NotificationKeyword> keywords = invocation.getArgument(0);
                         ReflectionTestUtils.setField(keywords.get(0), "id", 2L);
                         return keywords;
                     });
-            willDoNothing().given(notificationKeywordRepository).deleteAllByIdInBatch(anyList());
 
             // when
             BulkUpdateKeywordsResponse response = notificationKeywordService.bulkUpdateKeywords(
@@ -365,7 +358,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
             assertThat(response.addedKeywords()).hasSize(1);
             assertThat(response.deletedKeywordIds()).hasSize(1);
             verify(notificationKeywordRepository).saveAll(anyList());
-            verify(notificationKeywordRepository).deleteAllByIdInBatch(anyList());
+            verify(notificationKeywordRepository).deleteByIdsAndMemberId(keywordIdsToDelete, TEST_MEMBER_ID);
         }
 
         @Test
@@ -386,17 +379,24 @@ class NotificationKeywordServiceTest extends ServiceTest {
 
             given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
                     .willReturn(true);
-            // 첫 번째는 중복, 두 번째는 중복 아님
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    TEST_MEMBER_ID, TEST_KEYWORD, KeywordType.ABANDONED, KeywordCategoryType.BREED))
-                    .willReturn(true);
-            given(notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    TEST_MEMBER_ID, "서울", KeywordType.WITNESS, KeywordCategoryType.LOCATION))
-                    .willReturn(false);
+
+            // 첫 번째 키워드는 이미 존재 (중복)
+            List<NotificationKeywordResponse> existingKeywords = List.of(
+                    new NotificationKeywordResponse(
+                            1L, TEST_KEYWORD, KeywordType.ABANDONED,
+                            KeywordCategoryType.BREED, LocalDateTime.now()
+                    )
+            );
+            given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
+                    eq(TEST_MEMBER_ID), anyList()))
+                    .willReturn(existingKeywords);
+
             given(notificationKeywordRepository.saveAll(anyList()))
                     .willAnswer(invocation -> {
                         List<NotificationKeyword> keywords = invocation.getArgument(0);
-                        ReflectionTestUtils.setField(keywords.get(0), "id", 1L);
+                        if (!keywords.isEmpty()) {
+                            ReflectionTestUtils.setField(keywords.get(0), "id", 2L);
+                        }
                         return keywords;
                     });
 
@@ -407,6 +407,43 @@ class NotificationKeywordServiceTest extends ServiceTest {
             // then
             assertThat(response.addedKeywords()).hasSize(1);
             assertThat(response.addedKeywords().get(0).keyword()).isEqualTo("서울");
+        }
+
+        @Test
+        @DisplayName("키워드 일괄 업데이트 - 모든 키워드가 중복이면 아무것도 추가되지 않음")
+        void bulkUpdateKeywords_NoAddition_WhenAllDuplicates() {
+            // given
+            List<NotificationKeywordRequest> keywordsToAdd = List.of(
+                    new NotificationKeywordRequest(TEST_KEYWORD, KeywordType.ABANDONED,
+                            KeywordCategoryType.BREED)
+            );
+
+            BulkUpdateKeywordsRequest request = new BulkUpdateKeywordsRequest(
+                    keywordsToAdd,
+                    List.of()
+            );
+
+            given(memberRepository.existsByIdAndIsPushEnabled(TEST_MEMBER_ID, true))
+                    .willReturn(true);
+
+            // 모든 키워드가 이미 존재
+            List<NotificationKeywordResponse> existingKeywords = List.of(
+                    new NotificationKeywordResponse(
+                            1L, TEST_KEYWORD, KeywordType.ABANDONED,
+                            KeywordCategoryType.BREED, LocalDateTime.now()
+                    )
+            );
+            given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
+                    eq(TEST_MEMBER_ID), anyList()))
+                    .willReturn(existingKeywords);
+
+            // when
+            BulkUpdateKeywordsResponse response = notificationKeywordService.bulkUpdateKeywords(
+                    TEST_MEMBER_ID, request);
+
+            // then
+            assertThat(response.addedKeywords()).isEmpty();
+            verify(notificationKeywordRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -428,7 +465,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PUSH_DISABLED);
 
             verify(notificationKeywordRepository, never()).saveAll(anyList());
-            verify(notificationKeywordRepository, never()).deleteAllByIdInBatch(anyList());
+            verify(notificationKeywordRepository, never()).deleteByIdsAndMemberId(anyList(), anyLong());
         }
     }
 
