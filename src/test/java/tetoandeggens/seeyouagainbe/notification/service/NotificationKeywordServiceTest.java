@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -56,11 +55,11 @@ class NotificationKeywordServiceTest extends ServiceTest {
             List<NotificationKeywordResponse> mockResponses = List.of(
                     new NotificationKeywordResponse(
                             1L, TEST_KEYWORD, KeywordType.ABANDONED,
-                            KeywordCategoryType.BREED, LocalDateTime.now()
+                            KeywordCategoryType.BREED
                     ),
                     new NotificationKeywordResponse(
                             2L, "서울", KeywordType.WITNESS,
-                            KeywordCategoryType.LOCATION, LocalDateTime.now()
+                            KeywordCategoryType.LOCATION
                     )
             );
 
@@ -384,7 +383,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
             List<NotificationKeywordResponse> existingKeywords = List.of(
                     new NotificationKeywordResponse(
                             1L, TEST_KEYWORD, KeywordType.ABANDONED,
-                            KeywordCategoryType.BREED, LocalDateTime.now()
+                            KeywordCategoryType.BREED
                     )
             );
             given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
@@ -430,7 +429,7 @@ class NotificationKeywordServiceTest extends ServiceTest {
             List<NotificationKeywordResponse> existingKeywords = List.of(
                     new NotificationKeywordResponse(
                             1L, TEST_KEYWORD, KeywordType.ABANDONED,
-                            KeywordCategoryType.BREED, LocalDateTime.now()
+                            KeywordCategoryType.BREED
                     )
             );
             given(notificationKeywordRepository.findExistingKeywordsByMemberIdAndKeywords(
