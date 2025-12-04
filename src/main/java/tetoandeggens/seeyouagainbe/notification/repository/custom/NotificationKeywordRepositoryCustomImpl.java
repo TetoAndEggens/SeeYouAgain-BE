@@ -26,12 +26,10 @@ public class NotificationKeywordRepositoryCustomImpl implements NotificationKeyw
                         notificationKeyword.id,
                         notificationKeyword.keyword,
                         notificationKeyword.keywordType,
-                        notificationKeyword.keywordCategoryType,
-                        notificationKeyword.createdAt
+                        notificationKeyword.keywordCategoryType
                 ))
                 .from(notificationKeyword)
                 .where(notificationKeyword.member.id.eq(memberId))
-                .orderBy(notificationKeyword.createdAt.desc())
                 .fetch();
     }
 
@@ -116,8 +114,7 @@ public class NotificationKeywordRepositoryCustomImpl implements NotificationKeyw
                         notificationKeyword.id,
                         notificationKeyword.keyword,
                         notificationKeyword.keywordType,
-                        notificationKeyword.keywordCategoryType,
-                        notificationKeyword.createdAt
+                        notificationKeyword.keywordCategoryType
                 ))
                 .from(notificationKeyword)
                 .where(
