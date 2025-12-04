@@ -137,3 +137,7 @@ test:
 
 app:
   frontend-url: http://localhost:3000
+
+encryption:
+  aes:
+    secret-key: testtesttesttesttesttesttesttesttesttesttest
