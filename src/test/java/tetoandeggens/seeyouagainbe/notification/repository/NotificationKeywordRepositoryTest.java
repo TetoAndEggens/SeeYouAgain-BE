@@ -15,6 +15,7 @@ import jakarta.persistence.EntityManager;
 import tetoandeggens.seeyouagainbe.global.RepositoryTest;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
+import tetoandeggens.seeyouagainbe.notification.dto.request.KeywordCheckDto;
 import tetoandeggens.seeyouagainbe.notification.dto.response.NotificationKeywordResponse;
 import tetoandeggens.seeyouagainbe.notification.entity.KeywordCategoryType;
 import tetoandeggens.seeyouagainbe.notification.entity.KeywordType;
@@ -44,7 +45,6 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
                 .nickName("테스트유저")
                 .phoneNumber("01012345678")
                 .password("encodedPassword")
-
                 .build());
     }
 
@@ -196,7 +196,6 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
                     .nickName("다른유저")
                     .phoneNumber("01087654321")
                     .password("encodedPassword")
-
                     .build());
 
             NotificationKeyword keyword = notificationKeywordRepository.save(
@@ -317,7 +316,6 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
                     .nickName("다른유저")
                     .phoneNumber("01087654321")
                     .password("encodedPassword")
-
                     .build());
 
             notificationKeywordRepository.save(NotificationKeyword.builder()
@@ -576,8 +574,84 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
         }
 
         @Test
-        @DisplayName("최적화된 ID 리스트 조회 - 성공 (JOIN 없음)")
-        void findAllByIdInAndMemberIdOptimized_Success() {
+        @DisplayName("최적화된 중복 확인 - 존재하면 true 반환")
+        void existsByMemberIdAndKeyword_ReturnsTrue() {
+            // given
+            notificationKeywordRepository.save(NotificationKeyword.builder()
+                    .keyword(TEST_KEYWORD_BREED)
+                    .keywordType(KeywordType.ABANDONED)
+                    .keywordCategoryType(KeywordCategoryType.BREED)
+                    .member(testMember)
+                    .build());
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // when
+            boolean exists = notificationKeywordRepository.existsByMemberIdAndKeyword(
+                    testMember.getId(),
+                    TEST_KEYWORD_BREED,
+                    KeywordType.ABANDONED,
+                    KeywordCategoryType.BREED
+            );
+
+            // then
+            assertThat(exists).isTrue();
+        }
+
+        @Test
+        @DisplayName("최적화된 중복 확인 - 존재하지 않으면 false 반환")
+        void existsByMemberIdAndKeyword_ReturnsFalse() {
+            // when
+            boolean exists = notificationKeywordRepository.existsByMemberIdAndKeyword(
+                    testMember.getId(),
+                    TEST_KEYWORD_BREED,
+                    KeywordType.ABANDONED,
+                    KeywordCategoryType.BREED
+            );
+
+            // then
+            assertThat(exists).isFalse();
+        }
+
+        @Test
+        @DisplayName("최적화된 중복 확인 - 모든 조건이 일치해야 true")
+        void existsByMemberIdAndKeyword_RequiresAllConditionsMatch() {
+            // given
+            notificationKeywordRepository.save(NotificationKeyword.builder()
+                    .keyword(TEST_KEYWORD_BREED)
+                    .keywordType(KeywordType.ABANDONED)
+                    .keywordCategoryType(KeywordCategoryType.BREED)
+                    .member(testMember)
+                    .build());
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // when - 키워드 타입만 다름
+            boolean existsDifferentType = notificationKeywordRepository.existsByMemberIdAndKeyword(
+                    testMember.getId(),
+                    TEST_KEYWORD_BREED,
+                    KeywordType.WITNESS,  // 다른 타입
+                    KeywordCategoryType.BREED
+            );
+
+            // when - 카테고리만 다름
+            boolean existsDifferentCategory = notificationKeywordRepository.existsByMemberIdAndKeyword(
+                    testMember.getId(),
+                    TEST_KEYWORD_BREED,
+                    KeywordType.ABANDONED,
+                    KeywordCategoryType.LOCATION  // 다른 카테고리
+            );
+
+            // then
+            assertThat(existsDifferentType).isFalse();
+            assertThat(existsDifferentCategory).isFalse();
+        }
+
+        @Test
+        @DisplayName("벌크 삭제 - 성공 (삭제된 ID 리스트 반환)")
+        void deleteByIdsAndMemberId_Success() {
             // given
             NotificationKeyword keyword1 = notificationKeywordRepository.save(
                     NotificationKeyword.builder()
@@ -598,21 +672,25 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
             entityManager.flush();
             entityManager.clear();
 
-            List<Long> ids = List.of(keyword1.getId(), keyword2.getId());
+            List<Long> idsToDelete = List.of(keyword1.getId(), keyword2.getId());
 
             // when
-            List<NotificationKeyword> keywords = notificationKeywordRepository
-                    .findAllByIdInAndMemberIdOptimized(ids, testMember.getId());
+            List<Long> deletedIds = notificationKeywordRepository
+                    .deleteByIdsAndMemberId(idsToDelete, testMember.getId());
 
             // then
-            assertThat(keywords).hasSize(2);
-            assertThat(keywords).extracting(NotificationKeyword::getId)
-                    .containsExactlyInAnyOrder(keyword1.getId(), keyword2.getId());
+            assertThat(deletedIds).hasSize(2);
+            assertThat(deletedIds).containsExactlyInAnyOrder(keyword1.getId(), keyword2.getId());
+
+            // 실제로 삭제되었는지 확인
+            List<NotificationKeyword> remainingKeywords = notificationKeywordRepository
+                    .findAllByMemberId(testMember.getId());
+            assertThat(remainingKeywords).isEmpty();
         }
 
         @Test
-        @DisplayName("최적화된 ID 리스트 조회 - 다른 회원의 키워드는 조회 안 됨")
-        void findAllByIdInAndMemberIdOptimized_FiltersOtherMembersKeywords() {
+        @DisplayName("벌크 삭제 - 다른 회원의 키워드는 삭제 안 됨")
+        void deleteByIdsAndMemberId_DoesNotDeleteOtherMembersKeywords() {
             // given
             Member anotherMember = memberRepository.save(Member.builder()
                     .loginId("anotheruser")
@@ -640,20 +718,64 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
             entityManager.flush();
             entityManager.clear();
 
-            List<Long> ids = List.of(myKeyword.getId(), otherKeyword.getId());
+            List<Long> idsToDelete = List.of(myKeyword.getId(), otherKeyword.getId());
 
             // when
-            List<NotificationKeyword> keywords = notificationKeywordRepository
-                    .findAllByIdInAndMemberIdOptimized(ids, testMember.getId());
+            List<Long> deletedIds = notificationKeywordRepository
+                    .deleteByIdsAndMemberId(idsToDelete, testMember.getId());
 
             // then
-            assertThat(keywords).hasSize(1);
-            assertThat(keywords.get(0).getId()).isEqualTo(myKeyword.getId());
+            assertThat(deletedIds).hasSize(1);
+            assertThat(deletedIds).containsExactly(myKeyword.getId());
+
+            // 다른 회원의 키워드는 삭제 안 됨
+            Optional<NotificationKeyword> otherMemberKeyword = notificationKeywordRepository
+                    .findById(otherKeyword.getId());
+            assertThat(otherMemberKeyword).isPresent();
         }
 
         @Test
-        @DisplayName("최적화된 중복 확인 - 존재하면 true 반환 (JOIN 없음)")
-        void existsByMemberIdAndKeywordOptimized_ReturnsTrue() {
+        @DisplayName("단건 삭제 - 성공 (삭제된 행 수 반환)")
+        void deleteByIdAndMemberId_Success() {
+            // given
+            NotificationKeyword keyword = notificationKeywordRepository.save(
+                    NotificationKeyword.builder()
+                            .keyword(TEST_KEYWORD_BREED)
+                            .keywordType(KeywordType.ABANDONED)
+                            .keywordCategoryType(KeywordCategoryType.BREED)
+                            .member(testMember)
+                            .build());
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // when
+            long deletedCount = notificationKeywordRepository
+                    .deleteByIdAndMemberId(keyword.getId(), testMember.getId());
+
+            // then
+            assertThat(deletedCount).isEqualTo(1);
+
+            // 실제로 삭제되었는지 확인
+            Optional<NotificationKeyword> deletedKeyword = notificationKeywordRepository
+                    .findById(keyword.getId());
+            assertThat(deletedKeyword).isEmpty();
+        }
+
+        @Test
+        @DisplayName("단건 삭제 - 존재하지 않는 키워드면 0 반환")
+        void deleteByIdAndMemberId_ReturnsZero_WhenNotExists() {
+            // when
+            long deletedCount = notificationKeywordRepository
+                    .deleteByIdAndMemberId(999L, testMember.getId());
+
+            // then
+            assertThat(deletedCount).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("벌크 키워드 존재 확인 - 성공")
+        void findExistingKeywordsByMemberIdAndKeywords_Success() {
             // given
             notificationKeywordRepository.save(NotificationKeyword.builder()
                     .keyword(TEST_KEYWORD_BREED)
@@ -662,69 +784,41 @@ class NotificationKeywordRepositoryTest extends RepositoryTest {
                     .member(testMember)
                     .build());
 
-            entityManager.flush();
-            entityManager.clear();
-
-            // when
-            boolean exists = notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    testMember.getId(),
-                    TEST_KEYWORD_BREED,
-                    KeywordType.ABANDONED,
-                    KeywordCategoryType.BREED
-            );
-
-            // then
-            assertThat(exists).isTrue();
-        }
-
-        @Test
-        @DisplayName("최적화된 중복 확인 - 존재하지 않으면 false 반환")
-        void existsByMemberIdAndKeywordOptimized_ReturnsFalse() {
-            // when
-            boolean exists = notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    testMember.getId(),
-                    TEST_KEYWORD_BREED,
-                    KeywordType.ABANDONED,
-                    KeywordCategoryType.BREED
-            );
-
-            // then
-            assertThat(exists).isFalse();
-        }
-
-        @Test
-        @DisplayName("최적화된 중복 확인 - 모든 조건이 일치해야 true")
-        void existsByMemberIdAndKeywordOptimized_RequiresAllConditionsMatch() {
-            // given
             notificationKeywordRepository.save(NotificationKeyword.builder()
-                    .keyword(TEST_KEYWORD_BREED)
-                    .keywordType(KeywordType.ABANDONED)
-                    .keywordCategoryType(KeywordCategoryType.BREED)
+                    .keyword(TEST_KEYWORD_REGION)
+                    .keywordType(KeywordType.WITNESS)
+                    .keywordCategoryType(KeywordCategoryType.LOCATION)
                     .member(testMember)
                     .build());
 
             entityManager.flush();
             entityManager.clear();
 
-            // when - 키워드 타입만 다름
-            boolean existsDifferentType = notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    testMember.getId(),
-                    TEST_KEYWORD_BREED,
-                    KeywordType.WITNESS,  // 다른 타입
-                    KeywordCategoryType.BREED
+            List<KeywordCheckDto> keywordCheckDtos = List.of(
+                    new KeywordCheckDto(TEST_KEYWORD_BREED, KeywordType.ABANDONED, KeywordCategoryType.BREED),
+                    new KeywordCheckDto(TEST_KEYWORD_REGION, KeywordType.WITNESS, KeywordCategoryType.LOCATION),
+                    new KeywordCheckDto("말티즈", KeywordType.ABANDONED, KeywordCategoryType.BREED) // 존재하지 않음
             );
 
-            // when - 카테고리만 다름
-            boolean existsDifferentCategory = notificationKeywordRepository.existsByMemberIdAndKeywordOptimized(
-                    testMember.getId(),
-                    TEST_KEYWORD_BREED,
-                    KeywordType.ABANDONED,
-                    KeywordCategoryType.LOCATION  // 다른 카테고리
-            );
+            // when
+            List<NotificationKeywordResponse> existingKeywords = notificationKeywordRepository
+                    .findExistingKeywordsByMemberIdAndKeywords(testMember.getId(), keywordCheckDtos);
 
             // then
-            assertThat(existsDifferentType).isFalse();
-            assertThat(existsDifferentCategory).isFalse();
+            assertThat(existingKeywords).hasSize(2);
+            assertThat(existingKeywords).extracting(NotificationKeywordResponse::keyword)
+                    .containsExactlyInAnyOrder(TEST_KEYWORD_BREED, TEST_KEYWORD_REGION);
+        }
+
+        @Test
+        @DisplayName("벌크 키워드 존재 확인 - 빈 리스트면 빈 결과 반환")
+        void findExistingKeywordsByMemberIdAndKeywords_ReturnsEmpty_WhenEmptyList() {
+            // when
+            List<NotificationKeywordResponse> existingKeywords = notificationKeywordRepository
+                    .findExistingKeywordsByMemberIdAndKeywords(testMember.getId(), List.of());
+
+            // then
+            assertThat(existingKeywords).isEmpty();
         }
     }
 }
