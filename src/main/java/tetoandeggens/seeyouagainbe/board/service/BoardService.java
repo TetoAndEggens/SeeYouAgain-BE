@@ -13,6 +13,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
@@ -59,23 +60,26 @@ public class BoardService {
 
 		saveBoardTags(request.tags(), savedBoard);
 
-		List<String> presignedUrls = generatePresignedUrlsIfNeeded(request.count(), savedAnimal.getId());
+		List<String> presignedUrls = new ArrayList<>();
+
+		if (request.isPhotoUploaded()) {
+			presignedUrls = generatePresignedUrlsIfNeeded(request.count(), savedAnimal.getId());
+		}
 
 		return new PresignedUrlResponse(presignedUrls);
 	}
 
 	@Transactional(readOnly = true)
-	public BoardListResponse getAnimalBoardList(
-		CursorPageRequest request, SortDirection sortDirection, String type, CustomUserDetails customUserDetails) {
+	public BoardListResponse getAnimalBoardList(CursorPageRequest request, SortDirection sortDirection, String type,
+		String startDate, String endDate, Species species, String breedType, NeuteredState neuteredState, Sex sex,
+		String city, String town, CustomUserDetails customUserDetails) {
 		Long memberId = getMemberId(customUserDetails);
 
-		ContentType contentType = null;
-		if (type != null && !type.isBlank()) {
-			contentType = ContentType.fromCode(type.toUpperCase());
-		}
+		ContentType contentType = ContentType.fromCode(type.toUpperCase());
 
 		List<BoardResponse> responses = boardRepository.getAnimalBoards(
-			request, sortDirection, contentType, memberId);
+			request, sortDirection, contentType, startDate, endDate, species, breedType,
+			neuteredState, sex, city, town, memberId);
 
 		List<BoardResponse> responsesWithTags = attachTagsToResponses(responses);
 
@@ -85,7 +89,8 @@ public class BoardService {
 			BoardResponse::boardId
 		);
 
-		Long totalCount = boardRepository.getAnimalBoardsCount(contentType);
+		Long totalCount = boardRepository.getAnimalBoardsCount(contentType, startDate, endDate, species,
+			breedType, neuteredState, sex, city, town);
 
 		return BoardListResponse.of(totalCount.intValue(), cursorPage);
 	}
@@ -205,6 +210,7 @@ public class BoardService {
 		Species species = Species.fromCode(request.species());
 		Sex sex = Sex.fromCode(request.sex());
 		AnimalType animalType = AnimalType.fromCode(request.animalType());
+		NeuteredState neuteredState = NeuteredState.fromCode(request.neuteredState());
 
 		Animal animal = Animal.builder()
 			.animalType(animalType)
@@ -213,6 +219,9 @@ public class BoardService {
 			.color(request.color())
 			.breedType(breedType)
 			.animalLocation(animalLocation)
+			.neuteredState(neuteredState)
+			.city(request.city())
+			.town(request.town())
 			.build();
 
 		return animalRepository.save(animal);
@@ -278,7 +287,10 @@ public class BoardService {
 				.species(response.species())
 				.breedType(response.breedType())
 				.sex(response.sex())
+				.neuteredState(response.neuteredState())
 				.address(response.address())
+				.city(response.city())
+				.town(response.town())
 				.latitude(response.latitude())
 				.longitude(response.longitude())
 				.animalType(response.animalType())
