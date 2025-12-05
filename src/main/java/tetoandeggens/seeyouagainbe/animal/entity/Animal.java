@@ -149,8 +149,20 @@ public class Animal extends BaseEntity {
 		this.sex = sex;
 	}
 
+	public void updateNeuteredState(NeuteredState neuteredState) {
+		this.neuteredState = neuteredState;
+	}
+
 	public void updateColor(String color) {
 		this.color = color;
+	}
+
+	public void updateCity(String city) {
+		this.city = city;
+	}
+
+	public void updateTown(String town) {
+		this.town = town;
 	}
 
 	public void updateAnimalType(AnimalType animalType) {
