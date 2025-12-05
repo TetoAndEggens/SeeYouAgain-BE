@@ -5,6 +5,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Schema(name = "WritingBoardRequest: 실종/동물 게시물 작성 요청 Dto")
@@ -51,9 +52,9 @@ public record WritingBoardRequest(
 	@Schema(description = "도", example = "강남구")
 	String town,
 
-	@NotBlank(message = "사진 업로드 여부는 필수 입니다.")
+	@NotNull(message = "사진 업로드 여부는 필수 입니다.")
 	@Schema(description = "사진 업로드 여부", example = "true")
-	boolean isPhotoUploaded,
+	Boolean isPhotoUploaded,
 
 	@Max(value = 3, message = "이미지는 최대 3개까지 업로드 가능합니다.")
 	@Schema(description = "이미지 개수", example = "2")

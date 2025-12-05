@@ -17,6 +17,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
@@ -78,7 +79,7 @@ class BoardRepositoryTest extends RepositoryTest {
 			entityManager.clear();
 
 			// when
-			Long count = boardRepository.getAnimalBoardsCount(null);
+			Long count = boardRepository.getAnimalBoardsCount(null, null, null, null, null, null, null, null, null);
 
 			// then
 			assertThat(count).isEqualTo(2);
@@ -99,7 +100,7 @@ class BoardRepositoryTest extends RepositoryTest {
 			entityManager.clear();
 
 			// when
-			Long count = boardRepository.getAnimalBoardsCount(ContentType.MISSING);
+			Long count = boardRepository.getAnimalBoardsCount(ContentType.MISSING, null, null, null, null, null, null, null, null);
 
 			// then
 			assertThat(count).isEqualTo(2);
@@ -119,7 +120,7 @@ class BoardRepositoryTest extends RepositoryTest {
 			entityManager.clear();
 
 			// when
-			Long count = boardRepository.getAnimalBoardsCount(null);
+			Long count = boardRepository.getAnimalBoardsCount(null, null, null, null, null, null, null, null, null);
 
 			// then
 			assertThat(count).isEqualTo(1);
