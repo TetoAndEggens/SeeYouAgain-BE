@@ -19,6 +19,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
 import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.repository.AnimalLocationRepository;
@@ -120,6 +121,10 @@ class BoardServiceTest extends ServiceTest {
 				37.4979,
 				127.0276,
 				"MISSING",
+				"Y",
+				"서울특별시",
+				"강남구",
+				false,
 				null,
 				List.of("강아지", "실종")
 			);
@@ -146,6 +151,9 @@ class BoardServiceTest extends ServiceTest {
 			assertThat(savedAnimal.getSex()).isEqualTo(Sex.M);
 			assertThat(savedAnimal.getColor()).isEqualTo("갈색");
 			assertThat(savedAnimal.getAnimalType()).isEqualTo(AnimalType.MISSING);
+			assertThat(savedAnimal.getNeuteredState()).isEqualTo(NeuteredState.Y);
+			assertThat(savedAnimal.getCity()).isEqualTo("서울특별시");
+			assertThat(savedAnimal.getTown()).isEqualTo("강남구");
 
 			List<BoardTag> tags = boardTagRepository.findAll();
 			assertThat(tags).hasSize(2);
@@ -168,6 +176,10 @@ class BoardServiceTest extends ServiceTest {
 				37.4833,
 				127.0322,
 				"WITNESS",
+				"N",
+				"서울특별시",
+				"서초구",
+				true,
 				2,
 				List.of("고양이", "목격")
 			);
@@ -210,6 +222,10 @@ class BoardServiceTest extends ServiceTest {
 				37.4979,
 				127.0276,
 				"MISSING",
+				"U",
+				"서울특별시",
+				"강남구",
+				false,
 				null,
 				List.of("믹스견")
 			);

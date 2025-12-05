@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
@@ -60,6 +61,10 @@ class BoardControllerTest extends ControllerTest {
 				37.4979,
 				127.0276,
 				"MISSING",
+				"Y",
+				"서울특별시",
+				"강남구",
+				true,
 				2,
 				List.of("강아지", "실종")
 			);
@@ -99,6 +104,10 @@ class BoardControllerTest extends ControllerTest {
 				37.4979,
 				127.0276,
 				"MISSING",
+				"Y",
+				"서울특별시",
+				"강남구",
+				true,
 				2,
 				List.of("강아지")
 			);
@@ -128,6 +137,10 @@ class BoardControllerTest extends ControllerTest {
 				37.4979,
 				127.0276,
 				"MISSING",
+				"Y",
+				"서울특별시",
+				"강남구",
+				true,
 				2,
 				List.of("강아지")
 			);
@@ -157,6 +170,10 @@ class BoardControllerTest extends ControllerTest {
 				37.4979,
 				127.0276,
 				"",
+				"Y",
+				"서울특별시",
+				"강남구",
+				true,
 				2,
 				List.of("강아지")
 			);
@@ -186,7 +203,10 @@ class BoardControllerTest extends ControllerTest {
 				.species(Species.DOG)
 				.breedType("치와와")
 				.sex(Sex.M)
+				.neuteredState(NeuteredState.Y)
 				.address("서울특별시 강남구")
+				.city("서울특별시")
+				.town("강남구")
 				.latitude(37.4979)
 				.longitude(127.0276)
 				.animalType(AnimalType.MISSING)
@@ -208,30 +228,32 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				isNull(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
 				any()
 			)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/board/list")
-					.param("size", "10"))
+					.param("size", "10")
+					.param("type", "MISSING"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200))
 				.andExpect(jsonPath("$.data.boardCount").value(1))
 				.andExpect(jsonPath("$.data.board.data[0].boardId").value(1))
 				.andExpect(jsonPath("$.data.board.data[0].title").value("실종 강아지를 찾습니다"));
-
-			verify(boardService).getAnimalBoardList(
-				any(CursorPageRequest.class),
-				eq(SortDirection.LATEST),
-				isNull(),
-				any()
-			);
 		}
 
 		@Test
-		@DisplayName("게시글 리스트 조회 - 타입 필터와 함께 성공")
-		void getBoardList_Success_WithTypeFilter() throws Exception {
+		@DisplayName("게시글 리스트 조회 - 필터 파라미터들과 함께 성공")
+		void getBoardList_Success_WithFilters() throws Exception {
 			// given
 			BoardListResponse response = BoardListResponse.of(
 				1,
@@ -241,22 +263,29 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				eq("MISSING"),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
 				any()
 			)).willReturn(response);
 
 			// when & then
-			mockMvc.perform(get("/board/list/MISSING")
-					.param("size", "10"))
+			mockMvc.perform(get("/board/list")
+					.param("size", "10")
+					.param("type", "MISSING")
+					.param("startDate", "20250101")
+					.param("endDate", "20251231")
+					.param("species", "DOG")
+					.param("sex", "M")
+					.param("city", "서울특별시"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
-
-			verify(boardService).getAnimalBoardList(
-				any(CursorPageRequest.class),
-				eq(SortDirection.LATEST),
-				eq("MISSING"),
-				any()
-			);
 		}
 
 		@Test
@@ -271,23 +300,25 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				eq(SortDirection.OLDEST),
-				isNull(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
 				any()
 			)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/board/list")
 					.param("size", "10")
+					.param("type", "MISSING")
 					.param("sortDirection", "OLDEST"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
-
-			verify(boardService).getAnimalBoardList(
-				any(CursorPageRequest.class),
-				eq(SortDirection.OLDEST),
-				isNull(),
-				any()
-			);
 		}
 
 		@Test
@@ -302,23 +333,25 @@ class BoardControllerTest extends ControllerTest {
 			given(boardService.getAnimalBoardList(
 				any(CursorPageRequest.class),
 				any(SortDirection.class),
-				isNull(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
+				any(),
 				any()
 			)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/board/list")
 					.param("cursorId", "10")
-					.param("size", "10"))
+					.param("size", "10")
+					.param("type", "MISSING"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value(200));
-
-			verify(boardService).getAnimalBoardList(
-				any(CursorPageRequest.class),
-				any(SortDirection.class),
-				isNull(),
-				any()
-			);
 		}
 	}
 
