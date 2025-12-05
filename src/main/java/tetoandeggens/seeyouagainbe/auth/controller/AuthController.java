@@ -158,4 +158,16 @@ public class AuthController {
         authService.withdrawMember(userDetails.getUuid(), request);
         return ApiResponse.noContent();
     }
+
+    @Operation(
+            summary = "탈퇴 계정 복구",
+            description = "탈퇴한 계정을 복구합니다. " +
+                    "loginId를 PathVariable로 받아 해당 계정의 is_deleted를 false로 변경합니다. " +
+                    "기존 회원 정보(비밀번호, 닉네임, 프로필 등)는 그대로 유지됩니다."
+    )
+    @PutMapping("/restore")
+    public ApiResponse<Void> restoreAccount(@Valid @RequestBody AccountRestoreRequest request) {
+        authService.restoreAccount(request);
+        return ApiResponse.noContent();
+    }
 }
