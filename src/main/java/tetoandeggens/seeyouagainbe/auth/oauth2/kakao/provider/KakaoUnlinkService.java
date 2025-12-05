@@ -37,8 +37,6 @@ public class KakaoUnlinkService implements OAuth2UnlinkServiceProvider {
             return true;
         } catch (Exception e) {
             log.error("[KakaoUnlinkService] 카카오 연동 해제 실패 - socialId: {}", socialId, e);
-//            member.deleteKakaoSocialId();
-//            return true;
             return false;
         }
     }
