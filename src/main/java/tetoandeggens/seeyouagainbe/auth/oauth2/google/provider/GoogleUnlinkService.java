@@ -8,6 +8,7 @@ import tetoandeggens.seeyouagainbe.auth.oauth2.common.provider.OAuth2UnlinkServi
 import tetoandeggens.seeyouagainbe.auth.oauth2.google.client.GoogleApiClient;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -33,12 +34,13 @@ public class GoogleUnlinkService implements OAuth2UnlinkServiceProvider {
 
         try {
             // 1. RefreshToken으로 AccessToken 재발급
-            Map<String, Object> tokenResponse = googleApiClient.refreshAccessToken(
-                    "refresh_token",
-                    googleClientId,
-                    googleClientSecret,
-                    refreshToken
-            );
+            Map<String, Object> refreshParams = new HashMap<>();
+            refreshParams.put("grant_type", "refresh_token");
+            refreshParams.put("client_id", googleClientId);
+            refreshParams.put("client_secret", googleClientSecret);
+            refreshParams.put("refresh_token", refreshToken);
+
+            Map<String, Object> tokenResponse = googleApiClient.refreshAccessToken(refreshParams);
 
             String accessToken = (String) tokenResponse.get("access_token");
             if (accessToken == null) {
@@ -46,16 +48,15 @@ public class GoogleUnlinkService implements OAuth2UnlinkServiceProvider {
                 return false;
             }
 
-            // 2️. AccessToken으로 연동 해제
-            googleApiClient.revokeToken(accessToken);
-            log.info("[GoogleUnlinkService] 구글 연동 해제 성공");
+            // 2. AccessToken으로 연동 해제
+            Map<String, Object> revokeParams = new HashMap<>();
+            revokeParams.put("token", accessToken);
+
+            googleApiClient.revokeToken(revokeParams);
             return true;
 
         } catch (Exception e) {
             log.error("[GoogleUnlinkService] 구글 연동 해제 실패", e);
-//            member.deleteGoogleSocialId();
-//            member.deleteGoogleRefreshToken();
-//            return true;
             return false;
         }
     }

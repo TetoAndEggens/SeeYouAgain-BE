@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,8 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,11 +61,8 @@ class GoogleUnlinkServiceTest {
             Map<String, Object> tokenResponse = new HashMap<>();
             tokenResponse.put("access_token", TEST_ACCESS_TOKEN);
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenReturn(tokenResponse);
-
-            doNothing().when(googleApiClient).revokeToken(anyString());
+            when(googleApiClient.refreshAccessToken(anyMap())).thenReturn(tokenResponse);
+            doNothing().when(googleApiClient).revokeToken(anyMap());
 
             // when
             boolean result = googleUnlinkService.unlink(member);
@@ -73,14 +70,22 @@ class GoogleUnlinkServiceTest {
             // then
             assertThat(result).isTrue();
 
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
+            // refreshAccessToken 호출 검증
+            ArgumentCaptor<Map<String, Object>> refreshCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(refreshCaptor.capture());
 
-            verify(googleApiClient).revokeToken(eq(TEST_ACCESS_TOKEN));
+            Map<String, Object> capturedRefreshParams = refreshCaptor.getValue();
+            assertThat(capturedRefreshParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedRefreshParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedRefreshParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedRefreshParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
+
+            // revokeToken 호출 검증
+            ArgumentCaptor<Map<String, Object>> revokeCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).revokeToken(revokeCaptor.capture());
+
+            Map<String, Object> capturedRevokeParams = revokeCaptor.getValue();
+            assertThat(capturedRevokeParams.get("token")).isEqualTo(TEST_ACCESS_TOKEN);
         }
 
         @Test
@@ -99,10 +104,8 @@ class GoogleUnlinkServiceTest {
 
             // then
             assertThat(result).isTrue();
-            verify(googleApiClient, never()).refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            );
-            verify(googleApiClient, never()).revokeToken(anyString());
+            verify(googleApiClient, never()).refreshAccessToken(anyMap());
+            verify(googleApiClient, never()).revokeToken(anyMap());
         }
 
         @Test
@@ -118,22 +121,25 @@ class GoogleUnlinkServiceTest {
 
             ReflectionTestUtils.setField(member, "googleRefreshToken", TEST_REFRESH_TOKEN);
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenThrow(new RuntimeException("토큰 재발급 실패"));
+            when(googleApiClient.refreshAccessToken(anyMap()))
+                    .thenThrow(new RuntimeException("토큰 재발급 실패"));
 
             // when
             boolean result = googleUnlinkService.unlink(member);
 
             // then
             assertThat(result).isFalse();
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
-            verify(googleApiClient, never()).revokeToken(anyString());
+
+            ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(captor.capture());
+
+            Map<String, Object> capturedParams = captor.getValue();
+            assertThat(capturedParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
+
+            verify(googleApiClient, never()).revokeToken(anyMap());
         }
 
         @Test
@@ -152,22 +158,24 @@ class GoogleUnlinkServiceTest {
             Map<String, Object> tokenResponse = new HashMap<>();
             tokenResponse.put("access_token", null);
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenReturn(tokenResponse);
+            when(googleApiClient.refreshAccessToken(anyMap())).thenReturn(tokenResponse);
 
             // when
             boolean result = googleUnlinkService.unlink(member);
 
             // then
             assertThat(result).isFalse();
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
-            verify(googleApiClient, never()).revokeToken(anyString());
+
+            ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(captor.capture());
+
+            Map<String, Object> capturedParams = captor.getValue();
+            assertThat(capturedParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
+
+            verify(googleApiClient, never()).revokeToken(anyMap());
         }
 
         @Test
@@ -186,13 +194,10 @@ class GoogleUnlinkServiceTest {
             Map<String, Object> tokenResponse = new HashMap<>();
             tokenResponse.put("access_token", TEST_ACCESS_TOKEN);
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenReturn(tokenResponse);
-
+            when(googleApiClient.refreshAccessToken(anyMap())).thenReturn(tokenResponse);
             doThrow(new RuntimeException("연동 해제 실패"))
                     .when(googleApiClient)
-                    .revokeToken(anyString());
+                    .revokeToken(anyMap());
 
             // when
             boolean result = googleUnlinkService.unlink(member);
@@ -200,14 +205,22 @@ class GoogleUnlinkServiceTest {
             // then
             assertThat(result).isFalse();
 
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
+            // refreshAccessToken 호출 검증
+            ArgumentCaptor<Map<String, Object>> refreshCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(refreshCaptor.capture());
 
-            verify(googleApiClient).revokeToken(eq(TEST_ACCESS_TOKEN));
+            Map<String, Object> capturedRefreshParams = refreshCaptor.getValue();
+            assertThat(capturedRefreshParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedRefreshParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedRefreshParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedRefreshParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
+
+            // revokeToken 호출 검증
+            ArgumentCaptor<Map<String, Object>> revokeCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).revokeToken(revokeCaptor.capture());
+
+            Map<String, Object> capturedRevokeParams = revokeCaptor.getValue();
+            assertThat(capturedRevokeParams.get("token")).isEqualTo(TEST_ACCESS_TOKEN);
         }
 
         @Test
@@ -223,27 +236,29 @@ class GoogleUnlinkServiceTest {
 
             ReflectionTestUtils.setField(member, "googleRefreshToken", TEST_REFRESH_TOKEN);
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenThrow(new feign.RetryableException(
-                    500,
-                    "Network Error",
-                    feign.Request.HttpMethod.POST,
-                    (Long) null,
-                    mock(feign.Request.class)
-            ));
+            when(googleApiClient.refreshAccessToken(anyMap()))
+                    .thenThrow(new feign.RetryableException(
+                            500,
+                            "Network Error",
+                            feign.Request.HttpMethod.POST,
+                            (Long) null,
+                            mock(feign.Request.class)
+                    ));
 
             // when
             boolean result = googleUnlinkService.unlink(member);
 
             // then
             assertThat(result).isFalse();
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
+
+            ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(captor.capture());
+
+            Map<String, Object> capturedParams = captor.getValue();
+            assertThat(capturedParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
         }
 
         @Test
@@ -261,22 +276,24 @@ class GoogleUnlinkServiceTest {
 
             Map<String, Object> tokenResponse = new HashMap<>();
 
-            when(googleApiClient.refreshAccessToken(
-                    anyString(), anyString(), anyString(), anyString()
-            )).thenReturn(tokenResponse);
+            when(googleApiClient.refreshAccessToken(anyMap())).thenReturn(tokenResponse);
 
             // when
             boolean result = googleUnlinkService.unlink(member);
 
             // then
             assertThat(result).isFalse();
-            verify(googleApiClient).refreshAccessToken(
-                    eq("refresh_token"),
-                    eq(TEST_CLIENT_ID),
-                    eq(TEST_CLIENT_SECRET),
-                    eq(TEST_REFRESH_TOKEN)
-            );
-            verify(googleApiClient, never()).revokeToken(anyString());
+
+            ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+            verify(googleApiClient).refreshAccessToken(captor.capture());
+
+            Map<String, Object> capturedParams = captor.getValue();
+            assertThat(capturedParams.get("grant_type")).isEqualTo("refresh_token");
+            assertThat(capturedParams.get("client_id")).isEqualTo(TEST_CLIENT_ID);
+            assertThat(capturedParams.get("client_secret")).isEqualTo(TEST_CLIENT_SECRET);
+            assertThat(capturedParams.get("refresh_token")).isEqualTo(TEST_REFRESH_TOKEN);
+
+            verify(googleApiClient, never()).revokeToken(anyMap());
         }
     }
 }
