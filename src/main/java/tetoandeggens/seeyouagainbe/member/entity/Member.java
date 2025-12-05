@@ -110,6 +110,10 @@ public class Member extends BaseEntity {
 		this.isDeleted = true;
 	}
 
+    public void restoreAccount() {
+        this.isDeleted = false;
+    }
+
 	public void updatePushEnabled(Boolean isPushEnabled) {
 		this.isPushEnabled = isPushEnabled;
 	}
