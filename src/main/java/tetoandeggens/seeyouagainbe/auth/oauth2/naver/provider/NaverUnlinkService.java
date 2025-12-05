@@ -55,9 +55,6 @@ public class NaverUnlinkService implements OAuth2UnlinkServiceProvider {
 
         } catch (Exception e) {
             log.error("[NaverUnlinkService] 네이버 연동 해제 실패", e);
-//            member.deleteNaverSocialId();
-//            member.deleteNaverRefreshToken();
-//            return true;
             return false;
         }
     }
