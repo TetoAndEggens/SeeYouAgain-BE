@@ -6,6 +6,7 @@ import java.util.List;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
@@ -30,11 +31,20 @@ public record BoardDetailResponse(
 	@Schema(description = "성별", example = "M")
 	Sex sex,
 
+	@Schema(description = "중성화 여부", example = "Y")
+	NeuteredState neuteredState,
+
 	@Schema(description = "색상", example = "흰색")
 	String color,
 
 	@Schema(description = "주소", example = "서울특별시 강남구")
 	String address,
+
+	@Schema(description = "시", example = "서울특별시")
+	String city,
+
+	@Schema(description = "구", example = "강남구")
+	String town,
 
 	@Schema(description = "위도", example = "37.4979")
 	Double latitude,
