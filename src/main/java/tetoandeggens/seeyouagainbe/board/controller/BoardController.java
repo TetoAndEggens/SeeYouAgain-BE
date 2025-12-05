@@ -16,6 +16,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
+import tetoandeggens.seeyouagainbe.animal.entity.Sex;
+import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
@@ -48,17 +51,26 @@ public class BoardController {
 		return ApiResponse.ok(presignedUrlResponse);
 	}
 
-	@GetMapping({"/list", "/list/{type}"})
+	@GetMapping("/list")
 	@Operation(
 		summary = "실종/목격 동물 게시글 리스트 조회 API",
 		description = "실종/목격 동물 게시글 리스트 조회")
 	public ApiResponse<BoardListResponse> getAnimalBoardList(
 		@ParameterObject @Valid CursorPageRequest request,
 		@RequestParam(defaultValue = "LATEST") SortDirection sortDirection,
-		@PathVariable(required = false) String type,
+		@RequestParam(required = false) String type,
+		@RequestParam(required = false) String startDate,
+		@RequestParam(required = false) String endDate,
+		@RequestParam(required = false) Species species,
+		@RequestParam(required = false) String breedType,
+		@RequestParam(required = false) NeuteredState neuteredState,
+		@RequestParam(required = false) Sex sex,
+		@RequestParam(required = false) String city,
+		@RequestParam(required = false) String town,
 		@AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails customUserDetails
 	) {
-		BoardListResponse animalBoardList = boardService.getAnimalBoardList(request, sortDirection, type, customUserDetails);
+		BoardListResponse animalBoardList = boardService.getAnimalBoardList(request, sortDirection, type,
+			startDate, endDate, species, breedType, neuteredState, sex, city, town, customUserDetails);
 
 		return ApiResponse.ok(animalBoardList);
 	}
@@ -96,7 +108,8 @@ public class BoardController {
 		@PathVariable Long boardId,
 		@RequestBody @Valid UpdatingBoardRequest request,
 		@AuthenticationPrincipal CustomUserDetails customUserDetails) {
-		PresignedUrlResponse presignedUrlResponse = boardService.updateAnimalBoard(boardId, request, customUserDetails.getMemberId());
+		PresignedUrlResponse presignedUrlResponse = boardService.updateAnimalBoard(boardId, request,
+			customUserDetails.getMemberId());
 
 		return ApiResponse.ok(presignedUrlResponse);
 	}

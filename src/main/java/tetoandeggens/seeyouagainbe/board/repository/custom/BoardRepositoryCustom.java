@@ -2,6 +2,9 @@ package tetoandeggens.seeyouagainbe.board.repository.custom;
 
 import java.util.List;
 
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
+import tetoandeggens.seeyouagainbe.animal.entity.Sex;
+import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
@@ -12,9 +15,11 @@ import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 public interface BoardRepositoryCustom {
 
 	List<BoardResponse> getAnimalBoards(CursorPageRequest request, SortDirection sortDirection,
-		ContentType contentType, Long memberId);
+		ContentType contentType, String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town, Long memberId);
 
-	Long getAnimalBoardsCount(ContentType contentType);
+	Long getAnimalBoardsCount(ContentType contentType, String startDate, String endDate, Species species,
+		String breedType, NeuteredState neuteredState, Sex sex, String city, String town);
 
 	BoardDetailResponse getAnimalBoard(Long boardId, Long memberId);
 

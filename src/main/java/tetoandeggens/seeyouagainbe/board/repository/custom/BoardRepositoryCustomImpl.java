@@ -2,6 +2,8 @@ package tetoandeggens.seeyouagainbe.board.repository.custom;
 
 import static tetoandeggens.seeyouagainbe.board.entity.QBoard.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.querydsl.core.BooleanBuilder;
@@ -13,11 +15,14 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
+import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimal;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.QAnimalS3Profile;
 import tetoandeggens.seeyouagainbe.animal.entity.QBookMark;
 import tetoandeggens.seeyouagainbe.animal.entity.QBreedType;
+import tetoandeggens.seeyouagainbe.animal.entity.Sex;
+import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
@@ -32,14 +37,20 @@ import tetoandeggens.seeyouagainbe.member.entity.QMember;
 @RequiredArgsConstructor
 public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 
+	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
+
 	private final JPAQueryFactory queryFactory;
 
 	@Override
 	public List<BoardResponse> getAnimalBoards(
-		CursorPageRequest request, SortDirection sortDirection, ContentType contentType, Long memberId
+		CursorPageRequest request, SortDirection sortDirection, ContentType contentType,
+		String startDate, String endDate, Species species, String breedType,
+		NeuteredState neuteredState, Sex sex, String city, String town, Long memberId
 	) {
+		BooleanBuilder builder = createFilterConditions(contentType, startDate, endDate, species, breedType,
+			neuteredState, sex, city, town);
+
 		BooleanExpression cursorCondition = createCursorCondition(request.cursorId(), sortDirection);
-		BooleanExpression typeCondition = createContentTypeCondition(contentType);
 		OrderSpecifier<Long> orderSpecifier = createOrderSpecifier(sortDirection);
 
 		QAnimal animal = QAnimal.animal;
@@ -60,7 +71,10 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				animal.species,
 				bt.name,
 				animal.sex,
+				animal.neuteredState,
 				animalLocation.address,
+				animal.city,
+				animal.town,
 				Expressions.numberTemplate(Double.class, "ST_Y({0})", animalLocation.coordinates),
 				Expressions.numberTemplate(Double.class, "ST_X({0})", animalLocation.coordinates),
 				animal.animalType,
@@ -88,7 +102,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				)
 			)
 			.where(
-				typeCondition,
+				builder,
 				cursorCondition,
 				board.isDeleted.eq(false)
 			)
@@ -98,14 +112,21 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 	}
 
 	@Override
-	public Long getAnimalBoardsCount(ContentType contentType) {
-		BooleanExpression typeCondition = createContentTypeCondition(contentType);
+	public Long getAnimalBoardsCount(ContentType contentType, String startDate, String endDate, Species species,
+		String breedType, NeuteredState neuteredState, Sex sex, String city, String town) {
+		BooleanBuilder builder = createFilterConditions(contentType, startDate, endDate, species, breedType,
+			neuteredState, sex, city, town);
+
+		QAnimal animal = QAnimal.animal;
+		QBreedType bt = QBreedType.breedType;
 
 		return queryFactory
 			.select(board.count())
 			.from(board)
+			.join(board.animal, animal)
+			.leftJoin(animal.breedType, bt)
 			.where(
-				typeCondition,
+				builder,
 				board.isDeleted.eq(false)
 			)
 			.fetchOne();
@@ -231,13 +252,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.fetchOne();
 	}
 
-	private BooleanExpression createContentTypeCondition(ContentType contentType) {
-		if (contentType == null) {
-			return null;
-		}
-		return board.contentType.eq(contentType);
-	}
-
 	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {
 		if (cursorId == null) {
 			return null;
@@ -262,5 +276,52 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		}
 		condition.and(bookMark.isDeleted.eq(false));
 		return condition;
+	}
+
+	private BooleanBuilder createFilterConditions(ContentType contentType, String startDate, String endDate,
+		Species species, String breedType, NeuteredState neuteredState, Sex sex, String city, String town) {
+
+		QAnimal animal = QAnimal.animal;
+		BooleanBuilder builder = new BooleanBuilder();
+
+		if (contentType != null) {
+			builder.and(board.contentType.eq(contentType));
+		}
+
+		if (startDate != null && !startDate.isBlank()) {
+			LocalDate start = LocalDate.parse(startDate, DATE_FORMATTER);
+			builder.and(board.createdAt.goe(start.atStartOfDay()));
+		}
+
+		if (endDate != null && !endDate.isBlank()) {
+			LocalDate end = LocalDate.parse(endDate, DATE_FORMATTER);
+			builder.and(board.createdAt.loe(end.plusDays(1).atStartOfDay()));
+		}
+
+		if (species != null) {
+			builder.and(animal.species.eq(species));
+		}
+
+		if (breedType != null && !breedType.isBlank()) {
+			builder.and(animal.breedType.name.eq(breedType));
+		}
+
+		if (neuteredState != null) {
+			builder.and(animal.neuteredState.eq(neuteredState));
+		}
+
+		if (sex != null) {
+			builder.and(animal.sex.eq(sex));
+		}
+
+		if (city != null && !city.isBlank()) {
+			builder.and(animal.city.eq(city));
+		}
+
+		if (town != null && !town.isBlank()) {
+			builder.and(animal.town.eq(town));
+		}
+
+		return builder;
 	}
 }

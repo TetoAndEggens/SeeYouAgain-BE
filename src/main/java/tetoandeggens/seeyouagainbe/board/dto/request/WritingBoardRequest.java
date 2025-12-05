@@ -42,6 +42,19 @@ public record WritingBoardRequest(
 	@Schema(description = "동물 타입", example = "MISSING")
 	String animalType,
 
+	@Schema(description = "중성화 여부", example = "Y")
+	String neuteredState,
+
+	@Schema(description = "시", example = "서울특별시")
+	String city,
+
+	@Schema(description = "도", example = "강남구")
+	String town,
+
+	@NotBlank(message = "사진 업로드 여부는 필수 입니다.")
+	@Schema(description = "사진 업로드 여부", example = "true")
+	boolean isPhotoUploaded,
+
 	@Max(value = 3, message = "이미지는 최대 3개까지 업로드 가능합니다.")
 	@Schema(description = "이미지 개수", example = "2")
 	Integer count,
