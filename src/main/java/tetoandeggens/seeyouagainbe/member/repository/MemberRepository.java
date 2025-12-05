@@ -2,10 +2,11 @@ package tetoandeggens.seeyouagainbe.member.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
+import tetoandeggens.seeyouagainbe.member.repository.custom.MemberRepositoryCustom;
 
 import java.util.Optional;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
 
     Optional<Member> findByLoginIdAndIsDeletedFalse(String loginId);
 
