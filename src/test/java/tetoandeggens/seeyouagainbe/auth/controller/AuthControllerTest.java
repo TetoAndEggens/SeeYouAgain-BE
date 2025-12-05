@@ -780,4 +780,165 @@ class AuthControllerTest extends ControllerTest {
             verify(authService, never()).withdrawMember(anyString(), any(WithdrawalRequest.class));
         }
     }
+
+    @Nested
+    @DisplayName("계정 복구 API 테스트")
+    class RestoreAccountTests {
+
+        @Test
+        @DisplayName("계정 복구 - 성공")
+        void restoreAccount_Success() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "testuser123",
+                    "01012345678"
+            );
+
+            doNothing().when(authService).restoreAccount(any(AccountRestoreRequest.class));
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value(204));
+
+            verify(authService).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - loginId가 null이면 실패")
+        void restoreAccount_ValidationFail_NullLoginId() throws Exception {
+            // given
+            String requestBody = "{\"loginId\":null,\"phoneNumber\":\"01012345678\"}";
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - loginId가 빈 문자열이면 실패")
+        void restoreAccount_ValidationFail_BlankLoginId() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "   ",
+                    "01012345678"
+            );
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - phoneNumber가 null이면 실패")
+        void restoreAccount_ValidationFail_NullPhoneNumber() throws Exception {
+            // given
+            String requestBody = "{\"loginId\":\"testuser123\",\"phoneNumber\":null}";
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - phoneNumber가 빈 문자열이면 실패")
+        void restoreAccount_ValidationFail_BlankPhoneNumber() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "testuser123",
+                    ""
+            );
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - phoneNumber가 잘못된 형식이면 실패")
+        void restoreAccount_ValidationFail_InvalidPhoneNumberFormat() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "testuser123",
+                    "123"
+            );
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - 모든 필드가 null이면 실패")
+        void restoreAccount_ValidationFail_AllFieldsNull() throws Exception {
+            // given
+            String requestBody = "{\"loginId\":null,\"phoneNumber\":null}";
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(requestBody))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - phoneNumber가 010으로 시작하지 않으면 실패")
+        void restoreAccount_ValidationFail_PhoneNumberNotStartWith010() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "testuser123",
+                    "01112345678"
+            );
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+
+        @Test
+        @DisplayName("계정 복구 - phoneNumber가 11자리가 아니면 실패")
+        void restoreAccount_ValidationFail_PhoneNumberInvalidLength() throws Exception {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(
+                    "testuser123",
+                    "0101234567" // 10자리
+            );
+
+            // when & then
+            mockMvc.perform(put("/auth/restore")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(asJsonString(request)))
+                    .andExpect(status().isBadRequest());
+
+            verify(authService, never()).restoreAccount(any(AccountRestoreRequest.class));
+        }
+    }
 }
