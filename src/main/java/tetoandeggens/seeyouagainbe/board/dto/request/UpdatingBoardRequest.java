@@ -24,11 +24,20 @@ public record UpdatingBoardRequest(
 	@Schema(description = "성별", example = "M")
 	String sex,
 
+	@Schema(description = "중성화 여부", example = "Y")
+	String neuteredState,
+
 	@Schema(description = "색깔", example = "검은색")
 	String color,
 
 	@Schema(description = "도로명 주소", example = "서울특별시 ~~")
 	String address,
+
+	@Schema(description = "시", example = "서울특별시")
+	String city,
+
+	@Schema(description = "구", example = "강남구")
+	String town,
 
 	@Schema(description = "위도", example = "12.34")
 	Double latitude,

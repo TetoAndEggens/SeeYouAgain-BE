@@ -165,12 +165,22 @@ public class BoardService {
 			Sex sex = Sex.fromCode(request.sex());
 			animal.updateSex(sex);
 		}
+		if (request.neuteredState() != null) {
+			NeuteredState neuteredState = NeuteredState.fromCode(request.neuteredState());
+			animal.updateNeuteredState(neuteredState);
+		}
 		if (request.color() != null) {
 			animal.updateColor(request.color());
 		}
 
 		if (request.address() != null) {
 			animalLocation.updateAddress(request.address());
+		}
+		if (request.city() != null) {
+			animal.updateCity(request.city());
+		}
+		if (request.town() != null) {
+			animal.updateTown(request.town());
 		}
 		if (request.latitude() != null && request.longitude() != null) {
 			animalLocation.updateCoordinates(request.latitude(), request.longitude());
