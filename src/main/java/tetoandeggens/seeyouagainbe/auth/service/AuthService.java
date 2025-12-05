@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tetoandeggens.seeyouagainbe.auth.dto.request.AccountRestoreRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.request.UnifiedRegisterRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.request.WithdrawalRequest;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
@@ -19,6 +20,7 @@ import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 import static tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode.*;
 
@@ -35,12 +37,14 @@ public class AuthService {
     private final CookieService cookieService;
     private final EmailService emailService;
     private final SocialAccountLinkStrategy socialAccountLinkStrategy;
-    private final Map<String, OAuth2UnlinkServiceProvider> unlinkServices; // Provider별 Unlink Service를 Map으로 주입
+    private final Map<String, OAuth2UnlinkServiceProvider> unlinkServices;
 
     @Transactional
     public void unifiedRegister(UnifiedRegisterRequest request, HttpServletResponse response) {
         validatePhoneVerification(request);
         checkLoginIdAvailable(request.loginId());
+
+        validateNotWithdrawnAccount(request);
 
         SocialInfo socialInfo = extractSocialInfo(request);
 
@@ -52,6 +56,32 @@ public class AuthService {
         }
 
         cleanupRedisAfterRegister(request, socialInfo);
+    }
+
+    @Transactional
+    public void restoreAccount(AccountRestoreRequest request) {
+        boolean isVerified = redisAuthService.isPhoneVerified(request.phoneNumber()) ||
+                redisAuthService.isSocialPhoneVerified(request.phoneNumber());
+
+        if (!isVerified) {
+            throw new CustomException(PHONE_NOT_VERIFIED);
+        }
+
+        Member member = memberRepository.findByLoginIdIncludingDeleted(request.loginId())
+                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
+
+        if (!member.getIsDeleted()) {
+            throw new CustomException(MEMBER_NOT_FOUND);
+        }
+
+        if (!member.getPhoneNumber().equals(request.phoneNumber())) {
+            throw new CustomException(PHONE_NUMBER_MISMATCH);
+        }
+
+        member.restoreAccount();
+
+        redisAuthService.deletePhoneVerification(request.phoneNumber());
+        redisAuthService.clearSocialPhoneData(request.phoneNumber());
     }
 
 
@@ -141,9 +171,6 @@ public class AuthService {
         redisAuthService.deleteMemberId(uuid);
 
         member.updateDeleteStatus();
-        memberRepository.save(member);
-
-        log.info("[Withdrawal] 회원 탈퇴 완료 - memberId: {}", member.getId());
     }
 
     private void validatePhoneVerification(UnifiedRegisterRequest request) {
@@ -153,6 +180,14 @@ public class AuthService {
 
         if (!isVerified) {
             throw new CustomException(PHONE_NOT_VERIFIED);
+        }
+    }
+
+    private void validateNotWithdrawnAccount(UnifiedRegisterRequest request) {
+        Optional<Member> deletedByPhone = memberRepository.findByPhoneNumberIncludingDeleted(request.phoneNumber());
+
+        if (deletedByPhone.isPresent() && deletedByPhone.get().getIsDeleted()) {
+            throw new CustomException(WITHDRAWN_ACCOUNT_EXISTS);
         }
     }
 
