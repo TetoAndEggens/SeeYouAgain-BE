@@ -406,4 +406,266 @@ class MemberRepositoryTest extends RepositoryTest {
             assertThat(byNaver.get().getId()).isEqualTo(byGoogle.get().getId());
         }
     }
+
+    @Nested
+    @DisplayName("QueryDSL - 탈퇴 회원 포함 조회 테스트")
+    class IncludingDeletedTests {
+
+        @Nested
+        @DisplayName("loginId로 탈퇴 회원 포함 조회")
+        class FindByLoginIdIncludingDeletedTests {
+
+            @Test
+            @DisplayName("활성 회원 조회 - 성공")
+            void findByLoginIdIncludingDeleted_ActiveMember_Success() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> result = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+
+                // then
+                assertThat(result).isPresent();
+                assertThat(result.get().getLoginId()).isEqualTo("testuser123");
+                assertThat(result.get().getIsDeleted()).isFalse();
+            }
+
+            @Test
+            @DisplayName("탈퇴 회원 조회 - 성공 (일반 메서드와 차이점)")
+            void findByLoginIdIncludingDeleted_DeletedMember_Success() {
+                // given
+                testMember.updateDeleteStatus();  // is_deleted = true
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> resultWithDeleted = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+                Optional<Member> resultWithoutDeleted = memberRepository.findByLoginIdAndIsDeletedFalse("testuser123");
+
+                // then
+                assertThat(resultWithDeleted).isPresent();
+                assertThat(resultWithDeleted.get().getIsDeleted()).isTrue();
+
+                assertThat(resultWithoutDeleted).isEmpty();
+            }
+
+            @Test
+            @DisplayName("존재하지 않는 loginId - 빈 Optional 반환")
+            void findByLoginIdIncludingDeleted_NotExists_ReturnsEmpty() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> result = memberRepository.findByLoginIdIncludingDeleted("nonexistent");
+
+                // then
+                assertThat(result).isEmpty();
+            }
+
+            @Test
+            @DisplayName("탈퇴 후 복구된 회원 조회 - 성공")
+            void findByLoginIdIncludingDeleted_RestoredMember_Success() {
+                // given
+                testMember.updateDeleteStatus();
+                testMember.restoreAccount();
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> result = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+
+                // then
+                assertThat(result).isPresent();
+                assertThat(result.get().getIsDeleted()).isFalse();
+            }
+        }
+
+        @Nested
+        @DisplayName("phoneNumber로 탈퇴 회원 포함 조회")
+        class FindByPhoneNumberIncludingDeletedTests {
+
+            @Test
+            @DisplayName("활성 회원 조회 - 성공")
+            void findByPhoneNumberIncludingDeleted_ActiveMember_Success() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> result = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+
+                // then
+                assertThat(result).isPresent();
+                assertThat(result.get().getPhoneNumber()).isEqualTo("01012345678");
+                assertThat(result.get().getIsDeleted()).isFalse();
+            }
+
+            @Test
+            @DisplayName("탈퇴 회원 조회 - 성공 (일반 메서드와 차이점)")
+            void findByPhoneNumberIncludingDeleted_DeletedMember_Success() {
+                // given
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> resultWithDeleted = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+                Optional<Member> resultWithoutDeleted = memberRepository.findByPhoneNumberAndIsDeletedFalse("01012345678");
+
+                // then
+                assertThat(resultWithDeleted).isPresent();
+                assertThat(resultWithDeleted.get().getIsDeleted()).isTrue();
+
+                assertThat(resultWithoutDeleted).isEmpty();
+            }
+
+            @Test
+            @DisplayName("존재하지 않는 phoneNumber - 빈 Optional 반환")
+            void findByPhoneNumberIncludingDeleted_NotExists_ReturnsEmpty() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> result = memberRepository.findByPhoneNumberIncludingDeleted("01099999999");
+
+                // then
+                assertThat(result).isEmpty();
+            }
+        }
+
+        @Nested
+        @DisplayName("일반 메서드와 IncludingDeleted 메서드 비교")
+        class ComparisonTests {
+
+            @Test
+            @DisplayName("활성 회원 - 두 메서드 모두 조회 성공")
+            void activeMember_BothMethodsWork() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> byNormal = memberRepository.findByLoginIdAndIsDeletedFalse("testuser123");
+                Optional<Member> byQueryDsl = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+
+                // then
+                assertThat(byNormal).isPresent();
+                assertThat(byQueryDsl).isPresent();
+                assertThat(byNormal.get().getId()).isEqualTo(byQueryDsl.get().getId());
+            }
+
+            @Test
+            @DisplayName("탈퇴 회원 - QueryDSL 메서드만 조회 성공")
+            void deletedMember_OnlyQueryDslWorks() {
+                // given
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> byNormal = memberRepository.findByLoginIdAndIsDeletedFalse("testuser123");
+                Optional<Member> byQueryDsl = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+
+                // then
+                assertThat(byNormal).isEmpty();
+                assertThat(byQueryDsl).isPresent();
+                assertThat(byQueryDsl.get().getIsDeleted()).isTrue();
+            }
+
+            @Test
+            @DisplayName("전화번호 조회 - 활성 회원")
+            void phoneNumber_ActiveMember_BothMethodsWork() {
+                // given
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> byNormal = memberRepository.findByPhoneNumberAndIsDeletedFalse("01012345678");
+                Optional<Member> byQueryDsl = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+
+                // then
+                assertThat(byNormal).isPresent();
+                assertThat(byQueryDsl).isPresent();
+                assertThat(byNormal.get().getId()).isEqualTo(byQueryDsl.get().getId());
+            }
+
+            @Test
+            @DisplayName("전화번호 조회 - 탈퇴 회원")
+            void phoneNumber_DeletedMember_OnlyQueryDslWorks() {
+                // given
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when
+                Optional<Member> byNormal = memberRepository.findByPhoneNumberAndIsDeletedFalse("01012345678");
+                Optional<Member> byQueryDsl = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+
+                // then
+                assertThat(byNormal).isEmpty();
+                assertThat(byQueryDsl).isPresent();
+                assertThat(byQueryDsl.get().getIsDeleted()).isTrue();
+            }
+        }
+
+        @Nested
+        @DisplayName("실제 사용 시나리오 테스트")
+        class UseCaseTests {
+
+            @Test
+            @DisplayName("계정 복구 시나리오 - loginId로 탈퇴 회원 찾기")
+            void accountRestoreScenario_FindDeletedMemberByLoginId() {
+                // given - 회원이 탈퇴함
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when - 계정 복구 요청
+                Optional<Member> deletedMember = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+
+                // then - 탈퇴 회원을 찾을 수 있어야 함
+                assertThat(deletedMember).isPresent();
+                assertThat(deletedMember.get().getIsDeleted()).isTrue();
+
+                // 복구 처리
+                deletedMember.get().restoreAccount();
+                memberRepository.save(deletedMember.get());
+
+                // 복구 확인
+                Optional<Member> restoredMember = memberRepository.findByLoginIdAndIsDeletedFalse("testuser123");
+                assertThat(restoredMember).isPresent();
+                assertThat(restoredMember.get().getIsDeleted()).isFalse();
+            }
+
+            @Test
+            @DisplayName("계정 복구 시나리오 - phoneNumber로 탈퇴 회원 찾기")
+            void accountRestoreScenario_FindDeletedMemberByPhoneNumber() {
+                // given - 회원이 탈퇴함
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when - 전화번호로 탈퇴 회원 조회
+                Optional<Member> deletedMember = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+
+                // then - 탈퇴 회원을 찾을 수 있어야 함
+                assertThat(deletedMember).isPresent();
+                assertThat(deletedMember.get().getIsDeleted()).isTrue();
+                assertThat(deletedMember.get().getPhoneNumber()).isEqualTo("01012345678");
+            }
+
+            @Test
+            @DisplayName("중복 검증 시나리오 - 탈퇴 회원 제외")
+            void duplicateCheckScenario_ExcludeDeletedMembers() {
+                // given - 탈퇴한 회원이 있음
+                testMember.updateDeleteStatus();
+                memberRepository.save(testMember);
+
+                // when - 새 회원 가입 시 중복 체크 (활성 회원만)
+                boolean isLoginIdTaken = memberRepository.existsByLoginIdAndIsDeletedFalse("testuser123");
+                boolean isPhoneNumberTaken = memberRepository.existsByPhoneNumberAndIsDeletedFalse("01012345678");
+
+                // then - 탈퇴 회원은 제외되어야 함
+                assertThat(isLoginIdTaken).isFalse();
+                assertThat(isPhoneNumberTaken).isFalse();
+
+                // 하지만 QueryDSL 메서드로는 찾을 수 있음
+                Optional<Member> byLoginId = memberRepository.findByLoginIdIncludingDeleted("testuser123");
+                Optional<Member> byPhone = memberRepository.findByPhoneNumberIncludingDeleted("01012345678");
+
+                assertThat(byLoginId).isPresent();
+                assertThat(byPhone).isPresent();
+            }
+        }
+    }
 }
