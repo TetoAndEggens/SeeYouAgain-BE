@@ -104,6 +104,9 @@ dependencies {
 
     // AOP
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Sentry
+    implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.9.0'
 }
 
 dependencyManagement {
