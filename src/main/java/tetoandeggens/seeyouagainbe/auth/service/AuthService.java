@@ -67,16 +67,8 @@ public class AuthService {
             throw new CustomException(PHONE_NOT_VERIFIED);
         }
 
-        Member member = memberRepository.findByLoginIdIncludingDeleted(request.loginId())
-                .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
-
-        if (!member.getIsDeleted()) {
-            throw new CustomException(MEMBER_NOT_FOUND);
-        }
-
-        if (!member.getPhoneNumber().equals(request.phoneNumber())) {
-            throw new CustomException(PHONE_NUMBER_MISMATCH);
-        }
+        Member member = memberRepository.findDeletedMemberForRestore(request.loginId(), request.phoneNumber())
+                        .orElseThrow(() -> new CustomException(MEMBER_NOT_FOUND));
 
         member.restoreAccount();
 
