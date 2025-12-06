@@ -5,7 +5,7 @@ import java.util.Optional;
 
 public interface MemberRepositoryCustom {
 
-    Optional<Member> findByLoginIdIncludingDeleted(String loginId);
-
     Optional<Member> findByPhoneNumberIncludingDeleted(String phoneNumber);
+
+    Optional<Member> findDeletedMemberForRestore(String loginId, String phoneNumber);
 }
