@@ -375,7 +375,7 @@ class AuthServiceTest extends ServiceTest {
 
             given(redisAuthService.isPhoneVerified(TEST_PHONE)).willReturn(true);
             given(redisAuthService.isSocialPhoneVerified(TEST_PHONE)).willReturn(false);
-            given(memberRepository.findByLoginIdIncludingDeleted(TEST_LOGIN_ID))
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE))
                     .willReturn(Optional.of(deletedMember));
             willDoNothing().given(redisAuthService).deletePhoneVerification(TEST_PHONE);
             willDoNothing().given(redisAuthService).clearSocialPhoneData(TEST_PHONE);
@@ -385,6 +385,7 @@ class AuthServiceTest extends ServiceTest {
 
             // then
             assertThat(deletedMember.getIsDeleted()).isFalse();
+            verify(memberRepository).findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE);
             verify(redisAuthService).deletePhoneVerification(TEST_PHONE);
             verify(redisAuthService).clearSocialPhoneData(TEST_PHONE);
         }
@@ -405,7 +406,7 @@ class AuthServiceTest extends ServiceTest {
 
             given(redisAuthService.isPhoneVerified(TEST_PHONE)).willReturn(false);
             given(redisAuthService.isSocialPhoneVerified(TEST_PHONE)).willReturn(true);
-            given(memberRepository.findByLoginIdIncludingDeleted(TEST_LOGIN_ID))
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE))
                     .willReturn(Optional.of(deletedMember));
             willDoNothing().given(redisAuthService).deletePhoneVerification(TEST_PHONE);
             willDoNothing().given(redisAuthService).clearSocialPhoneData(TEST_PHONE);
@@ -415,8 +416,7 @@ class AuthServiceTest extends ServiceTest {
 
             // then
             assertThat(deletedMember.getIsDeleted()).isFalse();
-            verify(redisAuthService).deletePhoneVerification(TEST_PHONE);
-            verify(redisAuthService).clearSocialPhoneData(TEST_PHONE);
+            verify(memberRepository).findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE);
         }
 
         @Test
@@ -433,17 +433,35 @@ class AuthServiceTest extends ServiceTest {
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NOT_VERIFIED);
 
-            verify(memberRepository, never()).findByLoginIdIncludingDeleted(anyString());
+            verify(memberRepository, never()).findDeletedMemberForRestore(anyString(), anyString());
         }
 
         @Test
-        @DisplayName("계정 복구 실패 - 존재하지 않는 loginId")
-        void restoreAccount_MemberNotFound_ThrowsException() {
+        @DisplayName("계정 복구 실패 - 조건에 맞는 탈퇴 회원 없음 (loginId 불일치)")
+        void restoreAccount_MemberNotFound_WrongLoginId_ThrowsException() {
             // given
             AccountRestoreRequest request = new AccountRestoreRequest(TEST_LOGIN_ID, TEST_PHONE);
 
             given(redisAuthService.isPhoneVerified(TEST_PHONE)).willReturn(true);
-            given(memberRepository.findByLoginIdIncludingDeleted(TEST_LOGIN_ID))
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> authService.restoreAccount(request))
+                    .isInstanceOf(CustomException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
+
+            verify(memberRepository).findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE);
+        }
+
+        @Test
+        @DisplayName("계정 복구 실패 - 조건에 맞는 탈퇴 회원 없음 (phoneNumber 불일치)")
+        void restoreAccount_MemberNotFound_WrongPhone_ThrowsException() {
+            // given
+            AccountRestoreRequest request = new AccountRestoreRequest(TEST_LOGIN_ID, "01099999999");
+
+            given(redisAuthService.isPhoneVerified("01099999999")).willReturn(true);
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, "01099999999"))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -453,22 +471,14 @@ class AuthServiceTest extends ServiceTest {
         }
 
         @Test
-        @DisplayName("계정 복구 실패 - 이미 활성 계정")
-        void restoreAccount_AlreadyActive_ThrowsException() {
+        @DisplayName("계정 복구 실패 - 조건에 맞는 탈퇴 회원 없음 (이미 활성 계정)")
+        void restoreAccount_MemberNotFound_AlreadyActive_ThrowsException() {
             // given
             AccountRestoreRequest request = new AccountRestoreRequest(TEST_LOGIN_ID, TEST_PHONE);
 
-            Member activeMember = Member.builder()
-                    .loginId(TEST_LOGIN_ID)
-                    .password(ENCODED_PASSWORD)
-                    .nickName(TEST_NICKNAME)
-                    .phoneNumber(TEST_PHONE)
-                    .build();
-            // is_deleted = false (기본값)
-
             given(redisAuthService.isPhoneVerified(TEST_PHONE)).willReturn(true);
-            given(memberRepository.findByLoginIdIncludingDeleted(TEST_LOGIN_ID))
-                    .willReturn(Optional.of(activeMember));
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE))
+                    .willReturn(Optional.empty()); // is_deleted = false인 경우 조회 안됨
 
             // when & then
             assertThatThrownBy(() -> authService.restoreAccount(request))
@@ -477,8 +487,8 @@ class AuthServiceTest extends ServiceTest {
         }
 
         @Test
-        @DisplayName("계정 복구 실패 - 전화번호 불일치")
-        void restoreAccount_PhoneNumberMismatch_ThrowsException() {
+        @DisplayName("계정 복구 - Redis 정리 확인")
+        void restoreAccount_ClearsRedisData() {
             // given
             AccountRestoreRequest request = new AccountRestoreRequest(TEST_LOGIN_ID, TEST_PHONE);
 
@@ -486,20 +496,22 @@ class AuthServiceTest extends ServiceTest {
                     .loginId(TEST_LOGIN_ID)
                     .password(ENCODED_PASSWORD)
                     .nickName(TEST_NICKNAME)
-                    .phoneNumber("01099999999") // 다른 번호
+                    .phoneNumber(TEST_PHONE)
                     .build();
             deletedMember.updateDeleteStatus();
 
             given(redisAuthService.isPhoneVerified(TEST_PHONE)).willReturn(true);
-            given(memberRepository.findByLoginIdIncludingDeleted(TEST_LOGIN_ID))
+            given(memberRepository.findDeletedMemberForRestore(TEST_LOGIN_ID, TEST_PHONE))
                     .willReturn(Optional.of(deletedMember));
+            willDoNothing().given(redisAuthService).deletePhoneVerification(TEST_PHONE);
+            willDoNothing().given(redisAuthService).clearSocialPhoneData(TEST_PHONE);
 
-            // when & then
-            assertThatThrownBy(() -> authService.restoreAccount(request))
-                    .isInstanceOf(CustomException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.PHONE_NUMBER_MISMATCH);
+            // when
+            authService.restoreAccount(request);
 
-            verify(redisAuthService, never()).deletePhoneVerification(anyString());
+            // then
+            verify(redisAuthService).deletePhoneVerification(TEST_PHONE);
+            verify(redisAuthService).clearSocialPhoneData(TEST_PHONE);
         }
     }
 
