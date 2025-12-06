@@ -107,6 +107,7 @@ dependencies {
 
     // Sentry
     implementation 'io.sentry:sentry-spring-boot-starter-jakarta:7.9.0'
+    implementation 'io.sentry:sentry-jdbc:8.28.0'
 }
 
 dependencyManagement {
