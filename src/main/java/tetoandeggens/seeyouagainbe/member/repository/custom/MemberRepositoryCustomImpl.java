@@ -16,20 +16,24 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Optional<Member> findByLoginIdIncludingDeleted(String loginId) {
+    public Optional<Member> findByPhoneNumberIncludingDeleted(String phoneNumber) {
         Member result = queryFactory
                 .selectFrom(member)
-                .where(member.loginId.eq(loginId))
+                .where(member.phoneNumber.eq(phoneNumber))
                 .fetchOne();
 
         return Optional.ofNullable(result);
     }
 
     @Override
-    public Optional<Member> findByPhoneNumberIncludingDeleted(String phoneNumber) {
+    public Optional<Member> findDeletedMemberForRestore(String loginId, String phoneNumber) {
         Member result = queryFactory
                 .selectFrom(member)
-                .where(member.phoneNumber.eq(phoneNumber))
+                .where(
+                        member.loginId.eq(loginId),
+                        member.phoneNumber.eq(phoneNumber),
+                        member.isDeleted.eq(true)
+                )
                 .fetchOne();
 
         return Optional.ofNullable(result);
