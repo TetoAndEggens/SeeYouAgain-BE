@@ -112,6 +112,9 @@ dependencies {
 
     // P6Spy
     implementation 'p6spy:p6spy:3.9.1'
+
+    // Prometheus
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 dependencyManagement {
