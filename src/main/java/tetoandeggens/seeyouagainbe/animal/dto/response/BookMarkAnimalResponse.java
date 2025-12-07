@@ -2,7 +2,6 @@ package tetoandeggens.seeyouagainbe.animal.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import tetoandeggens.seeyouagainbe.animal.entity.BookMark;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
 @Builder
@@ -22,14 +21,4 @@ public record BookMarkAnimalResponse(
 
         @Schema(description = "보호 상태", example = "보호중")
         String processState
-) {
-    public static BookMarkAnimalResponse from(BookMark bookMark) {
-        return BookMarkAnimalResponse.builder()
-                .bookMarkId(bookMark.getId())
-                .animalId(bookMark.getAnimal().getId())
-                .species(bookMark.getAnimal().getSpecies())
-                .breedType(bookMark.getAnimal().getBreedType().getName())
-                .processState(bookMark.getAnimal().getProcessState())
-                .build();
-    }
-}
+) {}
