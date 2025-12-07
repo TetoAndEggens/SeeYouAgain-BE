@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkAnimalResponse;
-import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkResponse;
 import tetoandeggens.seeyouagainbe.animal.service.BookMarkService;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
@@ -38,11 +37,11 @@ public class BookMarkController {
             description = "유기 동물에 대한 북마크를 추가하거나 취소합니다. 북마크가 없으면 추가, 있으면 삭제 상태를 토글합니다."
     )
     @PostMapping("/animals/{animalId}")
-    public ApiResponse<BookMarkResponse> toggleBookMark(
+    public ApiResponse<Void> toggleBookMark(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long animalId
     ) {
-        BookMarkResponse response = bookMarkService.toggleBookMark(userDetails.getMemberId(), animalId);
-        return ApiResponse.ok(response);
+        bookMarkService.toggleBookMark(userDetails.getMemberId(), animalId);
+        return ApiResponse.noContent();
     }
 }
