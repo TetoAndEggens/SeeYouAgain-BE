@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.fcm.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +14,7 @@ import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 
 import java.util.List;
 
+@Tag(name = "Fcm", description = "FCM 등록 관련 API")
 @RestController
 @RequestMapping("/fcm/tokens")
 @RequiredArgsConstructor
