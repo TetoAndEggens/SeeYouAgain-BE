@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 import tetoandeggens.seeyouagainbe.member.dto.request.UpdatePushEnabledRequest;
-import tetoandeggens.seeyouagainbe.member.dto.response.UpdatePushEnabledResponse;
 import tetoandeggens.seeyouagainbe.member.service.MemberService;
 
 @Tag(name = "Member", description = "유저 관련 API")
@@ -27,15 +26,11 @@ public class MemberController {
             summary = "푸시 알림 토글 업데이트 API",
             description = "사용자의 푸시 알림 설정을 ON/OFF 합니다."
     )
-    public ApiResponse<UpdatePushEnabledResponse> updatePushEnabled(
-            @AuthenticationPrincipal(errorOnInvalidType = false) CustomUserDetails userDetails,
+    public ApiResponse<Void> updatePushEnabled(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UpdatePushEnabledRequest request
     ) {
-        UpdatePushEnabledResponse response = memberService.updatePushEnabled(
-                userDetails.getMemberId(),
-                request
-        );
-
-        return ApiResponse.ok(response);
+        memberService.updatePushEnabled(userDetails.getMemberId(), request);
+        return ApiResponse.noContent();
     }
 }
