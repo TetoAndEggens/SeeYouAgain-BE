@@ -11,16 +11,16 @@ import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
 import tetoandeggens.seeyouagainbe.global.exception.errorcode.AuthErrorCode;
 import tetoandeggens.seeyouagainbe.member.dto.request.UpdatePushEnabledRequest;
-import tetoandeggens.seeyouagainbe.member.dto.response.UpdatePushEnabledResponse;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @DisplayName("MemberService 테스트")
 class MemberServiceTest extends ServiceTest {
+
     @Autowired
     private MemberService memberService;
 
@@ -38,6 +38,7 @@ class MemberServiceTest extends ServiceTest {
                 .nickName("테스트유저")
                 .phoneNumber("01012345678")
                 .build();
+
         ReflectionTestUtils.setField(testMember, "id", TEST_MEMBER_ID);
         ReflectionTestUtils.setField(testMember, "isPushEnabled", false);
     }
@@ -55,13 +56,9 @@ class MemberServiceTest extends ServiceTest {
                     .willReturn(java.util.Optional.of(testMember));
 
             // when
-            UpdatePushEnabledResponse response = memberService.updatePushEnabled(
-                    TEST_MEMBER_ID,
-                    request
-            );
+            memberService.updatePushEnabled(TEST_MEMBER_ID, request);
 
             // then
-            assertThat(response.isPushEnabled()).isTrue();
             assertThat(testMember.getIsPushEnabled()).isTrue();
         }
 
@@ -71,17 +68,14 @@ class MemberServiceTest extends ServiceTest {
             // given
             ReflectionTestUtils.setField(testMember, "isPushEnabled", true);
             UpdatePushEnabledRequest request = new UpdatePushEnabledRequest(false);
+
             given(memberRepository.findByIdAndIsDeletedFalse(TEST_MEMBER_ID))
                     .willReturn(java.util.Optional.of(testMember));
 
             // when
-            UpdatePushEnabledResponse response = memberService.updatePushEnabled(
-                    TEST_MEMBER_ID,
-                    request
-            );
+            memberService.updatePushEnabled(TEST_MEMBER_ID, request);
 
             // then
-            assertThat(response.isPushEnabled()).isFalse();
             assertThat(testMember.getIsPushEnabled()).isFalse();
         }
 
@@ -94,10 +88,9 @@ class MemberServiceTest extends ServiceTest {
                     .willReturn(java.util.Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> memberService.updatePushEnabled(
-                    TEST_MEMBER_ID,
-                    request
-            ))
+            assertThatThrownBy(() ->
+                    memberService.updatePushEnabled(TEST_MEMBER_ID, request)
+            )
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.MEMBER_NOT_FOUND);
         }
