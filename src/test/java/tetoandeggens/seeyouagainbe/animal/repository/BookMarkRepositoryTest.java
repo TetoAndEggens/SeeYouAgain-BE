@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
+import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkAnimalResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
@@ -165,17 +166,14 @@ class BookMarkRepositoryTest extends RepositoryTest {
             entityManager.clear();
 
             // when
-            List<BookMark> results = bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
+            List<BookMarkAnimalResponse> results =
+                    bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
 
             // then
             assertThat(results).hasSize(2);
             assertThat(results)
-                    .extracting(bookMark -> bookMark.getAnimal().getId())
+                    .extracting(BookMarkAnimalResponse::animalId)
                     .containsExactlyInAnyOrder(testAnimal1.getId(), testAnimal2.getId());
-
-            // fetch join 검증: Animal과 BreedType이 이미 로드되어 있어야 함
-            assertThat(results.get(0).getAnimal()).isNotNull();
-            assertThat(results.get(0).getAnimal().getBreedType()).isNotNull();
         }
 
         @Test
@@ -194,7 +192,6 @@ class BookMarkRepositoryTest extends RepositoryTest {
                     .build();
             bookMarkRepository.save(deletedBookmark);
 
-            // 삭제 처리
             deletedBookmark.toggleDelete();
             bookMarkRepository.save(deletedBookmark);
 
@@ -202,18 +199,20 @@ class BookMarkRepositoryTest extends RepositoryTest {
             entityManager.clear();
 
             // when
-            List<BookMark> results = bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
+            List<BookMarkAnimalResponse> results =
+                    bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
 
             // then
             assertThat(results).hasSize(1);
-            assertThat(results.get(0).getAnimal().getId()).isEqualTo(testAnimal1.getId());
+            assertThat(results.get(0).animalId()).isEqualTo(testAnimal1.getId());
         }
 
         @Test
         @DisplayName("북마크가 없으면 빈 리스트 반환")
         void findAllByMemberIdAndNotDeleted_ReturnsEmptyList_WhenNoBookmarks() {
             // when
-            List<BookMark> results = bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
+            List<BookMarkAnimalResponse> results =
+                    bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
 
             // then
             assertThat(results).isEmpty();
@@ -239,13 +238,15 @@ class BookMarkRepositoryTest extends RepositoryTest {
             entityManager.clear();
 
             // when
-            List<BookMark> results = bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
+            List<BookMarkAnimalResponse> results =
+                    bookMarkRepository.findAllByMemberIdAndNotDeleted(testMember1.getId());
 
             // then
             assertThat(results).hasSize(1);
-            assertThat(results.get(0).getAnimal().getId()).isEqualTo(testAnimal1.getId());
+            assertThat(results.get(0).animalId()).isEqualTo(testAnimal1.getId());
         }
     }
+
 
     @Nested
     @DisplayName("findByMemberIdAndAnimalId 테스트")

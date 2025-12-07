@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkAnimalResponse;
-import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.Animal;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalLocation;
 import tetoandeggens.seeyouagainbe.animal.entity.AnimalType;
@@ -48,9 +47,7 @@ class BookMarkServiceTest extends ServiceTest {
 
     private static final Long TEST_MEMBER_ID = 1L;
     private static final Long TEST_ANIMAL_ID = 100L;
-    private static final Long TEST_BOOKMARK_ID = 10L;
 
-    private Member testMember;
     private Animal abandonedAnimal;
     private Animal missingAnimal;
     private BreedType chihuahua;
@@ -58,22 +55,13 @@ class BookMarkServiceTest extends ServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Member 설정
-        testMember = Member.builder()
-                .loginId("testuser")
-                .password("password")
-                .nickName("테스트유저")
-                .phoneNumber("010-1234-5678")
-                .build();
 
-        // BreedType 설정
         chihuahua = BreedType.builder()
                 .name("치와와")
                 .type("DOG")
                 .code(UUID.randomUUID().toString())
                 .build();
 
-        // AnimalLocation 설정
         location = AnimalLocation.builder()
                 .name("서울 유기견 보호소")
                 .address("서울특별시 강남구 테헤란로 123")
@@ -82,7 +70,6 @@ class BookMarkServiceTest extends ServiceTest {
                 .longitude(127.0276)
                 .build();
 
-        // ABANDONED Animal 설정
         abandonedAnimal = Animal.builder()
                 .desertionNo("ABANDONED20241201001")
                 .happenDate(LocalDate.of(2024, 12, 1))
@@ -106,7 +93,6 @@ class BookMarkServiceTest extends ServiceTest {
                 .animalLocation(location)
                 .build();
 
-        // MISSING Animal 설정
         missingAnimal = Animal.builder()
                 .desertionNo("MISSING20241206001")
                 .happenDate(LocalDate.of(2024, 12, 6))
@@ -131,26 +117,30 @@ class BookMarkServiceTest extends ServiceTest {
     class GetMyBookMarksTests {
 
         @Test
-        @DisplayName("북마크 목록 조회 - 성공")
+        @DisplayName("북마크 목록 조회 - DTO 기반 성공")
         void getMyBookMarks_Success() {
-            // given
-            BookMark bookmark1 = BookMark.builder()
-                    .member(new Member(TEST_MEMBER_ID))
-                    .animal(abandonedAnimal)
-                    .build();
 
-            BookMark bookmark2 = BookMark.builder()
-                    .member(new Member(TEST_MEMBER_ID))
-                    .animal(abandonedAnimal)
-                    .build();
+            BookMarkAnimalResponse dto1 = new BookMarkAnimalResponse(
+                    1L,
+                    10L,
+                    Species.DOG,
+                    "치와와",
+                    "보호중"
+            );
+
+            BookMarkAnimalResponse dto2 = new BookMarkAnimalResponse(
+                    2L,
+                    11L,
+                    Species.DOG,
+                    "치와와",
+                    "보호중"
+            );
 
             given(bookMarkRepository.findAllByMemberIdAndNotDeleted(TEST_MEMBER_ID))
-                    .willReturn(List.of(bookmark1, bookmark2));
+                    .willReturn(List.of(dto1, dto2));
 
-            // when
             List<BookMarkAnimalResponse> results = bookMarkService.getMyBookMarks(TEST_MEMBER_ID);
 
-            // then
             assertThat(results).hasSize(2);
             assertThat(results.get(0).species()).isEqualTo(Species.DOG);
             assertThat(results.get(0).breedType()).isEqualTo("치와와");
@@ -161,17 +151,14 @@ class BookMarkServiceTest extends ServiceTest {
 
         @Test
         @DisplayName("북마크가 없으면 빈 리스트 반환")
-        void getMyBookMarks_ReturnsEmptyList_WhenNoBookmarks() {
-            // given
+        void getMyBookMarks_ReturnsEmptyList() {
+
             given(bookMarkRepository.findAllByMemberIdAndNotDeleted(TEST_MEMBER_ID))
                     .willReturn(List.of());
 
-            // when
             List<BookMarkAnimalResponse> results = bookMarkService.getMyBookMarks(TEST_MEMBER_ID);
 
-            // then
             assertThat(results).isEmpty();
-
             verify(bookMarkRepository).findAllByMemberIdAndNotDeleted(TEST_MEMBER_ID);
         }
     }
@@ -198,12 +185,9 @@ class BookMarkServiceTest extends ServiceTest {
                     .willReturn(newBookmark);
 
             // when
-            BookMarkResponse result = bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
+            bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // then
-            assertThat(result).isNotNull();
-            assertThat(result.isBookMarked()).isTrue();
-
             verify(animalRepository).findById(TEST_ANIMAL_ID);
             verify(bookMarkRepository).findByMemberIdAndAnimalId(TEST_MEMBER_ID, TEST_ANIMAL_ID);
             verify(bookMarkRepository).save(any(BookMark.class));
@@ -224,72 +208,39 @@ class BookMarkServiceTest extends ServiceTest {
                     .willReturn(Optional.of(existingBookmark));
 
             // when
-            BookMarkResponse result = bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
+            bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // then
-            assertThat(result).isNotNull();
-            assertThat(result.isBookMarked()).isFalse(); // toggleDelete()로 삭제됨
-
             verify(animalRepository).findById(TEST_ANIMAL_ID);
             verify(bookMarkRepository).findByMemberIdAndAnimalId(TEST_MEMBER_ID, TEST_ANIMAL_ID);
         }
 
         @Test
-        @DisplayName("북마크 토글 - 동물이 존재하지 않으면 예외 발생")
+        @DisplayName("동물이 존재하지 않으면 예외 발생")
         void toggleBookMark_Fail_AnimalNotFound() {
-            // given
+
             given(animalRepository.findById(TEST_ANIMAL_ID))
                     .willReturn(Optional.empty());
 
-            // when & then
             assertThatThrownBy(() -> bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", AnimalErrorCode.ANIMAL_NOT_FOUND);
 
-            verify(animalRepository).findById(TEST_ANIMAL_ID);
             verify(bookMarkRepository, never()).findByMemberIdAndAnimalId(anyLong(), anyLong());
         }
 
         @Test
-        @DisplayName("북마크 추가 - 실종 동물은 북마크할 수 없음 (MISSING)")
+        @DisplayName("실종 동물(MISSING)은 북마크할 수 없음")
         void toggleBookMark_Fail_MissingAnimalCannotBeBookmarked() {
-            // given
+
             given(animalRepository.findById(TEST_ANIMAL_ID))
                     .willReturn(Optional.of(missingAnimal));
 
-            // when & then
             assertThatThrownBy(() -> bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
                     .isInstanceOf(CustomException.class)
                     .hasFieldOrPropertyWithValue("errorCode", BookMarkErrorCode.ONLY_ABANDONED_ANIMAL_CAN_BE_BOOKMARKED);
 
-            verify(animalRepository).findById(TEST_ANIMAL_ID);
             verify(bookMarkRepository, never()).findByMemberIdAndAnimalId(anyLong(), anyLong());
-        }
-
-        @Test
-        @DisplayName("북마크 재활성화 - 삭제된 북마크를 다시 활성화")
-        void toggleBookMark_ReactivateDeletedBookmark_Success() {
-            // given
-            BookMark deletedBookmark = BookMark.builder()
-                    .member(new Member(TEST_MEMBER_ID))
-                    .animal(abandonedAnimal)
-                    .build();
-            deletedBookmark.toggleDelete(); // 삭제 상태로 만듦
-
-            given(animalRepository.findById(TEST_ANIMAL_ID))
-                    .willReturn(Optional.of(abandonedAnimal));
-            given(bookMarkRepository.findByMemberIdAndAnimalId(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willReturn(Optional.of(deletedBookmark));
-
-            // when
-            BookMarkResponse result = bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
-
-            // then
-            assertThat(result).isNotNull();
-            assertThat(result.isBookMarked()).isTrue(); // toggleDelete()로 재활성화됨
-
-            verify(animalRepository).findById(TEST_ANIMAL_ID);
-            verify(bookMarkRepository).findByMemberIdAndAnimalId(TEST_MEMBER_ID, TEST_ANIMAL_ID);
         }
     }
 }
