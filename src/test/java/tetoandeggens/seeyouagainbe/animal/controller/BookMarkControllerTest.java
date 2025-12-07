@@ -18,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkAnimalResponse;
-import tetoandeggens.seeyouagainbe.animal.dto.response.BookMarkResponse;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.animal.service.BookMarkService;
 import tetoandeggens.seeyouagainbe.global.ControllerTest;
@@ -119,22 +118,16 @@ class BookMarkControllerTest extends ControllerTest {
         @DisplayName("북마크 추가 - 성공")
         void toggleBookMark_AddBookmark_Success() throws Exception {
             // given
-            BookMarkResponse response = BookMarkResponse.builder()
-                    .bookMarkId(TEST_BOOKMARK_ID)
-                    .isBookMarked(true)
-                    .build();
-
-            given(bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willReturn(response);
+            doNothing().when(bookMarkService).toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // when & then
             mockMvc.perform(post(BASE_URL + "/animals/{animalId}", TEST_ANIMAL_ID)
                             .with(mockUser(TEST_MEMBER_ID))
                             .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(200))
-                    .andExpect(jsonPath("$.data.bookMarkId").value(TEST_BOOKMARK_ID))
-                    .andExpect(jsonPath("$.data.isBookMarked").value(true));
+                    .andExpect(status().isOk()) // HTTP 200
+                    .andExpect(jsonPath("$.status").value(204)) // JSON 내부 상태코드
+                    .andExpect(jsonPath("$.message").value("NO_CONTENT"))
+                    .andExpect(jsonPath("$.data").doesNotExist());
 
             verify(bookMarkService).toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
         }
@@ -143,22 +136,16 @@ class BookMarkControllerTest extends ControllerTest {
         @DisplayName("북마크 삭제 - 성공 (이미 북마크된 경우)")
         void toggleBookMark_RemoveBookmark_Success() throws Exception {
             // given
-            BookMarkResponse response = BookMarkResponse.builder()
-                    .bookMarkId(TEST_BOOKMARK_ID)
-                    .isBookMarked(false)
-                    .build();
-
-            given(bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willReturn(response);
+            doNothing().when(bookMarkService).toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // when & then
             mockMvc.perform(post(BASE_URL + "/animals/{animalId}", TEST_ANIMAL_ID)
                             .with(mockUser(TEST_MEMBER_ID))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(200))
-                    .andExpect(jsonPath("$.data.bookMarkId").value(TEST_BOOKMARK_ID))
-                    .andExpect(jsonPath("$.data.isBookMarked").value(false));
+                    .andExpect(jsonPath("$.status").value(204))
+                    .andExpect(jsonPath("$.message").value("NO_CONTENT"))
+                    .andExpect(jsonPath("$.data").doesNotExist());
 
             verify(bookMarkService).toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
         }
@@ -167,8 +154,9 @@ class BookMarkControllerTest extends ControllerTest {
         @DisplayName("북마크 토글 - 동물이 존재하지 않으면 실패")
         void toggleBookMark_Fail_AnimalNotFound() throws Exception {
             // given
-            given(bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willThrow(new CustomException(AnimalErrorCode.ANIMAL_NOT_FOUND));
+            doThrow(new CustomException(AnimalErrorCode.ANIMAL_NOT_FOUND))
+                    .when(bookMarkService)
+                    .toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // when & then
             mockMvc.perform(post(BASE_URL + "/animals/{animalId}", TEST_ANIMAL_ID)
@@ -183,8 +171,9 @@ class BookMarkControllerTest extends ControllerTest {
         @DisplayName("북마크 토글 - 실종 동물은 북마크할 수 없음")
         void toggleBookMark_Fail_OnlyAbandonedAnimalCanBeBookmarked() throws Exception {
             // given
-            given(bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willThrow(new CustomException(BookMarkErrorCode.ONLY_ABANDONED_ANIMAL_CAN_BE_BOOKMARKED));
+            doThrow(new CustomException(BookMarkErrorCode.ONLY_ABANDONED_ANIMAL_CAN_BE_BOOKMARKED))
+                    .when(bookMarkService)
+                    .toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
             // when & then
             mockMvc.perform(post(BASE_URL + "/animals/{animalId}", TEST_ANIMAL_ID)
@@ -203,23 +192,16 @@ class BookMarkControllerTest extends ControllerTest {
         @Test
         @DisplayName("북마크 추가 후 목록 조회 - 성공 시나리오")
         void addBookmarkAndRetrieveList_Success() throws Exception {
-            // given - 북마크 추가
-            BookMarkResponse toggleResponse = BookMarkResponse.builder()
-                    .bookMarkId(TEST_BOOKMARK_ID)
-                    .isBookMarked(true)
-                    .build();
 
-            given(bookMarkService.toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID))
-                    .willReturn(toggleResponse);
+            doNothing().when(bookMarkService).toggleBookMark(TEST_MEMBER_ID, TEST_ANIMAL_ID);
 
-            // when - 북마크 추가
             mockMvc.perform(post(BASE_URL + "/animals/{animalId}", TEST_ANIMAL_ID)
                             .with(mockUser(TEST_MEMBER_ID))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.isBookMarked").value(true));
+                    .andExpect(jsonPath("$.status").value(204))
+                    .andExpect(jsonPath("$.message").value("NO_CONTENT"));
 
-            // given - 목록 조회
             List<BookMarkAnimalResponse> listResponse = List.of(
                     BookMarkAnimalResponse.builder()
                             .bookMarkId(TEST_BOOKMARK_ID)
@@ -233,7 +215,6 @@ class BookMarkControllerTest extends ControllerTest {
             given(bookMarkService.getMyBookMarks(TEST_MEMBER_ID))
                     .willReturn(listResponse);
 
-            // when - 목록 조회
             mockMvc.perform(get(BASE_URL)
                             .with(mockUser(TEST_MEMBER_ID)))
                     .andExpect(status().isOk())
@@ -244,4 +225,5 @@ class BookMarkControllerTest extends ControllerTest {
             verify(bookMarkService).getMyBookMarks(TEST_MEMBER_ID);
         }
     }
+
 }
