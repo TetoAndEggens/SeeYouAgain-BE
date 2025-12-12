@@ -88,6 +88,7 @@ jobs:
             ${{ secrets.PROD_API_1_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
           DOCKER_IMAGE_TAG=${{ env.VERSION }}
           ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
@@ -99,11 +100,12 @@ jobs:
             echo $? > /tmp/ec2-1-status.txt
           ) &
           PID1=$!
-          
+
           (
             ${{ secrets.PROD_API_2_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
           DOCKER_IMAGE_TAG=${{ env.VERSION }}
           ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
@@ -115,21 +117,21 @@ jobs:
             echo $? > /tmp/ec2-2-status.txt
           ) &
           PID2=$!
-          
+
           wait $PID1
           wait $PID2
-          
+
           EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
           EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
-          
+
           echo "EC2-1 배포 상태: $EC2_1_STATUS"
           echo "EC2-2 배포 상태: $EC2_2_STATUS"
-          
+
           if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
             echo "::error::배포 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
             exit 1
           fi
-          
+
           echo "모든 EC2 인스턴스 배포 성공"
 
       - name: Send Discord Notification
