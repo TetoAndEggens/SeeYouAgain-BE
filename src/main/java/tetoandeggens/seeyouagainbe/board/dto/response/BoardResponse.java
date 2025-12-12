@@ -12,7 +12,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
 @Builder
-@Schema(name = "BoardResponse: 게시글 정보 응답 리스트 Dto")
+@Schema(name = "BoardResponse", description = "게시글 정보 응답 리스트 Dto")
 public record BoardResponse(
 	@NotBlank(message = "게시글 고유 id입니다.")
 	@Schema(description = "게시글 고유 id", example = "1")
