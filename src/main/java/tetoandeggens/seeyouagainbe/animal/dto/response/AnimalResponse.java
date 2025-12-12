@@ -34,6 +34,12 @@ public record AnimalResponse(
 	@Schema(description = "군/구", example = "강남구")
 	String town,
 
+	@Schema(description = "위도", example = "37.4979")
+	Double latitude,
+
+	@Schema(description = "경도", example = "127.0276")
+	Double longitude,
+
 	@Schema(description = "성별", example = "M")
 	Sex sex,
 
