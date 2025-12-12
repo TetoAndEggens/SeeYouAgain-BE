@@ -10,7 +10,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
 @Builder
-@Schema(name = "AnimalResponse: 유기 동물 정보 응답 리스트 Dto")
+@Schema(name = "AnimalResponse", description = "유기 동물 정보 응답 리스트 Dto")
 public record AnimalResponse(
 	@NotBlank(message = "유기 동물 고유 id입니다.")
 	@Schema(description = "유기 동물 고유 id", example = "1")

@@ -5,7 +5,7 @@ import lombok.Builder;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 
 @Builder
-@Schema(name = "BookMarkAnimalResponse: 북마크한 동물 정보 응답 Dto")
+@Schema(name = "BookMarkAnimalResponse", description = "북마크한 동물 정보 응답 Dto")
 public record BookMarkAnimalResponse(
         @Schema(description = "북마크 고유 ID", example = "1")
         Long bookMarkId,

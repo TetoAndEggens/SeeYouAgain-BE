@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 @Builder
-@Schema(name = "ChatMessageDto: 채팅 메시지 Dto")
+@Schema(name = "ChatMessageDto", description = "채팅 메시지 Dto")
 public record ChatMessageDto(
 	@Schema(description = "채팅방 ID", example = "1")
 	Long chatRoomId,

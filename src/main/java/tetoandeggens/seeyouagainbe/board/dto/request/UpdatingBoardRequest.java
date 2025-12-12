@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "UpdatingBoardRequest: 실종/동물 게시물 수정 요청 Dto")
+@Schema(name = "UpdatingBoardRequest", description = "실종/동물 게시물 수정 요청 Dto")
 public record UpdatingBoardRequest(
 	@Schema(description = "제목", example = "[실종] 땡땡이를 찾습니다.")
 	String title,
