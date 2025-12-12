@@ -53,6 +53,7 @@ jobs:
             ${{ secrets.PROD_API_1_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
           DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}
           ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
@@ -64,11 +65,12 @@ jobs:
             echo $? > /tmp/ec2-1-status.txt
           ) &
           PID1=$!
-          
+
           (
-             ${{ secrets.PROD_API_2_SSH_COMMAND }} << 'ENDSSH'
+            ${{ secrets.PROD_API_2_SSH_COMMAND }} << 'ENDSSH'
           cat > ~/app/deploy.env <<'ENV_EOF'
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE=${{ secrets.DOCKER_PROD_IMAGE }}
           DOCKER_IMAGE_TAG=${{ env.IMAGE_TAG }}
           ALB_LISTENER_ARN=${{ secrets.PROD_ALB_LISTENER_ARN }}
@@ -80,21 +82,21 @@ jobs:
             echo $? > /tmp/ec2-2-status.txt
           ) &
           PID2=$!
-          
+
           wait $PID1
           wait $PID2
-          
+
           EC2_1_STATUS=$(cat /tmp/ec2-1-status.txt)
           EC2_2_STATUS=$(cat /tmp/ec2-2-status.txt)
-          
+
           echo "EC2-1 롤백 상태: $EC2_1_STATUS"
           echo "EC2-2 롤백 상태: $EC2_2_STATUS"
-          
+
           if [[ "$EC2_1_STATUS" -ne 0 ]] || [[ "$EC2_2_STATUS" -ne 0 ]]; then
             echo "::error::롤백 실패 - EC2-1: $EC2_1_STATUS, EC2-2: $EC2_2_STATUS"
             exit 1
           fi
-          
+
           echo "모든 EC2 인스턴스 롤백 성공"
 
       - name: Send Discord Notification
@@ -105,49 +107,48 @@ jobs:
           STATUS_EMOJI="${{ job.status == 'success' && '✅' || '❌' }}"
           STATUS_TEXT="${{ job.status == 'success' && '성공' || '실패' }}"
           STATUS_COLOR="${{ job.status == 'success' && '3066993' || '15158332' }}"
-          
+
           ISSUE_LINK=""
           if [[ -n "${{ github.event.inputs.issue_number }}" ]]; then
-            ISSUE_LINK="https://github.com/${{ github.repository }}/issues/${{ github.event.inputs.issue_number }}"
+            ISSUE_LINK=" - 관련 이슈: https://github.com/${{ github.repository }}/issues/${{ github.event.inputs.issue_number }}"
           fi
-          
+
+          REASON="${{ github.event.inputs.rollback_reason }}"
+          if [[ -z "$REASON" ]]; then
+            REASON="(사유 없음)"
+          fi
+
           WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          
-          MESSAGE=$(cat <<EOF
-          {
+
+          curl -H "Content-Type: application/json" -d '{
             "embeds": [{
-              "title": "${STATUS_EMOJI} Prod 롤백 ${STATUS_TEXT}",
-              "color": ${STATUS_COLOR},
+              "title": "'"${STATUS_EMOJI}"' Prod 롤백 '"${STATUS_TEXT}"'",
+              "color": '"${STATUS_COLOR}"',
               "fields": [
                 {
-                  "name": "🔙 롤백 이미지 태그",
-                  "value": "\`${{ env.IMAGE_TAG }}\`",
+                  "name": "🏷️ 롤백 이미지 태그",
+                  "value": "`${{ env.IMAGE_TAG }}`",
                   "inline": true
                 },
                 {
-                  "name": "👤 롤백 실행자",
+                  "name": "👤 실행자",
                   "value": "${{ github.actor }}",
                   "inline": true
                 },
                 {
                   "name": "📝 롤백 사유",
-                  "value": "${{ github.event.inputs.rollback_reason || '없음' }}",
+                  "value": "'"${REASON}${ISSUE_LINK}"'",
                   "inline": false
-                }
-                $(if [[ -n "${ISSUE_LINK}" ]]; then echo ",{\"name\": \"🔗 관련 이슈\",\"value\": \"[#${{ github.event.inputs.issue_number }}](${ISSUE_LINK})\",\"inline\": false}"; fi)
-                ,{
+                },
+                {
                   "name": "🔗 워크플로우",
-                  "value": "[실행 로그 보기](${WORKFLOW_URL})",
+                  "value": "[실행 로그 보기]('"${WORKFLOW_URL}"')",
                   "inline": false
                 }
               ],
-              "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
             }]
-          }
-          EOF
-          )
-          
-          curl -H "Content-Type: application/json" -d "${MESSAGE}" ${DISCORD_WEBHOOK}
+          }' ${DISCORD_WEBHOOK}
 
       - name: Rollback Summary
         if: always()
