@@ -51,9 +51,13 @@ class AnimalControllerTest extends ControllerTest {
 				.birth("2024년생")
 				.city("서울특별시")
 				.town("강남구")
+				.latitude(null)
+				.longitude(null)
 				.sex(Sex.M)
 				.processState("보호중")
 				.profile("https://profile.com")
+				.animalType(null)
+				.isBookmarked(false)
 				.build();
 
 			CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
@@ -115,9 +119,13 @@ class AnimalControllerTest extends ControllerTest {
 				.birth("2024년생")
 				.city("서울특별시")
 				.town("강남구")
+				.latitude(null)
+				.longitude(null)
 				.sex(Sex.M)
 				.processState("보호중")
 				.profile("https://profile.com")
+				.animalType(null)
+				.isBookmarked(false)
 				.build();
 
 			CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
@@ -185,9 +193,13 @@ class AnimalControllerTest extends ControllerTest {
 				.birth("2024년생")
 				.city("서울특별시")
 				.town("강남구")
+				.latitude(null)
+				.longitude(null)
 				.sex(Sex.F)
 				.processState("보호중")
 				.profile("https://profile.com")
+				.animalType(null)
+				.isBookmarked(false)
 				.build();
 
 			CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
@@ -400,9 +412,13 @@ class AnimalControllerTest extends ControllerTest {
 				.birth("2024년생")
 				.city("서울특별시")
 				.town("중구")
+				.latitude(37.5)
+				.longitude(127.0)
 				.sex(Sex.M)
 				.processState("보호중")
 				.profile("https://profile.com")
+				.animalType(null)
+				.isBookmarked(false)
 				.build();
 
 			CursorPage<AnimalResponse, Long> cursorPage = CursorPage.of(
