@@ -75,7 +75,11 @@ public class BoardService {
 		String city, String town, CustomUserDetails customUserDetails) {
 		Long memberId = getMemberId(customUserDetails);
 
-		ContentType contentType = ContentType.fromCode(type.toUpperCase());
+		ContentType contentType = null;
+
+		if (type != null) {
+			contentType = ContentType.fromCode(type.toUpperCase());
+		}
 
 		List<BoardResponse> responses = boardRepository.getAnimalBoards(
 			request, sortDirection, contentType, startDate, endDate, species, breedType,
