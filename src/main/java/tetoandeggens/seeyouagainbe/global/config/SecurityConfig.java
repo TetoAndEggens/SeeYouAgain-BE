@@ -65,18 +65,19 @@ public class SecurityConfig {
 		"/webjars/**",
 		"/actuator/**",
 		"/animal/**",
-		"/ws-stomp/**"
+		"/ws-stomp/**",
+		"/board/list"
 	};
 
 	private static final String[] BLACK_LIST = {
 		"/auth/logout",
 		"/auth/withdrawal",
-        "/board/**",
-        "/violation/**",
-        "/notification/**",
-        "/fcm/**",
-        "/bookmark/**",
-        "/member/push"
+		"/board/**",
+		"/violation/**",
+		"/notification/**",
+		"/fcm/**",
+		"/bookmark/**",
+		"/member/push"
 	};
 
 	private static final String[] ADMINLIST = {
