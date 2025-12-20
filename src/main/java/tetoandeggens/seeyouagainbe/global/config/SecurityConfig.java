@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -65,14 +66,12 @@ public class SecurityConfig {
 		"/webjars/**",
 		"/actuator/**",
 		"/animal/**",
-		"/ws-stomp/**",
-		"/board/list"
+		"/ws-stomp/**"
 	};
 
 	private static final String[] BLACK_LIST = {
 		"/auth/logout",
 		"/auth/withdrawal",
-		"/board/**",
 		"/violation/**",
 		"/notification/**",
 		"/fcm/**",
@@ -80,7 +79,7 @@ public class SecurityConfig {
 		"/member/push"
 	};
 
-	private static final String[] ADMINLIST = {
+	private static final String[] ADMIN_LIST = {
 		"/admin/**"
 	};
 
@@ -149,7 +148,8 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(BLACK_LIST).authenticated()
 				.requestMatchers(WHITE_LIST).permitAll()
-				.requestMatchers(ADMINLIST).hasAuthority(Role.ADMIN.getRole())
+				.requestMatchers(HttpMethod.GET, "/board/**").permitAll()
+				.requestMatchers(ADMIN_LIST).hasAuthority(Role.ADMIN.getRole())
 				.anyRequest().authenticated())
 
 			.addFilterAt(

@@ -47,6 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	) throws ServletException, IOException {
 
 		String accessToken = cookieService.resolveAccessToken(request);
+		boolean isOptionalAuth = isOptionalAuthPath(request);
 
 		try {
 			if (accessToken != null) {
@@ -58,27 +59,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				}
 
 				SecurityContextHolder.getContext().setAuthentication(authentication);
+			} else if (!isOptionalAuth) {
+				SecurityContextHolder.clearContext();
+				ResponseUtil.writeErrorResponse(response, objectMapper, TOKEN_NOT_FOUND);
+				return;
 			}
 		} catch (CustomException e) {
 			SecurityContextHolder.clearContext();
-			ResponseUtil.writeErrorResponse(response, objectMapper, e.getErrorCode());
-			return;
+			if (!isOptionalAuth) {
+				ResponseUtil.writeErrorResponse(response, objectMapper, e.getErrorCode());
+				return;
+			}
 		} catch (ExpiredJwtException e) {
 			SecurityContextHolder.clearContext();
-			ResponseUtil.writeErrorResponse(response, objectMapper, EXPIRED_TOKEN);
-			return;
+			if (!isOptionalAuth) {
+				ResponseUtil.writeErrorResponse(response, objectMapper, EXPIRED_TOKEN);
+				return;
+			}
 		} catch (IncorrectClaimException e) {
 			SecurityContextHolder.clearContext();
-			ResponseUtil.writeErrorResponse(response, objectMapper, INCORRECT_CLAIM_TOKEN);
-			return;
+			if (!isOptionalAuth) {
+				ResponseUtil.writeErrorResponse(response, objectMapper, INCORRECT_CLAIM_TOKEN);
+				return;
+			}
 		} catch (UsernameNotFoundException e) {
 			SecurityContextHolder.clearContext();
-			ResponseUtil.writeErrorResponse(response, objectMapper, MEMBER_NOT_FOUND);
-			return;
+			if (!isOptionalAuth) {
+				ResponseUtil.writeErrorResponse(response, objectMapper, MEMBER_NOT_FOUND);
+				return;
+			}
 		} catch (Exception e) {
 			SecurityContextHolder.clearContext();
-			ResponseUtil.writeErrorResponse(response, objectMapper, INVALID_TOKEN);
-			return;
+			if (!isOptionalAuth) {
+				ResponseUtil.writeErrorResponse(response, objectMapper, INVALID_TOKEN);
+				return;
+			}
 		}
 
 		filterChain.doFilter(request, response);
@@ -87,21 +102,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	@Override
 	protected boolean shouldNotFilter(HttpServletRequest request) {
 		String requestURI = request.getRequestURI();
+
+		boolean isInWhiteList = Arrays.stream(whiteList)
+			.anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
+
+		return isInWhiteList;
+	}
+
+	private boolean isOptionalAuthPath(HttpServletRequest request) {
+		String requestURI = request.getRequestURI();
 		String method = request.getMethod();
 
-		if (requestURI.startsWith(BOARD_PATH_PREFIX)) {
-			return HTTP_METHOD_GET.equals(method);
-		}
-
-		boolean isInBlackList = Arrays.stream(blackList)
-			.anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
-
-		if (isInBlackList) {
-			return false;
-		}
-
-		return Arrays.stream(whiteList)
-			.anyMatch(pattern -> pathMatcher.match(pattern, requestURI));
+		return requestURI.startsWith(BOARD_PATH_PREFIX) && HTTP_METHOD_GET.equals(method);
 	}
 
 	private void checkUserBanned(Authentication authentication) {
