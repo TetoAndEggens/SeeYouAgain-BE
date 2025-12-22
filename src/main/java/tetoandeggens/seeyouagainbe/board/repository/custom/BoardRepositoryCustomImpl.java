@@ -4,6 +4,7 @@ import static tetoandeggens.seeyouagainbe.board.entity.QBoard.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 
 import com.querydsl.core.BooleanBuilder;
@@ -26,7 +27,6 @@ import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
-import tetoandeggens.seeyouagainbe.board.dto.response.TagInfo;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.QBoardTag;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -82,7 +82,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 				profileEntity.profile,
 				board.createdAt,
 				board.updatedAt,
-				Expressions.constant(java.util.Collections.emptyList()),
+				Expressions.constant(Collections.emptyList()),
 				JPAExpressions.selectOne()
 					.from(bookMark)
 					.where(bookMarkExistsCondition)
@@ -158,12 +158,8 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.limit(3)
 			.fetch();
 
-		List<TagInfo> tags = queryFactory
-			.select(Projections.constructor(
-				TagInfo.class,
-				boardTag.id,
-				boardTag.name
-			))
+		List<String> tags = queryFactory
+			.select(boardTag.name)
 			.from(boardTag)
 			.where(boardTag.board.id.eq(boardId))
 			.fetch();

@@ -65,7 +65,7 @@ public record BoardDetailResponse(
 	LocalDateTime updatedAt,
 
 	@Schema(description = "해시태그", example = "[\"강아지\", \"실종\"]")
-	List<TagInfo> tags,
+	List<String> tags,
 
 	@Schema(description = "프로필 url 리스트 (최대 3개)", example = "[\"https://프로필1.com\", \"https://프로필2.com\", \"https://프로필3.com\"]")
 	List<ProfileInfo> profiles,
