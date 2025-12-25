@@ -1,5 +1,6 @@
 package tetoandeggens.seeyouagainbe.chat.sub;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatReadNotificationDto;
 
+@Profile("!test")
 @Slf4j
 @RequiredArgsConstructor
 @Service
