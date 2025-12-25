@@ -78,6 +78,31 @@ public class ChatService {
 		redisPublisher.publish(savedMessage);
 	}
 
+	@Transactional
+	public void markAsRead(Long messageId, Principal principal) {
+		if (principal == null) {
+			throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+		}
+
+		Long readerId = Long.parseLong(principal.getName());
+
+		ChatMessage message = chatMessageRepository.findByIdWithMembers(messageId)
+			.orElseThrow(() -> new CustomException(ChatErrorCode.MESSAGE_NOT_FOUND));
+
+		if (!message.getReceiver().getId().equals(readerId)) {
+			throw new CustomException(ChatErrorCode.NOT_MESSAGE_RECEIVER);
+		}
+
+		message.markAsRead();
+
+		ChatReadNotificationDto notification = ChatReadNotificationDto.builder()
+			.messageId(message.getId())
+			.senderId(message.getSender().getId())
+			.build();
+
+		redisPublisher.publishReadNotification(notification);
+	}
+
 	private Long determineReceiverId(ChatRoom chatRoom, Long senderId) {
 		if (chatRoom.getSender().getId().equals(senderId)) {
 			return chatRoom.getReceiver().getId();
@@ -106,31 +131,6 @@ public class ChatService {
 			.content(content)
 			.time(savedMessage.getCreatedAt())
 			.build();
-	}
-
-	@Transactional
-	public void markAsRead(Long messageId, Principal principal) {
-		if (principal == null) {
-			throw new CustomException(AuthErrorCode.INVALID_TOKEN);
-		}
-
-		Long readerId = Long.parseLong(principal.getName());
-
-		ChatMessage message = chatMessageRepository.findByIdWithMembers(messageId)
-			.orElseThrow(() -> new CustomException(ChatErrorCode.MESSAGE_NOT_FOUND));
-
-		if (!message.getReceiver().getId().equals(readerId)) {
-			throw new CustomException(ChatErrorCode.NOT_MESSAGE_RECEIVER);
-		}
-
-		message.markAsRead();
-
-		ChatReadNotificationDto notification = ChatReadNotificationDto.builder()
-			.messageId(message.getId())
-			.senderId(message.getSender().getId())
-			.build();
-
-		redisPublisher.publishReadNotification(notification);
 	}
 
 	private Long createChatRoom(Board board, Member sender, Member receiver) {
