@@ -84,7 +84,6 @@ class ChatRoomRepositoryTest extends RepositoryTest {
 			.board(testBoard)
 			.sender(sender)
 			.receiver(receiver)
-			.contentType(ContentType.MISSING)
 			.violatedStatus(ViolatedStatus.NORMAL)
 			.build());
 	}
@@ -94,38 +93,23 @@ class ChatRoomRepositoryTest extends RepositoryTest {
 	class FindChatRoomTests {
 
 		@Test
-		@DisplayName("게시물과 멤버로 채팅방 찾기 - 성공")
-		void findByBoardAndMembers_Success() {
+		@DisplayName("게시물과 멤버로 채팅방 ID 찾기 - 성공")
+		void findChatRoomIdByBoardAndMembers_Success() {
 			// when
-			Optional<ChatRoom> result = chatRoomRepository.findByBoardAndMembers(
+			Optional<Long> result = chatRoomRepository.findChatRoomIdByBoardAndMembers(
 				testBoard.getId(), sender.getId(), receiver.getId()
 			);
 
 			// then
 			assertThat(result).isPresent();
-			assertThat(result.get().getBoard().getId()).isEqualTo(testBoard.getId());
-			assertThat(result.get().getSender().getId()).isEqualTo(sender.getId());
-			assertThat(result.get().getReceiver().getId()).isEqualTo(receiver.getId());
-		}
-
-		@Test
-		@DisplayName("게시물과 멤버로 채팅방 찾기 - sender와 receiver 순서 바뀌어도 찾기 성공")
-		void findByBoardAndMembers_ReverseOrder_Success() {
-			// when
-			Optional<ChatRoom> result = chatRoomRepository.findByBoardAndMembers(
-				testBoard.getId(), receiver.getId(), sender.getId()
-			);
-
-			// then
-			assertThat(result).isPresent();
-			assertThat(result.get().getId()).isEqualTo(chatRoom.getId());
+			assertThat(result.get()).isEqualTo(chatRoom.getId());
 		}
 
 		@Test
 		@DisplayName("존재하지 않는 채팅방 조회 - 빈 Optional 반환")
-		void findByBoardAndMembers_NotFound() {
+		void findChatRoomIdByBoardAndMembers_NotFound() {
 			// when
-			Optional<ChatRoom> result = chatRoomRepository.findByBoardAndMembers(
+			Optional<Long> result = chatRoomRepository.findChatRoomIdByBoardAndMembers(
 				testBoard.getId(), sender.getId(), otherMember.getId()
 			);
 
@@ -201,7 +185,6 @@ class ChatRoomRepositoryTest extends RepositoryTest {
 				.board(board2)
 				.sender(receiver)
 				.receiver(sender)
-				.contentType(ContentType.WITNESS)
 				.violatedStatus(ViolatedStatus.NORMAL)
 				.build());
 

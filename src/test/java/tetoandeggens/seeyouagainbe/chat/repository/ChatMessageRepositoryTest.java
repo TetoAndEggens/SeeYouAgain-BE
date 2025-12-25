@@ -88,7 +88,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 			.board(testBoard)
 			.sender(sender)
 			.receiver(receiver)
-			.contentType(ContentType.MISSING)
 			.violatedStatus(ViolatedStatus.NORMAL)
 			.build());
 	}
@@ -181,7 +180,6 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 				.board(testBoard)
 				.sender(sender)
 				.receiver(otherMember)
-				.contentType(ContentType.MISSING)
 				.violatedStatus(ViolatedStatus.NORMAL)
 				.build());
 

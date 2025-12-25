@@ -19,6 +19,7 @@ import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomListResponse;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomResponse;
 import tetoandeggens.seeyouagainbe.chat.service.ChatRoomService;
+import tetoandeggens.seeyouagainbe.chat.service.ChatService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -31,6 +32,9 @@ class ChatControllerTest extends ControllerTest {
 
 	@MockitoBean
 	private ChatRoomService chatRoomService;
+
+	@MockitoBean
+	private ChatService chatService;
 
 	@Nested
 	@DisplayName("채팅방 목록 조회 API 테스트")
