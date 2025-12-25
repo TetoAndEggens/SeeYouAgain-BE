@@ -1,24 +1,29 @@
 package tetoandeggens.seeyouagainbe.chat.controller;
 
+import java.security.Principal;
+
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
 
 import lombok.RequiredArgsConstructor;
-import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
-import tetoandeggens.seeyouagainbe.chat.pub.RedisPublisher;
+import tetoandeggens.seeyouagainbe.chat.dto.request.ChatMessageSendRequest;
+import tetoandeggens.seeyouagainbe.chat.dto.request.ChatReadRequest;
 import tetoandeggens.seeyouagainbe.chat.service.ChatService;
 
 @Controller
+@MessageMapping("/chat")
 @RequiredArgsConstructor
 public class ChatWebSocketController {
 
 	private final ChatService chatService;
-	private final RedisPublisher redisPublisher;
 
-	@MessageMapping("/chat/send")
-	public void sendMessage(ChatMessageDto message) {
-		ChatMessageDto savedMessage = chatService.saveMessage(message);
+	@MessageMapping("/send")
+	public void sendMessage(ChatMessageSendRequest request, Principal principal) {
+		chatService.sendMessage(request, principal);
+	}
 
-		redisPublisher.publish(savedMessage);
+	@MessageMapping("/read")
+	public void markAsRead(ChatReadRequest readDto, Principal principal) {
+		chatService.markAsRead(readDto.messageId(), principal);
 	}
 }

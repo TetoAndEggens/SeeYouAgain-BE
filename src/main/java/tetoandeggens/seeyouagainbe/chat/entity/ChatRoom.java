@@ -18,7 +18,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
-import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.common.enums.ViolatedStatus;
 import tetoandeggens.seeyouagainbe.global.entity.BaseEntity;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -33,10 +32,6 @@ public class ChatRoom extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "chat_room_id")
 	private Long id;
-
-	@Enumerated(EnumType.STRING)
-	@Column(name = "type")
-	private ContentType contentType;
 
 	@Column(name = "last_message_at")
 	private LocalDateTime lastMessageAt;
@@ -61,15 +56,17 @@ public class ChatRoom extends BaseEntity {
 	private Board board;
 
 	@Builder
-	public ChatRoom(Board board, Member sender, Member receiver, ContentType contentType,
-		ViolatedStatus violatedStatus) {
+	public ChatRoom(Board board, Member sender, Member receiver, ViolatedStatus violatedStatus) {
 		this.board = board;
 		this.sender = sender;
 		this.receiver = receiver;
-		this.contentType = contentType;
 		this.violatedStatus = violatedStatus;
 		this.isDeleted = false;
 		this.lastMessageAt = LocalDateTime.now();
+	}
+
+	public ChatRoom(Long chatRoomId) {
+		this.id = chatRoomId;
 	}
 
     public void updateViolatedStatus(ViolatedStatus violatedStatus) {

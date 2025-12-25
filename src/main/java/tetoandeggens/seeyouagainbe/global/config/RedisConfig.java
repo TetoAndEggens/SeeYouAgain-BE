@@ -31,6 +31,11 @@ public class RedisConfig {
 	}
 
 	@Bean
+	public ChannelTopic readChannelTopic() {
+		return new ChannelTopic("chatread");
+	}
+
+	@Bean
 	public RedisConnectionFactory redisConnectionFactory() {
 		RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
 		config.setHostName(host);
@@ -50,16 +55,24 @@ public class RedisConfig {
 	@Bean
 	public RedisMessageListenerContainer redisMessageListener(
 		MessageListenerAdapter listenerAdapterChatMessage,
-		ChannelTopic channelTopic
+		MessageListenerAdapter listenerAdapterChatReadNotification,
+		ChannelTopic channelTopic,
+		ChannelTopic readChannelTopic
 	) {
 		RedisMessageListenerContainer container = new RedisMessageListenerContainer();
 		container.setConnectionFactory(redisConnectionFactory());
 		container.addMessageListener(listenerAdapterChatMessage, channelTopic);
+		container.addMessageListener(listenerAdapterChatReadNotification, readChannelTopic);
 		return container;
 	}
 
 	@Bean
 	public MessageListenerAdapter listenerAdapterChatMessage(RedisSubscriber subscriber) {
 		return new MessageListenerAdapter(subscriber, "sendMessage");
+	}
+
+	@Bean
+	public MessageListenerAdapter listenerAdapterChatReadNotification(RedisSubscriber subscriber) {
+		return new MessageListenerAdapter(subscriber, "sendReadNotification");
 	}
 }

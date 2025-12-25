@@ -251,6 +251,17 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 			.fetchOne();
 	}
 
+	@Override
+	public Board findByIdWithMember(Long boardId) {
+		QMember member = QMember.member;
+
+		return queryFactory
+			.selectFrom(board)
+			.join(board.member, member).fetchJoin()
+			.where(board.id.eq(boardId), board.isDeleted.eq(false))
+			.fetchOne();
+	}
+
 	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {
 		if (cursorId == null) {
 			return null;

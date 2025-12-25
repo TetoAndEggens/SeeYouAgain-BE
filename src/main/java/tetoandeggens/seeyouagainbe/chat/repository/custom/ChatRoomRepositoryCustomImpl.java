@@ -26,13 +26,14 @@ public class ChatRoomRepositoryCustomImpl implements ChatRoomRepositoryCustom {
 	private final JPAQueryFactory queryFactory;
 
 	@Override
-	public Optional<ChatRoom> findByBoardAndMembers(Long boardId, Long senderId, Long receiverId) {
-		ChatRoom result = queryFactory
-			.selectFrom(chatRoom)
+	public Optional<Long> findChatRoomIdByBoardAndMembers(Long boardId, Long senderId, Long receiverId) {
+		Long result = queryFactory
+			.select(chatRoom.id)
+			.from(chatRoom)
 			.where(
 				chatRoom.board.id.eq(boardId),
-				chatRoom.sender.id.eq(senderId).and(chatRoom.receiver.id.eq(receiverId))
-					.or(chatRoom.sender.id.eq(receiverId).and(chatRoom.receiver.id.eq(senderId)))
+				chatRoom.sender.id.eq(senderId),
+				chatRoom.receiver.id.eq(receiverId)
 			)
 			.fetchOne();
 
@@ -87,9 +88,9 @@ public class ChatRoomRepositoryCustomImpl implements ChatRoomRepositoryCustom {
 			.select(Projections.constructor(
 				ChatRoomResponse.class,
 				chatRoom.id,
-				chatRoom.board.id,
-				chatRoom.board.title,
-				chatRoom.contentType,
+				board.id,
+				board.title,
+				board.contentType,
 				chatRoom.sender.id,
 				chatRoom.receiver.id,
 				Expressions.cases()
@@ -140,9 +141,9 @@ public class ChatRoomRepositoryCustomImpl implements ChatRoomRepositoryCustom {
 			.select(Projections.constructor(
 				ChatRoomResponse.class,
 				chatRoom.id,
-				chatRoom.board.id,
-				chatRoom.board.title,
-				chatRoom.contentType,
+				board.id,
+				board.title,
+				board.contentType,
 				chatRoom.sender.id,
 				chatRoom.receiver.id,
 				Expressions.cases()

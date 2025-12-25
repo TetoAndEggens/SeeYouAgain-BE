@@ -1,5 +1,7 @@
 package tetoandeggens.seeyouagainbe.chat.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -59,5 +61,9 @@ public class ChatMessage extends BaseEntity {
 		this.content = content;
 		this.isRead = false;
 		this.isDeleted = false;
+	}
+
+	public void markAsRead() {
+		this.isRead = true;
 	}
 }

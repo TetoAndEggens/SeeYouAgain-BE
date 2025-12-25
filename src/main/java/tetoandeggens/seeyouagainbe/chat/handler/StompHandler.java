@@ -31,7 +31,19 @@ public class StompHandler implements ChannelInterceptor {
 			if (memberId == null) {
 				throw new CustomException(AuthErrorCode.INVALID_TOKEN);
 			}
-		} else if (StompCommand.SEND.equals(command) || StompCommand.SUBSCRIBE.equals(command)) {
+		} else if (StompCommand.SEND.equals(command)) {
+			String accessToken = (String)accessor.getSessionAttributes().get(ACCESS_TOKEN_COOKIE_NAME);
+
+			if (accessToken == null) {
+				throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+			}
+
+			try {
+				tokenProvider.validateToken(accessToken);
+			} catch (Exception e) {
+				throw new CustomException(AuthErrorCode.INVALID_TOKEN);
+			}
+		} else if (StompCommand.SUBSCRIBE.equals(command)) {
 			String accessToken = (String)accessor.getSessionAttributes().get(ACCESS_TOKEN_COOKIE_NAME);
 
 			if (accessToken == null) {
