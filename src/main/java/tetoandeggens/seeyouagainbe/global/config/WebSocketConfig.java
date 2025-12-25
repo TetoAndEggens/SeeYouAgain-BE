@@ -1,6 +1,7 @@
 package tetoandeggens.seeyouagainbe.global.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -12,6 +13,7 @@ import tetoandeggens.seeyouagainbe.chat.handler.CustomHandshakeHandler;
 import tetoandeggens.seeyouagainbe.chat.handler.StompHandler;
 import tetoandeggens.seeyouagainbe.chat.handler.WebSocketHandshakeInterceptor;
 
+@Profile("!test")
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor

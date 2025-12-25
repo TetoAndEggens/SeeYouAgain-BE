@@ -46,11 +46,6 @@ public abstract class RedisTestContainer {
 	public static class TestRedisConfig {
 
 		@Bean
-		public ChannelTopic channelTopic() {
-			return new ChannelTopic("chatroom");
-		}
-
-		@Bean
 		public RedisConnectionFactory redisConnectionFactory() {
 			String host = REDIS_CONTAINER.getHost();
 			Integer port = REDIS_CONTAINER.getMappedPort(6379);
@@ -71,20 +66,13 @@ public abstract class RedisTestContainer {
 		}
 
 		@Bean
-		public RedisMessageListenerContainer redisMessageListener(
-			RedisConnectionFactory redisConnectionFactory,
-			MessageListenerAdapter listenerAdapterChatMessage,
-			ChannelTopic channelTopic
-		) {
-			RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-			container.setConnectionFactory(redisConnectionFactory);
-			container.addMessageListener(listenerAdapterChatMessage, channelTopic);
-			return container;
+		public ChannelTopic channelTopic() {
+			return new ChannelTopic("chatroom");
 		}
 
 		@Bean
-		public MessageListenerAdapter listenerAdapterChatMessage(RedisSubscriber subscriber) {
-			return new MessageListenerAdapter(subscriber, "sendMessage");
+		public ChannelTopic readChannelTopic() {
+			return new ChannelTopic("chatread");
 		}
 	}
 }
