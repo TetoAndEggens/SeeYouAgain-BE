@@ -27,7 +27,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	private final CustomHandshakeHandler customHandshakeHandler;
 
 	@Bean
-	public TaskScheduler messageBrokerTaskScheduler() {
+	public TaskScheduler heartbeatTaskScheduler() {
 		ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
 		scheduler.setPoolSize(1);
 		scheduler.setThreadNamePrefix("ws-heartbeat-");
@@ -39,7 +39,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void configureMessageBroker(MessageBrokerRegistry config) {
 		config.enableSimpleBroker("/queue")
 			.setHeartbeatValue(new long[] {30000, 30000})
-			.setTaskScheduler(messageBrokerTaskScheduler());
+			.setTaskScheduler(heartbeatTaskScheduler());
 		config.setApplicationDestinationPrefixes("/pub");
 		config.setUserDestinationPrefix("/member");
 	}
