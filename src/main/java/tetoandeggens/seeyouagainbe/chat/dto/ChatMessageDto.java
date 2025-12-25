@@ -6,13 +6,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 @Builder
-@Schema(name = "ChatMessageDto", description = "채팅 메시지 Dto")
+@Schema(name = "ChatMessageDto", description = "채팅 메시지 Dto (WebSocket 응답 및 Redis pub/sub용)")
 public record ChatMessageDto(
+	@Schema(description = "메시지 ID", example = "1")
+	Long messageId,
+
 	@Schema(description = "채팅방 ID", example = "1")
 	Long chatRoomId,
-
-	@Schema(description = "게시물 ID", example = "1")
-	Long boardId,
 
 	@Schema(description = "발신자 ID", example = "1")
 	Long senderId,

@@ -9,7 +9,7 @@ import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 
 public interface ChatRoomRepositoryCustom {
 
-	Optional<ChatRoom> findByBoardAndMembers(Long boardId, Long senderId, Long receiverId);
+	Optional<Long> findChatRoomIdByBoardAndMembers(Long boardId, Long senderId, Long receiverId);
 
 	Optional<ChatRoom> findByIdWithMembers(Long chatRoomId);
 

@@ -83,6 +83,37 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 		return Optional.ofNullable(result);
 	}
 
+	@Override
+	public Optional<ChatMessage> findByIdWithMembers(Long messageId) {
+		QChatMessage chatMessage = QChatMessage.chatMessage;
+		QMember sender = new QMember("sender");
+		QMember receiver = new QMember("receiver");
+
+		ChatMessage result = queryFactory
+			.selectFrom(chatMessage)
+			.join(chatMessage.sender, sender).fetchJoin()
+			.join(chatMessage.receiver, receiver).fetchJoin()
+			.where(chatMessage.id.eq(messageId))
+			.fetchOne();
+
+		return Optional.ofNullable(result);
+	}
+
+	@Override
+	public Long countUnreadMessagesByChatRoomAndReceiver(Long chatRoomId, Long memberId) {
+		QChatMessage chatMessage = QChatMessage.chatMessage;
+
+		return queryFactory
+			.select(chatMessage.count())
+			.from(chatMessage)
+			.where(
+				chatMessage.chatRoom.id.eq(chatRoomId),
+				chatMessage.receiver.id.eq(memberId),
+				chatMessage.isRead.eq(false)
+			)
+			.fetchOne();
+	}
+
 	private BooleanExpression createCursorCondition(Long cursorId, SortDirection sortDirection) {
 		QChatMessage chatMessage = QChatMessage.chatMessage;
 

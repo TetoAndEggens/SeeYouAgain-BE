@@ -13,4 +13,8 @@ public interface ChatMessageRepositoryCustom {
 	void markAsReadByChatRoomAndReceiver(Long chatRoomId, Long memberId);
 
 	Optional<ChatMessage> findByIdWithChatRoomAndMembersAndValidateAccess(Long messageId, Long memberId);
+
+	Optional<ChatMessage> findByIdWithMembers(Long messageId);
+
+	Long countUnreadMessagesByChatRoomAndReceiver(Long chatRoomId, Long memberId);
 }

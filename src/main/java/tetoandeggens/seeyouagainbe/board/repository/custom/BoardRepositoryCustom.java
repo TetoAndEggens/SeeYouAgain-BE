@@ -28,4 +28,6 @@ public interface BoardRepositoryCustom {
 	long countValidTagIds(List<Long> tagIds, Long boardId);
 
 	Board findByIdWithAnimal(Long boardId);
+
+	Board findByIdWithMember(Long boardId);
 }
