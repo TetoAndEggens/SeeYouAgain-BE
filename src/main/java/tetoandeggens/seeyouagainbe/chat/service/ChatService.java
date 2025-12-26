@@ -11,6 +11,7 @@ import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatReadNotificationDto;
+import tetoandeggens.seeyouagainbe.chat.dto.WebSocketPrincipal;
 import tetoandeggens.seeyouagainbe.chat.dto.request.ChatMessageSendRequest;
 import tetoandeggens.seeyouagainbe.chat.dto.response.ChatRoomCreateResponse;
 import tetoandeggens.seeyouagainbe.chat.entity.ChatMessage;
@@ -61,7 +62,9 @@ public class ChatService {
 			throw new CustomException(AuthErrorCode.INVALID_TOKEN);
 		}
 
-		Long authenticatedMemberId = Long.parseLong(principal.getName());
+		WebSocketPrincipal webSocketPrincipal = (WebSocketPrincipal) principal;
+		Long authenticatedMemberId = webSocketPrincipal.getMemberId();
+		String senderUuid = webSocketPrincipal.getUuid();
 
 		ChatRoom chatRoom = chatRoomRepository.findByIdWithMembers(request.chatRoomId())
 			.orElseThrow(() -> new CustomException(ChatErrorCode.CHAT_ROOM_NOT_FOUND));
@@ -72,6 +75,7 @@ public class ChatService {
 			request.chatRoomId(),
 			authenticatedMemberId,
 			receiverId,
+			senderUuid,
 			request.content()
 		);
 
@@ -84,7 +88,8 @@ public class ChatService {
 			throw new CustomException(AuthErrorCode.INVALID_TOKEN);
 		}
 
-		Long readerId = Long.parseLong(principal.getName());
+		WebSocketPrincipal webSocketPrincipal = (WebSocketPrincipal) principal;
+		Long readerId = webSocketPrincipal.getMemberId();
 
 		ChatMessage message = chatMessageRepository.findByIdWithMembers(messageId)
 			.orElseThrow(() -> new CustomException(ChatErrorCode.MESSAGE_NOT_FOUND));
@@ -113,7 +118,7 @@ public class ChatService {
 		}
 	}
 
-	private ChatMessageDto saveMessage(Long chatRoomId, Long senderId, Long receiverId, String content) {
+	private ChatMessageDto saveMessage(Long chatRoomId, Long senderId, Long receiverId, String senderUuid, String content) {
 		ChatMessage savedMessage = ChatMessage.builder()
 			.chatRoom(new ChatRoom(chatRoomId))
 			.sender(new Member(senderId))
@@ -128,6 +133,7 @@ public class ChatService {
 			.chatRoomId(chatRoomId)
 			.senderId(senderId)
 			.receiverId(receiverId)
+			.senderUuid(senderUuid)
 			.content(content)
 			.time(savedMessage.getCreatedAt())
 			.build();

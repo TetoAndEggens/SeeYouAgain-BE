@@ -43,8 +43,10 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
 
 					CustomUserDetails userDetails = (CustomUserDetails)authentication.getPrincipal();
 					Long memberId = userDetails.getMemberId();
+					String uuid = userDetails.getUuid();
 
 					attributes.put("memberId", memberId);
+					attributes.put("uuid", uuid);
 					attributes.put(ACCESS_TOKEN_COOKIE_NAME, accessToken);
 
 					return true;

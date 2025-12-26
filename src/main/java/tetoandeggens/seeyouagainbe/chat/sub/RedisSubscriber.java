@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatMessageDto;
 import tetoandeggens.seeyouagainbe.chat.dto.ChatReadNotificationDto;
+import tetoandeggens.seeyouagainbe.chat.dto.response.ChatMessageWebSocketResponse;
 
 @Profile("!test")
 @Slf4j
@@ -23,17 +24,18 @@ public class RedisSubscriber {
 	public void sendMessage(String publishMessage) {
 		try {
 			ChatMessageDto chatMessage = objectMapper.readValue(publishMessage, ChatMessageDto.class);
+			ChatMessageWebSocketResponse response = ChatMessageWebSocketResponse.from(chatMessage);
 
 			messagingTemplate.convertAndSendToUser(
 				chatMessage.senderId().toString(),
 				"/queue/chat",
-				chatMessage
+				response
 			);
 
 			messagingTemplate.convertAndSendToUser(
 				chatMessage.receiverId().toString(),
 				"/queue/chat",
-				chatMessage
+				response
 			);
 		} catch (Exception e) {
 			log.error("메시지 처리 실패: message={}", publishMessage, e);
