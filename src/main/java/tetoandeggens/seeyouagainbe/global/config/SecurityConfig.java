@@ -109,6 +109,7 @@ public class SecurityConfig {
 		CorsConfiguration configuration = new CorsConfiguration();
 
 		configuration.setAllowedOrigins(Arrays.asList(
+			"https://seeyouagain.store",
 			"https://dev-api.seeyouagain.store",
 			"http://localhost:3000"
 		));
