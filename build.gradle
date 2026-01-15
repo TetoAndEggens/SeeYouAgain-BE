@@ -27,6 +27,8 @@ repositories {
 ext {
     set('queryDslVersion', '5.1.0')
     set('springCloudVersion', '2025.0.0')
+    set('hibernateVersion', '6.4.1.Final')
+    set('sentryVersion', '7.9.0')
 }
 
 dependencies {
@@ -44,11 +46,14 @@ dependencies {
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 
     // DB
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     runtimeOnly 'com.mysql:mysql-connector-j'
     runtimeOnly 'com.h2database:h2'
+    testImplementation 'org.orbisgis:h2gis:2.2.0'
 
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -63,6 +68,8 @@ dependencies {
 
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -77,11 +84,50 @@ dependencies {
 
     // OpenFeign
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // 휴대폰 인증
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // Hibernate Spatial
+    implementation "org.hibernate.orm:hibernate-spatial:${hibernateVersion}"
+
+    // AWS SDK
+    implementation 'software.amazon.awssdk:s3:2.21.5'
+
+    // WebSocket
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // Firebase SDK
+    implementation 'com.google.firebase:firebase-admin:9.7.0'
+
+    // Spring Retry
+    implementation 'org.springframework.retry:spring-retry'
+
+    // AOP
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Sentry
+    implementation "io.sentry:sentry-spring-boot-starter-jakarta:${sentryVersion}"
+    implementation "io.sentry:sentry-jdbc:${sentryVersion}"
+
+    // P6Spy
+    implementation 'p6spy:p6spy:3.9.1'
+
+    // Prometheus
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "io.sentry:sentry:${sentryVersion}"
+        force "io.sentry:sentry-spring-boot-jakarta:${sentryVersion}"
+        force "io.sentry:sentry-jdbc:${sentryVersion}"
     }
 }
 
