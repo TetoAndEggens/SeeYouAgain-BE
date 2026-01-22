@@ -110,7 +110,7 @@ public class SecurityConfig {
 
 		configuration.setAllowedOrigins(Arrays.asList(
 			"https://seeyouagain.store",
-			"https://dev-api.seeyouagain.store",
+            "https://prod-api.seeyouagain.store",
 			"http://localhost:3000"
 		));
 
