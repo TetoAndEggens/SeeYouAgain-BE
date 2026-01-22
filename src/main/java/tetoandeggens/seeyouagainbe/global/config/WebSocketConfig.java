@@ -48,7 +48,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
 		registry.addEndpoint("/ws-stomp")
 			.setAllowedOriginPatterns(
-				"https://seeyouagain.store"
+                "https://seeyouagain.store",
+                "https://www.seeyouagain.store",
+                "https://prod-api.seeyouagain.store",
+                "http://localhost:3000"
 			)
 			.setHandshakeHandler(customHandshakeHandler)
 			.addInterceptors(handshakeInterceptor)
