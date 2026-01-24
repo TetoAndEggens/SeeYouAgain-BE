@@ -76,7 +76,7 @@ public class SecurityConfig {
 		"/notification/**",
 		"/fcm/**",
 		"/bookmark/**",
-		"/member/push"
+		"/member/**"
 	};
 
 	private static final String[] ADMIN_LIST = {
