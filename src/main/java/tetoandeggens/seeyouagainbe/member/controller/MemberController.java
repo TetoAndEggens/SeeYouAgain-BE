@@ -5,13 +5,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.global.response.ApiResponse;
 import tetoandeggens.seeyouagainbe.member.dto.request.UpdatePushEnabledRequest;
+import tetoandeggens.seeyouagainbe.member.dto.response.MyInfoResponse;
 import tetoandeggens.seeyouagainbe.member.service.MemberService;
 
 @Tag(name = "Member", description = "유저 관련 API")
@@ -20,6 +18,18 @@ import tetoandeggens.seeyouagainbe.member.service.MemberService;
 @RequiredArgsConstructor
 public class MemberController {
     private final MemberService memberService;
+
+    @GetMapping("/me")
+    @Operation(
+            summary = "마이페이지 정보 조회 API",
+            description = "로그인한 사용자의 닉네임과 프로필 이미지를 조회합니다."
+    )
+    public ApiResponse<MyInfoResponse> getMyInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        MyInfoResponse response = memberService.getMyInfo(userDetails.getMemberId());
+        return ApiResponse.ok(response);
+    }
 
     @PutMapping("/push")
     @Operation(
