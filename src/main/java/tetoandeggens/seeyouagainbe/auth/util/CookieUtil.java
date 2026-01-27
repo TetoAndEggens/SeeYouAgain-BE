@@ -11,6 +11,7 @@ public class CookieUtil {
     private static final boolean SECURE = true;
     private static final boolean HTTP_ONLY = true;
     private static final String PATH = "/";
+    private static final String DOMAIN = ".seeyouagain.store";
 
     public static String resolveCookieValue(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return null;
@@ -37,6 +38,7 @@ public class CookieUtil {
                 .path(PATH)
                 .maxAge(maxAgeSeconds)
                 .sameSite(SAME_SITE)
+                .domain(DOMAIN)
                 .build();
 
         response.addHeader("Set-Cookie", cookie.toString());
