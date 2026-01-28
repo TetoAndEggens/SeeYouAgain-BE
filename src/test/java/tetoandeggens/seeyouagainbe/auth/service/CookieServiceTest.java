@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.MockedStatic;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -23,6 +23,9 @@ class CookieServiceTest {
     @InjectMocks
     private CookieService cookieService;
 
+    @Mock
+    private CookieUtil cookieUtil;
+
     private static final String TEST_ACCESS_TOKEN = "test-access-token";
     private static final String TEST_REFRESH_TOKEN = "test-refresh-token";
     private static final String TEST_SOCIAL_TEMP_TOKEN = "test-social-temp-token";
@@ -38,18 +41,16 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.setAccessTokenCookie(response, TEST_ACCESS_TOKEN, TEST_EXPIRATION_SEC);
+            // when
+            cookieService.setAccessTokenCookie(response, TEST_ACCESS_TOKEN, TEST_EXPIRATION_SEC);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        ACCESS_TOKEN_COOKIE_NAME,
-                        TEST_ACCESS_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    ACCESS_TOKEN_COOKIE_NAME,
+                    TEST_ACCESS_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
         }
 
         @Test
@@ -59,20 +60,18 @@ class CookieServiceTest {
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setCookies(new Cookie(ACCESS_TOKEN_COOKIE_NAME, TEST_ACCESS_TOKEN));
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                cookieUtilMock.when(() -> CookieUtil.resolveCookieValue(request, ACCESS_TOKEN_COOKIE_NAME))
-                        .thenReturn(TEST_ACCESS_TOKEN);
+            when(cookieUtil.resolveCookieValue(request, ACCESS_TOKEN_COOKIE_NAME))
+                    .thenReturn(TEST_ACCESS_TOKEN);
 
-                // when
-                String result = cookieService.resolveAccessToken(request);
+            // when
+            String result = cookieService.resolveAccessToken(request);
 
-                // then
-                assertThat(result).isEqualTo(TEST_ACCESS_TOKEN);
-                cookieUtilMock.verify(() -> CookieUtil.resolveCookieValue(
-                        request,
-                        ACCESS_TOKEN_COOKIE_NAME
-                ));
-            }
+            // then
+            assertThat(result).isEqualTo(TEST_ACCESS_TOKEN);
+            verify(cookieUtil, times(1)).resolveCookieValue(
+                    request,
+                    ACCESS_TOKEN_COOKIE_NAME
+            );
         }
 
         @Test
@@ -81,16 +80,14 @@ class CookieServiceTest {
             // given
             MockHttpServletRequest request = new MockHttpServletRequest();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                cookieUtilMock.when(() -> CookieUtil.resolveCookieValue(request, ACCESS_TOKEN_COOKIE_NAME))
-                        .thenReturn(null);
+            when(cookieUtil.resolveCookieValue(request, ACCESS_TOKEN_COOKIE_NAME))
+                    .thenReturn(null);
 
-                // when
-                String result = cookieService.resolveAccessToken(request);
+            // when
+            String result = cookieService.resolveAccessToken(request);
 
-                // then
-                assertThat(result).isNull();
-            }
+            // then
+            assertThat(result).isNull();
         }
 
         @Test
@@ -99,16 +96,14 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.deleteAccessTokenCookie(response);
+            // when
+            cookieService.deleteAccessTokenCookie(response);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        ACCESS_TOKEN_COOKIE_NAME
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    ACCESS_TOKEN_COOKIE_NAME
+            );
         }
     }
 
@@ -122,18 +117,16 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.setRefreshTokenCookie(response, TEST_REFRESH_TOKEN, TEST_EXPIRATION_SEC);
+            // when
+            cookieService.setRefreshTokenCookie(response, TEST_REFRESH_TOKEN, TEST_EXPIRATION_SEC);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        REFRESH_TOKEN_COOKIE_NAME,
-                        TEST_REFRESH_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    REFRESH_TOKEN_COOKIE_NAME,
+                    TEST_REFRESH_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
         }
 
         @Test
@@ -143,16 +136,14 @@ class CookieServiceTest {
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setCookies(new Cookie(REFRESH_TOKEN_COOKIE_NAME, TEST_REFRESH_TOKEN));
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                cookieUtilMock.when(() -> CookieUtil.resolveCookieValue(request, REFRESH_TOKEN_COOKIE_NAME))
-                        .thenReturn(TEST_REFRESH_TOKEN);
+            when(cookieUtil.resolveCookieValue(request, REFRESH_TOKEN_COOKIE_NAME))
+                    .thenReturn(TEST_REFRESH_TOKEN);
 
-                // when
-                String result = cookieService.resolveRefreshToken(request);
+            // when
+            String result = cookieService.resolveRefreshToken(request);
 
-                // then
-                assertThat(result).isEqualTo(TEST_REFRESH_TOKEN);
-            }
+            // then
+            assertThat(result).isEqualTo(TEST_REFRESH_TOKEN);
         }
 
         @Test
@@ -161,16 +152,14 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.deleteRefreshTokenCookie(response);
+            // when
+            cookieService.deleteRefreshTokenCookie(response);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        REFRESH_TOKEN_COOKIE_NAME
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    REFRESH_TOKEN_COOKIE_NAME
+            );
         }
     }
 
@@ -184,18 +173,16 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.setSocialTempTokenCookie(response, TEST_SOCIAL_TEMP_TOKEN, TEST_EXPIRATION_SEC);
+            // when
+            cookieService.setSocialTempTokenCookie(response, TEST_SOCIAL_TEMP_TOKEN, TEST_EXPIRATION_SEC);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        SOCIAL_TEMP_TOKEN,
-                        TEST_SOCIAL_TEMP_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    SOCIAL_TEMP_TOKEN,
+                    TEST_SOCIAL_TEMP_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
         }
 
         @Test
@@ -205,16 +192,14 @@ class CookieServiceTest {
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.setCookies(new Cookie(SOCIAL_TEMP_TOKEN, TEST_SOCIAL_TEMP_TOKEN));
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                cookieUtilMock.when(() -> CookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN))
-                        .thenReturn(TEST_SOCIAL_TEMP_TOKEN);
+            when(cookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN))
+                    .thenReturn(TEST_SOCIAL_TEMP_TOKEN);
 
-                // when
-                String result = cookieService.resolveSocialTempToken(request);
+            // when
+            String result = cookieService.resolveSocialTempToken(request);
 
-                // then
-                assertThat(result).isEqualTo(TEST_SOCIAL_TEMP_TOKEN);
-            }
+            // then
+            assertThat(result).isEqualTo(TEST_SOCIAL_TEMP_TOKEN);
         }
 
         @Test
@@ -223,16 +208,14 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.deleteTempTokenCookie(response);
+            // when
+            cookieService.deleteTempTokenCookie(response);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        SOCIAL_TEMP_TOKEN
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    SOCIAL_TEMP_TOKEN
+            );
         }
     }
 
@@ -246,20 +229,18 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.deleteAllAuthCookies(response);
+            // when
+            cookieService.deleteAllAuthCookies(response);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        ACCESS_TOKEN_COOKIE_NAME
-                ));
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        REFRESH_TOKEN_COOKIE_NAME
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    ACCESS_TOKEN_COOKIE_NAME
+            );
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    REFRESH_TOKEN_COOKIE_NAME
+            );
         }
     }
 
@@ -273,25 +254,23 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.setAccessTokenCookie(response, TEST_ACCESS_TOKEN, TEST_EXPIRATION_SEC);
-                cookieService.setRefreshTokenCookie(response, TEST_REFRESH_TOKEN, TEST_EXPIRATION_SEC);
+            // when
+            cookieService.setAccessTokenCookie(response, TEST_ACCESS_TOKEN, TEST_EXPIRATION_SEC);
+            cookieService.setRefreshTokenCookie(response, TEST_REFRESH_TOKEN, TEST_EXPIRATION_SEC);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        ACCESS_TOKEN_COOKIE_NAME,
-                        TEST_ACCESS_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        REFRESH_TOKEN_COOKIE_NAME,
-                        TEST_REFRESH_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-            }
+            // then
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    ACCESS_TOKEN_COOKIE_NAME,
+                    TEST_ACCESS_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    REFRESH_TOKEN_COOKIE_NAME,
+                    TEST_REFRESH_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
         }
 
         @Test
@@ -300,20 +279,18 @@ class CookieServiceTest {
             // given
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                // when
-                cookieService.deleteAllAuthCookies(response);
+            // when
+            cookieService.deleteAllAuthCookies(response);
 
-                // then
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        ACCESS_TOKEN_COOKIE_NAME
-                ), times(1));
-                cookieUtilMock.verify(() -> CookieUtil.deleteCookie(
-                        response,
-                        REFRESH_TOKEN_COOKIE_NAME
-                ), times(1));
-            }
+            // then
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    ACCESS_TOKEN_COOKIE_NAME
+            );
+            verify(cookieUtil, times(1)).deleteCookie(
+                    response,
+                    REFRESH_TOKEN_COOKIE_NAME
+            );
         }
 
         @Test
@@ -323,23 +300,21 @@ class CookieServiceTest {
             MockHttpServletRequest request = new MockHttpServletRequest();
             MockHttpServletResponse response = new MockHttpServletResponse();
 
-            try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
-                cookieUtilMock.when(() -> CookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN))
-                        .thenReturn(TEST_SOCIAL_TEMP_TOKEN);
+            when(cookieUtil.resolveCookieValue(request, SOCIAL_TEMP_TOKEN))
+                    .thenReturn(TEST_SOCIAL_TEMP_TOKEN);
 
-                // when
-                cookieService.setSocialTempTokenCookie(response, TEST_SOCIAL_TEMP_TOKEN, TEST_EXPIRATION_SEC);
-                String resolvedToken = cookieService.resolveSocialTempToken(request);
+            // when
+            cookieService.setSocialTempTokenCookie(response, TEST_SOCIAL_TEMP_TOKEN, TEST_EXPIRATION_SEC);
+            String resolvedToken = cookieService.resolveSocialTempToken(request);
 
-                // then
-                assertThat(resolvedToken).isEqualTo(TEST_SOCIAL_TEMP_TOKEN);
-                cookieUtilMock.verify(() -> CookieUtil.setCookie(
-                        response,
-                        SOCIAL_TEMP_TOKEN,
-                        TEST_SOCIAL_TEMP_TOKEN,
-                        TEST_EXPIRATION_SEC
-                ));
-            }
+            // then
+            assertThat(resolvedToken).isEqualTo(TEST_SOCIAL_TEMP_TOKEN);
+            verify(cookieUtil, times(1)).setCookie(
+                    response,
+                    SOCIAL_TEMP_TOKEN,
+                    TEST_SOCIAL_TEMP_TOKEN,
+                    TEST_EXPIRATION_SEC
+            );
         }
     }
 }
