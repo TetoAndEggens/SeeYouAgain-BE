@@ -33,6 +33,7 @@ class MemberControllerTest extends ControllerTest {
     private static final Long TEST_MEMBER_ID = 1L;
     private static final String TEST_NICKNAME = "귀여운강아지";
     private static final String TEST_PROFILE = "https://s3.amazonaws.com/profile/image.jpg";
+    private static final Boolean TEST_PUSH_ENABLED = true;
 
     @Nested
     @DisplayName("GET /member/me - 마이페이지 정보 조회")
@@ -42,7 +43,7 @@ class MemberControllerTest extends ControllerTest {
         @DisplayName("마이페이지 정보 조회 - 성공")
         void getMyInfo_Success() throws Exception {
             // given
-            MyInfoResponse response = MyInfoResponse.from(TEST_NICKNAME, TEST_PROFILE);
+            MyInfoResponse response = MyInfoResponse.from(TEST_NICKNAME, TEST_PROFILE,  TEST_PUSH_ENABLED);
 
             given(memberService.getMyInfo(anyLong()))
                     .willReturn(response);
@@ -61,7 +62,7 @@ class MemberControllerTest extends ControllerTest {
         @DisplayName("마이페이지 정보 조회 - 프로필 이미지가 없는 경우")
         void getMyInfo_Success_WithNullProfile() throws Exception {
             // given
-            MyInfoResponse response = MyInfoResponse.from(TEST_NICKNAME, null);
+            MyInfoResponse response = MyInfoResponse.from(TEST_NICKNAME,null, TEST_PUSH_ENABLED);
 
             given(memberService.getMyInfo(anyLong()))
                     .willReturn(response);
