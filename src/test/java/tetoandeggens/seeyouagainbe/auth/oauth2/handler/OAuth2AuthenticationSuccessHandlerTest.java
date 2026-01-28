@@ -21,6 +21,7 @@ import tetoandeggens.seeyouagainbe.auth.oauth2.common.service.OAuth2TokenExtract
 import tetoandeggens.seeyouagainbe.auth.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import tetoandeggens.seeyouagainbe.auth.service.CookieService;
 import tetoandeggens.seeyouagainbe.auth.service.RedisAuthService;
+import tetoandeggens.seeyouagainbe.auth.util.CookieUtil;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
 import tetoandeggens.seeyouagainbe.member.entity.Role;
 import tetoandeggens.seeyouagainbe.member.repository.MemberRepository;
@@ -49,6 +50,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
     @Mock private OAuth2User oAuth2User;
     @Mock private OAuth2AttributeExtractorProvider attributeExtractor;
     @Mock private HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    @Mock private CookieUtil cookieUtil;  // ✨ 추가
 
     @InjectMocks
     private OAuth2AuthenticationSuccessHandler handler;
@@ -57,6 +59,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
     private static final String TEST_PROFILE_URL = "https://example.com/profile.jpg";
     private static final String TEST_REFRESH_TOKEN = "oauth-refresh-token";
     private static final String TEST_UUID = "test-uuid-123";
+    private static final Long TEST_MEMBER_ID = 25L;  // ✨ 추가
     private static final String TEST_ACCESS_TOKEN = "test-access-token";
     private static final String TEST_JWT_REFRESH_TOKEN = "test-jwt-refresh-token";
     private static final String FRONTEND_URL = "http://localhost:3000";
@@ -80,20 +83,16 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 setupOAuth2Authentication("kakao");
 
                 // given
-                Member existingMember = Member.builder()
-                        .loginId("testuser")
-                        .password("password")
-                        .nickName("테스트")
-                        .phoneNumber("01012345678")
-                        .build();
-                ReflectionTestUtils.setField(existingMember, "role", Role.USER);
-                ReflectionTestUtils.setField(existingMember, "uuid", TEST_UUID);
+                Member existingMember = createTestMember(Role.USER, TEST_UUID, TEST_MEMBER_ID);
                 ReflectionTestUtils.setField(existingMember, "socialIdKakao", TEST_SOCIAL_ID);
 
                 when(memberRepository.findBySocialIdKakaoAndIsDeletedFalse(TEST_SOCIAL_ID))
                         .thenReturn(Optional.of(existingMember));
                 when(tokenProvider.createLoginToken(TEST_UUID, Role.USER))
                         .thenReturn(new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN));
+                when(tokenProvider.getAccessTokenExpirationSec()).thenReturn(3600L);
+                when(tokenProvider.getRefreshTokenExpirationSec()).thenReturn(86400L);
+                when(tokenProvider.getRefreshTokenExpirationMs()).thenReturn(86400000L);
                 doNothing().when(httpCookieOAuth2AuthorizationRequestRepository)
                         .removeAuthorizationRequestCookies(any(HttpServletRequest.class), any(HttpServletResponse.class));
 
@@ -107,18 +106,12 @@ class OAuth2AuthenticationSuccessHandlerTest {
         }
 
         @Test
-        @DisplayName("기존 카카오 회원 로그인 - 성공")
-        void existingKakaoMember_LoginSuccess() throws IOException {
+        @DisplayName("기존 카카오 회원 로그인 - 성공 및 Redis에 memberId 저장")
+        void existingKakaoMember_LoginSuccess_SavesMemberId() throws IOException {
+            // given
             setupOAuth2Authentication("kakao");
 
-            Member existingMember = Member.builder()
-                    .loginId("testuser")
-                    .password("password")
-                    .nickName("테스트")
-                    .phoneNumber("01012345678")
-                    .build();
-            ReflectionTestUtils.setField(existingMember, "role", Role.USER);
-            ReflectionTestUtils.setField(existingMember, "uuid", TEST_UUID);
+            Member existingMember = createTestMember(Role.USER, TEST_UUID, TEST_MEMBER_ID);
             ReflectionTestUtils.setField(existingMember, "socialIdKakao", TEST_SOCIAL_ID);
 
             UserTokenResponse tokenResponse = new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN);
@@ -132,31 +125,32 @@ class OAuth2AuthenticationSuccessHandlerTest {
             doNothing().when(cookieService).setAccessTokenCookie(any(), anyString(), anyLong());
             doNothing().when(cookieService).setRefreshTokenCookie(any(), anyString(), anyLong());
             doNothing().when(redisAuthService).saveRefreshToken(anyString(), anyString(), anyLong());
+            doNothing().when(redisAuthService).saveMemberId(anyString(), anyLong(), anyLong());  // ✨ 추가
             doNothing().when(response).sendRedirect(anyString());
 
+            // when
             handler.onAuthenticationSuccess(request, response, oAuth2Token);
 
+            // then
             verify(memberRepository).findBySocialIdKakaoAndIsDeletedFalse(TEST_SOCIAL_ID);
             verify(tokenProvider).createLoginToken(TEST_UUID, Role.USER);
             verify(cookieService).setAccessTokenCookie(response, TEST_ACCESS_TOKEN, 3600L);
             verify(cookieService).setRefreshTokenCookie(response, TEST_JWT_REFRESH_TOKEN, 86400L);
             verify(redisAuthService).saveRefreshToken(TEST_UUID, TEST_JWT_REFRESH_TOKEN, 86400000L);
+
+            // ✨ 추가: saveMemberId 호출 검증
+            verify(redisAuthService).saveMemberId(TEST_UUID, TEST_MEMBER_ID, 86400000L);
+
             verify(response).sendRedirect(contains(FRONTEND_URL));
         }
 
         @Test
-        @DisplayName("기존 네이버 회원 로그인 - 성공")
-        void existingNaverMember_LoginSuccess() throws IOException {
+        @DisplayName("기존 네이버 회원 로그인 - 성공 및 Redis에 memberId 저장")
+        void existingNaverMember_LoginSuccess_SavesMemberId() throws IOException {
+            // given
             setupOAuth2Authentication("naver");
 
-            Member existingMember = Member.builder()
-                    .loginId("testuser")
-                    .password("password")
-                    .nickName("테스트")
-                    .phoneNumber("01012345678")
-                    .build();
-            ReflectionTestUtils.setField(existingMember, "role", Role.USER);
-            ReflectionTestUtils.setField(existingMember, "uuid", TEST_UUID);
+            Member existingMember = createTestMember(Role.USER, TEST_UUID, TEST_MEMBER_ID);
             ReflectionTestUtils.setField(existingMember, "socialIdNaver", TEST_SOCIAL_ID);
 
             UserTokenResponse tokenResponse = new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN);
@@ -164,26 +158,29 @@ class OAuth2AuthenticationSuccessHandlerTest {
             when(memberRepository.findBySocialIdNaverAndIsDeletedFalse(TEST_SOCIAL_ID))
                     .thenReturn(Optional.of(existingMember));
             when(tokenProvider.createLoginToken(TEST_UUID, Role.USER)).thenReturn(tokenResponse);
+            when(tokenProvider.getAccessTokenExpirationSec()).thenReturn(3600L);
+            when(tokenProvider.getRefreshTokenExpirationSec()).thenReturn(86400L);
+            when(tokenProvider.getRefreshTokenExpirationMs()).thenReturn(86400000L);
+            doNothing().when(redisAuthService).saveMemberId(anyString(), anyLong(), anyLong());  // ✨ 추가
 
+            // when
             handler.onAuthenticationSuccess(request, response, oAuth2Token);
 
+            // then
             verify(memberRepository).findBySocialIdNaverAndIsDeletedFalse(TEST_SOCIAL_ID);
             verify(tokenProvider).createLoginToken(TEST_UUID, Role.USER);
+
+            // ✨ 추가: saveMemberId 호출 검증
+            verify(redisAuthService).saveMemberId(TEST_UUID, TEST_MEMBER_ID, 86400000L);
         }
 
         @Test
-        @DisplayName("기존 구글 회원 로그인 - 성공")
-        void existingGoogleMember_LoginSuccess() throws IOException {
+        @DisplayName("기존 구글 회원 로그인 - 성공 및 Redis에 memberId 저장")
+        void existingGoogleMember_LoginSuccess_SavesMemberId() throws IOException {
+            // given
             setupOAuth2Authentication("google");
 
-            Member existingMember = Member.builder()
-                    .loginId("testuser")
-                    .password("password")
-                    .nickName("테스트")
-                    .phoneNumber("01012345678")
-                    .build();
-            ReflectionTestUtils.setField(existingMember, "role", Role.USER);
-            ReflectionTestUtils.setField(existingMember, "uuid", TEST_UUID);
+            Member existingMember = createTestMember(Role.USER, TEST_UUID, TEST_MEMBER_ID);
             ReflectionTestUtils.setField(existingMember, "socialIdGoogle", TEST_SOCIAL_ID);
 
             UserTokenResponse tokenResponse = new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN);
@@ -191,11 +188,57 @@ class OAuth2AuthenticationSuccessHandlerTest {
             when(memberRepository.findBySocialIdGoogleAndIsDeletedFalse(TEST_SOCIAL_ID))
                     .thenReturn(Optional.of(existingMember));
             when(tokenProvider.createLoginToken(TEST_UUID, Role.USER)).thenReturn(tokenResponse);
+            when(tokenProvider.getAccessTokenExpirationSec()).thenReturn(3600L);
+            when(tokenProvider.getRefreshTokenExpirationSec()).thenReturn(86400L);
+            when(tokenProvider.getRefreshTokenExpirationMs()).thenReturn(86400000L);
+            doNothing().when(redisAuthService).saveMemberId(anyString(), anyLong(), anyLong());  // ✨ 추가
 
+            // when
             handler.onAuthenticationSuccess(request, response, oAuth2Token);
 
+            // then
             verify(memberRepository).findBySocialIdGoogleAndIsDeletedFalse(TEST_SOCIAL_ID);
             verify(tokenProvider).createLoginToken(TEST_UUID, Role.USER);
+
+            // ✨ 추가: saveMemberId 호출 검증
+            verify(redisAuthService).saveMemberId(TEST_UUID, TEST_MEMBER_ID, 86400000L);
+        }
+
+        @Test
+        @DisplayName("기존 회원 로그인 시 호출 순서 검증")
+        void existingMember_VerifyCallOrder() throws IOException {
+            // given
+            setupOAuth2Authentication("kakao");
+
+            Member existingMember = createTestMember(Role.USER, TEST_UUID, TEST_MEMBER_ID);
+            ReflectionTestUtils.setField(existingMember, "socialIdKakao", TEST_SOCIAL_ID);
+
+            UserTokenResponse tokenResponse = new UserTokenResponse(TEST_ACCESS_TOKEN, TEST_JWT_REFRESH_TOKEN);
+
+            when(memberRepository.findBySocialIdKakaoAndIsDeletedFalse(TEST_SOCIAL_ID))
+                    .thenReturn(Optional.of(existingMember));
+            when(tokenProvider.createLoginToken(TEST_UUID, Role.USER)).thenReturn(tokenResponse);
+            when(tokenProvider.getAccessTokenExpirationSec()).thenReturn(3600L);
+            when(tokenProvider.getRefreshTokenExpirationSec()).thenReturn(86400L);
+            when(tokenProvider.getRefreshTokenExpirationMs()).thenReturn(86400000L);
+
+            // when
+            handler.onAuthenticationSuccess(request, response, oAuth2Token);
+
+            // then - 호출 순서 검증
+            var inOrder = inOrder(
+                    tokenProvider,
+                    cookieService,
+                    redisAuthService,
+                    response
+            );
+
+            inOrder.verify(tokenProvider).createLoginToken(TEST_UUID, Role.USER);
+            inOrder.verify(cookieService).setAccessTokenCookie(any(), anyString(), anyLong());
+            inOrder.verify(cookieService).setRefreshTokenCookie(any(), anyString(), anyLong());
+            inOrder.verify(redisAuthService).saveRefreshToken(anyString(), anyString(), anyLong());
+            inOrder.verify(redisAuthService).saveMemberId(anyString(), anyLong(), anyLong());
+            inOrder.verify(response).sendRedirect(anyString());
         }
     }
 
@@ -221,6 +264,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
             verify(redisAuthService).saveTempSocialInfo(anyString(), eq("kakao"), eq(TEST_SOCIAL_ID), eq(TEST_REFRESH_TOKEN));
             verify(cookieService).setSocialTempTokenCookie(response, "temp-token-123", VERIFICATION_TIME * 60L);
             verify(response).sendRedirect(contains("signup"));
+
+            // ✨ 추가: 신규 회원은 saveMemberId를 호출하지 않음
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());
         }
 
         @Test
@@ -239,6 +285,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
             handler.onAuthenticationSuccess(request, response, oAuth2Token);
 
             verify(redisAuthService).saveTempSocialInfo(anyString(), eq("naver"), eq(TEST_SOCIAL_ID), eq(TEST_REFRESH_TOKEN));
+
+            // ✨ 추가: 신규 회원은 saveMemberId를 호출하지 않음
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());
         }
 
         @Test
@@ -257,6 +306,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
             handler.onAuthenticationSuccess(request, response, oAuth2Token);
 
             verify(redisAuthService).saveTempSocialInfo(anyString(), eq("google"), eq(TEST_SOCIAL_ID), eq(TEST_REFRESH_TOKEN));
+
+            // ✨ 추가: 신규 회원은 saveMemberId를 호출하지 않음
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());
         }
     }
 
@@ -275,6 +327,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
             verify(attributeExtractors).get("kakaoAttributeExtractor");
             verify(memberRepository, never()).findBySocialIdKakaoAndIsDeletedFalse(anyString());
+
+            // ✨ 추가: AttributeExtractor가 null이면 saveMemberId도 호출되지 않음
+            verify(redisAuthService, never()).saveMemberId(anyString(), anyLong(), anyLong());
         }
     }
 
@@ -290,5 +345,19 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
         OAuth2Provider provider = OAuth2Provider.fromRegistrationId(registrationId);
         when(tokenExtractor.extractRefreshToken(oAuth2Token, provider)).thenReturn(TEST_REFRESH_TOKEN);
+    }
+
+    /** 테스트용 Member 생성 헬퍼 메서드 */
+    private Member createTestMember(Role role, String uuid, Long id) {
+        Member member = Member.builder()
+                .loginId("testuser")
+                .password("password")
+                .nickName("테스트")
+                .phoneNumber("01012345678")
+                .build();
+        ReflectionTestUtils.setField(member, "role", role);
+        ReflectionTestUtils.setField(member, "uuid", uuid);
+        ReflectionTestUtils.setField(member, "id", id);
+        return member;
     }
 }
