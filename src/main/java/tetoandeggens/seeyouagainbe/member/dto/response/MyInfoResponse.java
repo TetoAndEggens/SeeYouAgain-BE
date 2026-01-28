@@ -8,9 +8,12 @@ public record MyInfoResponse(
         String nickName,
 
         @Schema(description = "프로필 이미지 URL", example = "https://s3.amazonaws.com/profile/image.jpg")
-        String profile
+        String profile,
+
+        @Schema(description = "push 알림 활성화 여부", example = "true/false")
+        Boolean isPushEnabled
 ) {
-    public static MyInfoResponse from(String nickName, String profile) {
-        return new MyInfoResponse(nickName, profile);
+    public static MyInfoResponse from(String nickName, String profile, Boolean isPushEnabled) {
+        return new MyInfoResponse(nickName, profile, isPushEnabled);
     }
 }
