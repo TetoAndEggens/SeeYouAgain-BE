@@ -21,7 +21,7 @@ public class MemberService {
         Member member = memberRepository.findByIdAndIsDeletedFalse( memberId )
                 .orElseThrow(() -> new CustomException(AuthErrorCode.MEMBER_NOT_FOUND));
 
-        return MyInfoResponse.from(member.getNickName(), member.getProfile());
+        return MyInfoResponse.from(member.getNickName(), member.getProfile(), member.getIsPushEnabled());
     }
 
     @Transactional
