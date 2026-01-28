@@ -126,6 +126,12 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 tokenProvider.getRefreshTokenExpirationMs()
         );
 
+        redisAuthService.saveMemberId(
+                member.getUuid(),
+                member.getId(),
+                tokenProvider.getRefreshTokenExpirationMs()
+        );
+
         String targetFrontendUrl = determineTargetUrl(request);
 
         String redirectUrl = UriComponentsBuilder.fromUriString(targetFrontendUrl)
