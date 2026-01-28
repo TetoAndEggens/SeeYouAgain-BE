@@ -45,6 +45,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final RedisAuthService redisAuthService;
     private final CookieService cookieService;
     private final HttpCookieOAuth2AuthorizationRequestRepository authRequestRepository;
+    private final CookieUtil cookieUtil;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -172,7 +173,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     }
 
     private String determineTargetUrl(HttpServletRequest request) {
-        String redirectUriFromCookie = CookieUtil.resolveCookieValue(request, REDIRECT_URI_PARAM_COOKIE_NAME);
+        String redirectUriFromCookie = cookieUtil.resolveCookieValue(request, REDIRECT_URI_PARAM_COOKIE_NAME);
 
         if (redirectUriFromCookie != null && ALLOWED_LOCAL_ORIGINS.contains(redirectUriFromCookie)) {
             return redirectUriFromCookie;
