@@ -6,12 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.auth.dto.request.*;
+import tetoandeggens.seeyouagainbe.auth.dto.response.LoginResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.PhoneVerificationResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialLoginResultResponse;
 import tetoandeggens.seeyouagainbe.auth.dto.response.SocialTempInfoResponse;
@@ -27,6 +27,25 @@ public class AuthController {
 
     private final AuthService authService;
     private final OAuth2Service oAuth2Service;
+
+    @Operation(
+            summary = "로그인",
+            description = "일반 로그인 (CustomLoginFilter에서 처리)"
+    )
+    @PostMapping("/login")
+    public ApiResponse<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
+        throw new IllegalStateException("CustomLoginFilter에서 실행되기에 이 메서드는 작동해서는 안됩니다.");
+    }
+
+    @Operation(
+            summary = "로그아웃",
+            description = "일반 로그아웃 (CustomLogoutFilter에서 처리)"
+    )
+    @SecurityRequirement(name = "JWT")
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout() {
+        throw new IllegalStateException("CustomLogoutFilter에서 실행되기에 이 메서드는 작동해서는 안됩니다.");
+    }
 
     @Operation(
             summary = "loginId 중복 체크",
