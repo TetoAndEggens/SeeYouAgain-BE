@@ -24,6 +24,7 @@ import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardListResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
 import tetoandeggens.seeyouagainbe.board.service.BoardService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -112,5 +113,22 @@ public class BoardController {
 			customUserDetails.getMemberId());
 
 		return ApiResponse.ok(presignedUrlResponse);
+	}
+
+	@GetMapping("/my-list")
+	@Operation(
+			summary = "내가 작성한 게시글 목록 조회 API",
+			description = "로그인한 회원이 작성한 게시글 목록을 커서 페이징으로 조회합니다.")
+	public ApiResponse<MyBoardListResponse> getMyBoardList(
+			@ParameterObject @Valid CursorPageRequest request,
+			@RequestParam(defaultValue = "LATEST") SortDirection sortDirection,
+			@AuthenticationPrincipal CustomUserDetails customUserDetails
+	) {
+		MyBoardListResponse response = boardService.getMyBoardList(
+				request,
+				sortDirection,
+				customUserDetails.getMemberId()
+		);
+		return ApiResponse.ok(response);
 	}
 }
