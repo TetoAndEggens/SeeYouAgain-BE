@@ -21,11 +21,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
+import tetoandeggens.seeyouagainbe.board.dto.response.*;
 import tetoandeggens.seeyouagainbe.board.service.BoardService;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPage;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
@@ -612,6 +608,113 @@ class BoardControllerTest extends ControllerTest {
 				.andExpect(status().isForbidden());
 
 			verify(boardService).updateAnimalBoard(eq(boardId), any(UpdatingBoardRequest.class), eq(memberId));
+		}
+	}
+
+	@Nested
+	@DisplayName("내가 작성한 게시글 목록 조회 API 테스트")
+	class GetMyBoardListTests {
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 성공")
+		void getMyBoardList_Success() throws Exception {
+			// given
+			MyBoardResponse myBoardResponse = MyBoardResponse.builder()
+					.boardId(1L)
+					.animalType(AnimalType.MISSING)
+					.title("실종 강아지를 찾습니다")
+					.address("서울특별시 강남구")
+					.createdAt(LocalDateTime.now())
+					.updatedAt(LocalDateTime.now())
+					.tags(List.of("강아지", "실종"))
+					.profile("https://profile.com/image.jpg")
+					.build();
+
+			CursorPage<MyBoardResponse, Long> cursorPage = CursorPage.of(
+					List.of(myBoardResponse),
+					10,
+					MyBoardResponse::boardId
+			);
+
+			MyBoardListResponse response = MyBoardListResponse.of(1, cursorPage);
+
+			given(boardService.getMyBoardList(
+					any(CursorPageRequest.class),
+					any(SortDirection.class),
+					anyLong()
+			)).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/board/my-list")
+							.param("size", "10")
+							.with(mockUser(1L)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.status").value(200))
+					.andExpect(jsonPath("$.data.boardCount").value(1))
+					.andExpect(jsonPath("$.data.board.data[0].boardId").value(1))
+					.andExpect(jsonPath("$.data.board.data[0].title").value("실종 강아지를 찾습니다"))
+					.andExpect(jsonPath("$.data.board.data[0].animalType").value("MISSING"))
+					.andExpect(jsonPath("$.data.board.data[0].tags").isArray());
+
+			verify(boardService).getMyBoardList(
+					any(CursorPageRequest.class),
+					any(SortDirection.class),
+					eq(1L)
+			);
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - OLDEST 정렬로 성공")
+		void getMyBoardList_Success_WithOldestSort() throws Exception {
+			// given
+			MyBoardListResponse response = MyBoardListResponse.of(
+					0,
+					CursorPage.of(List.of(), 10, MyBoardResponse::boardId)
+			);
+
+			given(boardService.getMyBoardList(
+					any(CursorPageRequest.class),
+					eq(SortDirection.OLDEST),
+					anyLong()
+			)).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/board/my-list")
+							.param("size", "10")
+							.param("sortDirection", "OLDEST")
+							.with(mockUser(1L)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.status").value(200));
+
+			verify(boardService).getMyBoardList(
+					any(CursorPageRequest.class),
+					eq(SortDirection.OLDEST),
+					eq(1L)
+			);
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 커서 ID와 함께 성공")
+		void getMyBoardList_Success_WithCursorId() throws Exception {
+			// given
+			MyBoardListResponse response = MyBoardListResponse.of(
+					0,
+					CursorPage.of(List.of(), 10, MyBoardResponse::boardId)
+			);
+
+			given(boardService.getMyBoardList(
+					any(CursorPageRequest.class),
+					any(SortDirection.class),
+					anyLong()
+			)).willReturn(response);
+
+			// when & then
+			mockMvc.perform(get("/board/my-list")
+							.param("cursorId", "10")
+							.param("size", "10")
+							.with(mockUser(1L)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.status").value(200));
 		}
 	}
 }

@@ -20,8 +20,11 @@ import tetoandeggens.seeyouagainbe.animal.entity.BreedType;
 import tetoandeggens.seeyouagainbe.animal.entity.NeuteredState;
 import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
+import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
+import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.global.RepositoryTest;
 import tetoandeggens.seeyouagainbe.member.entity.Member;
@@ -314,6 +317,221 @@ class BoardRepositoryTest extends RepositoryTest {
 
 			// then
 			assertThat(result).isNull();
+		}
+	}
+
+	@Nested
+	@DisplayName("내가 작성한 게시글 목록 조회 테스트")
+	class GetMyBoardsTests {
+
+		private Member testMember;
+		private Member otherMember;
+
+		@BeforeEach
+		void setUpMembers() {
+			testMember = Member.builder()
+					.loginId("testuser@example.com")
+					.password("password123!")
+					.nickName("테스트유저")
+					.phoneNumber("01012345678")
+					.build();
+			entityManager.persist(testMember);
+
+			otherMember = Member.builder()
+					.loginId("other@example.com")
+					.password("password123!")
+					.nickName("다른유저")
+					.phoneNumber("01087654321")
+					.build();
+			entityManager.persist(otherMember);
+
+			entityManager.flush();
+			entityManager.clear();
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 성공")
+		void getMyBoards_Success() {
+			// given
+			Board myBoard1 = createBoardForMember("내 게시글1", ContentType.MISSING, testMember);
+			Board myBoard2 = createBoardForMember("내 게시글2", ContentType.WITNESS, testMember);
+			Board otherBoard = createBoardForMember("다른사람 게시글", ContentType.MISSING, otherMember);
+
+			entityManager.persist(myBoard1);
+			entityManager.persist(myBoard2);
+			entityManager.persist(otherBoard);
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			List<MyBoardResponse> responses = boardRepository.getMyBoards(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(responses).hasSize(2);
+			assertThat(responses).extracting("title")
+					.containsExactlyInAnyOrder("내 게시글1", "내 게시글2");
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 최신순 정렬")
+		void getMyBoards_SortedByLatest() {
+			// given
+			Board board1 = createBoardForMember("게시글1", ContentType.MISSING, testMember);
+			Board board2 = createBoardForMember("게시글2", ContentType.WITNESS, testMember);
+			entityManager.persist(board1);
+			entityManager.persist(board2);
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			List<MyBoardResponse> responses = boardRepository.getMyBoards(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(responses).isNotEmpty();
+			if (responses.size() >= 2) {
+				assertThat(responses.get(0).boardId())
+						.isGreaterThan(responses.get(1).boardId());
+			}
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 커서 페이징")
+		void getMyBoards_WithCursorPaging() {
+			// given
+			for (int i = 1; i <= 5; i++) {
+				Board board = createBoardForMember("게시글" + i, ContentType.MISSING, testMember);
+				entityManager.persist(board);
+			}
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest firstRequest = new CursorPageRequest(null, 2);
+			List<MyBoardResponse> firstPage = boardRepository.getMyBoards(
+					firstRequest,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			assertThat(firstPage).hasSizeLessThanOrEqualTo(3);
+			Long cursorId = firstPage.get(1).boardId();
+
+			// when
+			CursorPageRequest secondRequest = new CursorPageRequest(cursorId, 2);
+			List<MyBoardResponse> secondPage = boardRepository.getMyBoards(
+					secondRequest,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(secondPage).isNotEmpty();
+			assertThat(secondPage).allMatch(board -> !board.boardId().equals(cursorId));
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 삭제된 게시글 제외")
+		void getMyBoards_ExcludingDeleted() {
+			// given
+			Board normalBoard = createBoardForMember("정상 게시글", ContentType.MISSING, testMember);
+			Board deletedBoard = createBoardForMember("삭제된 게시글", ContentType.MISSING, testMember);
+			deletedBoard.updateIsDeleted(true);
+			entityManager.persist(normalBoard);
+			entityManager.persist(deletedBoard);
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			List<MyBoardResponse> responses = boardRepository.getMyBoards(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(responses).hasSize(1);
+			assertThat(responses.get(0).title()).isEqualTo("정상 게시글");
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 총 개수 조회 - 성공")
+		void getMyBoardsCount_Success() {
+			// given
+			Board board1 = createBoardForMember("게시글1", ContentType.MISSING, testMember);
+			Board board2 = createBoardForMember("게시글2", ContentType.WITNESS, testMember);
+			Board otherBoard = createBoardForMember("다른사람 게시글", ContentType.MISSING, otherMember);
+			entityManager.persist(board1);
+			entityManager.persist(board2);
+			entityManager.persist(otherBoard);
+			entityManager.flush();
+			entityManager.clear();
+
+			// when
+			Long count = boardRepository.getMyBoardsCount(testMember.getId());
+
+			// then
+			assertThat(count).isEqualTo(2);
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 총 개수 조회 - 삭제된 게시글 제외")
+		void getMyBoardsCount_ExcludingDeleted() {
+			// given
+			Board normalBoard = createBoardForMember("정상 게시글", ContentType.MISSING, testMember);
+			Board deletedBoard = createBoardForMember("삭제된 게시글", ContentType.MISSING, testMember);
+			deletedBoard.updateIsDeleted(true);
+			entityManager.persist(normalBoard);
+			entityManager.persist(deletedBoard);
+			entityManager.flush();
+			entityManager.clear();
+
+			// when
+			Long count = boardRepository.getMyBoardsCount(testMember.getId());
+
+			// then
+			assertThat(count).isEqualTo(1);
+		}
+
+		private Board createBoardForMember(String title, ContentType contentType, Member member) {
+			AnimalLocation location = AnimalLocation.builder()
+					.address("서울특별시 강남구")
+					.latitude(37.4979)
+					.longitude(127.0276)
+					.build();
+			entityManager.persist(location);
+
+			Animal animal = Animal.builder()
+					.animalType(AnimalType.MISSING)
+					.sex(Sex.M)
+					.species(Species.DOG)
+					.color("갈색")
+					.animalLocation(location)
+					.neuteredState(NeuteredState.Y)
+					.city("서울특별시")
+					.town("강남구")
+					.build();
+			entityManager.persist(animal);
+
+			return Board.builder()
+					.contentType(contentType)
+					.title(title)
+					.content("내용")
+					.animal(animal)
+					.member(member)
+					.build();
 		}
 	}
 
