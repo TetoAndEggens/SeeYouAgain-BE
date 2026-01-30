@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,11 +28,15 @@ import tetoandeggens.seeyouagainbe.animal.repository.AnimalRepository;
 import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardListResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
 import tetoandeggens.seeyouagainbe.board.repository.BoardTagRepository;
+import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
+import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
 import tetoandeggens.seeyouagainbe.common.enums.ContentType;
 import tetoandeggens.seeyouagainbe.global.ServiceTest;
 import tetoandeggens.seeyouagainbe.global.exception.CustomException;
@@ -466,6 +471,313 @@ class BoardServiceTest extends ServiceTest {
 			assertThatThrownBy(() -> boardService.updateAnimalBoard(board.getId(), request, otherMemberId))
 				.isInstanceOf(CustomException.class)
 				.hasMessageContaining(BoardErrorCode.BOARD_FORBIDDEN.getMessage());
+		}
+	}
+
+	@Nested
+	@DisplayName("내가 작성한 게시글 목록 조회 테스트")
+	class GetMyBoardListTests {
+
+		private Member otherMember;
+
+		@BeforeEach
+		void setUpForMyBoardList() {
+			otherMember = Member.builder()
+					.loginId("otheruser")
+					.password("password")
+					.nickName("다른유저")
+					.phoneNumber("010-9876-5432")
+					.profile("https://profile.com/other.jpg")
+					.build();
+			memberRepository.save(otherMember);
+
+			entityManager.flush();
+			entityManager.clear();
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 성공")
+		void getMyBoardList_Success() {
+			// given
+			Board myBoard1 = createBoard("내 게시글1", "내용1", ContentType.MISSING, testMember);
+			Board myBoard2 = createBoard("내 게시글2", "내용2", ContentType.WITNESS, testMember);
+			Board otherBoard = createBoard("다른사람 게시글", "내용3", ContentType.MISSING, otherMember);
+
+			boardRepository.saveAll(List.of(myBoard1, myBoard2, otherBoard));
+
+			boardTagRepository.bulkInsert(List.of("강아지", "실종"), myBoard1);
+			boardTagRepository.bulkInsert(List.of("고양이", "목격"), myBoard2);
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response).isNotNull();
+			assertThat(response.boardCount()).isEqualTo(2);
+			assertThat(response.board().getData()).hasSize(2);
+			assertThat(response.board().isHasNext()).isFalse();
+
+			List<MyBoardResponse> boards = response.board().getData();
+			assertThat(boards).extracting(MyBoardResponse::title)
+					.containsExactly("내 게시글2", "내 게시글1");  // 최신순
+			assertThat(boards.get(0).tags()).containsExactlyInAnyOrder("고양이", "목격");
+			assertThat(boards.get(1).tags()).containsExactlyInAnyOrder("강아지", "실종");
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 최신순 정렬")
+		void getMyBoardList_Success_LatestSort() {
+			// given
+			Board board1 = createBoard("첫번째 게시글", "내용", ContentType.MISSING, testMember);
+			Board board2 = createBoard("두번째 게시글", "내용", ContentType.MISSING, testMember);
+			Board board3 = createBoard("세번째 게시글", "내용", ContentType.MISSING, testMember);
+
+			boardRepository.saveAll(List.of(board1, board2, board3));
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			List<MyBoardResponse> boards = response.board().getData();
+			assertThat(boards).hasSize(3);
+			assertThat(boards.get(0).boardId()).isGreaterThan(boards.get(1).boardId());
+			assertThat(boards.get(1).boardId()).isGreaterThan(boards.get(2).boardId());
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 오래된순 정렬")
+		void getMyBoardList_Success_OldestSort() {
+			// given
+			Board board1 = createBoard("첫번째 게시글", "내용", ContentType.MISSING, testMember);
+			Board board2 = createBoard("두번째 게시글", "내용", ContentType.MISSING, testMember);
+			Board board3 = createBoard("세번째 게시글", "내용", ContentType.MISSING, testMember);
+
+			boardRepository.saveAll(List.of(board1, board2, board3));
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.OLDEST,
+					testMember.getId()
+			);
+
+			// then
+			List<MyBoardResponse> boards = response.board().getData();
+			assertThat(boards).hasSize(3);
+			assertThat(boards.get(0).boardId()).isLessThan(boards.get(1).boardId());
+			assertThat(boards.get(1).boardId()).isLessThan(boards.get(2).boardId());
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 커서 페이징")
+		void getMyBoardList_Success_WithCursorPaging() {
+			// given - 7개로 증가 (2 + 2 + 2 + 1 = 7)
+			List<Board> boards = new ArrayList<>();
+			for (int i = 1; i <= 7; i++) {
+				boards.add(createBoard("게시글" + i, "내용", ContentType.MISSING, testMember));
+			}
+			boardRepository.saveAll(boards);
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest firstRequest = new CursorPageRequest(null, 2);
+
+			// when - 첫 번째 페이지
+			MyBoardListResponse firstResponse = boardService.getMyBoardList(
+					firstRequest,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then - 첫 번째 페이지 검증
+			assertThat(firstResponse.board().getData()).hasSize(2);
+			assertThat(firstResponse.board().isHasNext()).isTrue();
+			assertThat(firstResponse.board().getNextCursor()).isNotNull();
+
+			Long cursorId = firstResponse.board().getNextCursor();
+
+			// when - 두 번째 페이지
+			CursorPageRequest secondRequest = new CursorPageRequest(cursorId, 2);
+			MyBoardListResponse secondResponse = boardService.getMyBoardList(
+					secondRequest,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then - 두 번째 페이지 검증
+			assertThat(secondResponse.board().getData()).hasSize(2);
+			assertThat(secondResponse.board().isHasNext()).isTrue();  // 이제 true!
+			assertThat(secondResponse.board().getData())
+					.allMatch(board -> board.boardId() < cursorId);
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 삭제된 게시글 제외")
+		void getMyBoardList_ExcludesDeletedBoards() {
+			// given
+			Board normalBoard = createBoard("정상 게시글", "내용", ContentType.MISSING, testMember);
+			Board deletedBoard = createBoard("삭제된 게시글", "내용", ContentType.MISSING, testMember);
+
+			boardRepository.saveAll(List.of(normalBoard, deletedBoard));
+
+			entityManager.flush();
+			entityManager.clear();
+
+			// 게시글 삭제
+			boardService.deleteAnimalBoard(deletedBoard.getId(), testMember.getId());
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response.boardCount()).isEqualTo(1);
+			assertThat(response.board().getData()).hasSize(1);
+			assertThat(response.board().getData().get(0).title()).isEqualTo("정상 게시글");
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 게시글이 없는 경우")
+		void getMyBoardList_EmptyWhenNoBoards() {
+			// given
+			Board otherBoard = createBoard("다른사람 게시글", "내용", ContentType.MISSING, otherMember);
+			boardRepository.save(otherBoard);
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response.boardCount()).isEqualTo(0);
+			assertThat(response.board().getData()).isEmpty();
+			assertThat(response.board().isEmpty()).isTrue();
+			assertThat(response.board().isHasNext()).isFalse();
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 태그 정보 포함")
+		void getMyBoardList_IncludesTags() {
+			// given
+			Board board = createBoard("태그 테스트", "내용", ContentType.MISSING, testMember);
+			boardRepository.save(board);
+
+			boardTagRepository.bulkInsert(List.of("태그1", "태그2", "태그3"), board);
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response.board().getData()).hasSize(1);
+			MyBoardResponse boardResponse = response.board().getData().get(0);
+			assertThat(boardResponse.tags()).hasSize(3);
+			assertThat(boardResponse.tags()).containsExactlyInAnyOrder("태그1", "태그2", "태그3");
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - animalType 정보 포함")
+		void getMyBoardList_IncludesAnimalType() {
+			// given
+			Board missingBoard = createBoard("실종", "내용", ContentType.MISSING, testMember);
+			Board witnessBoard = createBoard("목격", "내용", ContentType.WITNESS, testMember);
+
+			boardRepository.saveAll(List.of(missingBoard, witnessBoard));
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response.board().getData()).hasSize(2);
+			assertThat(response.board().getData())
+					.extracting(MyBoardResponse::animalType)
+					.containsExactlyInAnyOrder(AnimalType.MISSING, AnimalType.WITNESS);
+		}
+
+		@Test
+		@DisplayName("내가 작성한 게시글 목록 조회 - 총 개수 정확성")
+		void getMyBoardList_CorrectTotalCount() {
+			// given
+			for (int i = 1; i <= 15; i++) {
+				Board board = createBoard("게시글" + i, "내용", ContentType.MISSING, testMember);
+				boardRepository.save(board);
+			}
+
+			Board otherBoard = createBoard("다른사람", "내용", ContentType.MISSING, otherMember);
+			boardRepository.save(otherBoard);
+
+			entityManager.flush();
+			entityManager.clear();
+
+			CursorPageRequest request = new CursorPageRequest(null, 10);
+
+			// when
+			MyBoardListResponse response = boardService.getMyBoardList(
+					request,
+					SortDirection.LATEST,
+					testMember.getId()
+			);
+
+			// then
+			assertThat(response.boardCount()).isEqualTo(15);
+			assertThat(response.board().getData()).hasSize(10);  // 첫 페이지 size만큼
+			assertThat(response.board().isHasNext()).isTrue();
 		}
 	}
 
