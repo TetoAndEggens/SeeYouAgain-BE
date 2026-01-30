@@ -150,6 +150,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(BLACK_LIST).authenticated()
 				.requestMatchers(WHITE_LIST).permitAll()
+				.requestMatchers(HttpMethod.GET, "/board/my-list").authenticated()
 				.requestMatchers(HttpMethod.GET, "/board/**").permitAll()
 				.requestMatchers(ADMIN_LIST).hasAuthority(Role.ADMIN.getRole())
 				.anyRequest().authenticated())
