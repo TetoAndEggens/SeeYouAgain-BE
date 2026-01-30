@@ -22,10 +22,7 @@ import tetoandeggens.seeyouagainbe.animal.repository.BreedTypeRepository;
 import tetoandeggens.seeyouagainbe.auth.dto.CustomUserDetails;
 import tetoandeggens.seeyouagainbe.board.dto.request.UpdatingBoardRequest;
 import tetoandeggens.seeyouagainbe.board.dto.request.WritingBoardRequest;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardListResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
-import tetoandeggens.seeyouagainbe.board.dto.response.PresignedUrlResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.*;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.BoardTag;
 import tetoandeggens.seeyouagainbe.board.repository.BoardRepository;
@@ -209,6 +206,21 @@ public class BoardService {
 		return new PresignedUrlResponse(presignedUrls);
 	}
 
+	@Transactional(readOnly = true)
+	public MyBoardListResponse getMyBoardList(CursorPageRequest request, SortDirection sortDirection, Long memberId) {
+		List<MyBoardResponse> responses = boardRepository.getMyBoards(request, sortDirection, memberId);
+		List<MyBoardResponse> responsesWithTags = attachTagsToMyBoardResponses(responses); // 태그 정보 추가
+
+		CursorPage<MyBoardResponse, Long> cursorPage = CursorPage.of(
+			responsesWithTags,
+			request.size(),
+			MyBoardResponse::boardId
+		);
+
+		Long count = boardRepository.getMyBoardsCount(memberId);
+		return MyBoardListResponse.of(count.intValue(), cursorPage);
+	}
+
 	private AnimalLocation createAndSaveAnimalLocation(WritingBoardRequest request) {
 		AnimalLocation animalLocation = AnimalLocation.builder()
 			.address(request.address())
@@ -340,5 +352,41 @@ public class BoardService {
 			return null;
 		}
 		return customUserDetails.getMemberId();
+	}
+
+	private List<MyBoardResponse> attachTagsToMyBoardResponses(List<MyBoardResponse> responses) {
+		if (responses.isEmpty()) {
+			return responses;
+		}
+
+		List<Long> boardIds = new ArrayList<>();
+		for (MyBoardResponse response : responses) {
+			boardIds.add(response.boardId());
+		}
+
+		Map<Long, List<String>> tagsMap = new HashMap<>();
+		List<BoardTag> boardTags = boardTagRepository.findByBoardIdInWithBoard(boardIds);
+
+		for (BoardTag boardTag : boardTags) {
+			Long boardId = boardTag.getBoard().getId();
+			tagsMap.computeIfAbsent(boardId, k -> new ArrayList<>()).add(boardTag.getName());
+		}
+
+		List<MyBoardResponse> result = new ArrayList<>();
+		for (MyBoardResponse response : responses) {
+			MyBoardResponse newResponse = MyBoardResponse.builder()
+				.boardId(response.boardId())
+				.animalType(response.animalType())
+				.title(response.title())
+				.address(response.address())
+				.createdAt(response.createdAt())
+				.updatedAt(response.updatedAt())
+				.tags(tagsMap.getOrDefault(response.boardId(), List.of()))
+				.profile(response.profile())
+				.build();
+			result.add(newResponse);
+		}
+
+		return result;
 	}
 }
