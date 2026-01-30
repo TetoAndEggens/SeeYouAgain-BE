@@ -26,6 +26,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.ProfileInfo;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.board.entity.QBoardTag;
@@ -333,5 +334,60 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
 		}
 
 		return builder;
+	}
+
+	@Override
+	public List<MyBoardResponse> getMyBoards(CursorPageRequest request, SortDirection sortDirection, Long memberId) {
+		BooleanExpression cursorCondition = createCursorCondition(request.cursorId(), sortDirection);
+		OrderSpecifier<Long> orderSpecifier = createOrderSpecifier(sortDirection);
+
+		QAnimal animal = QAnimal.animal;
+		QAnimalLocation animalLocation = QAnimalLocation.animalLocation;
+		QAnimalS3Profile profileEntity = QAnimalS3Profile.animalS3Profile;
+		QAnimalS3Profile subProfile = new QAnimalS3Profile("subProfile");
+
+		return queryFactory
+			.select(Projections.constructor(
+				MyBoardResponse.class,
+				board.id,
+				animal.animalType,
+				board.title,
+				animalLocation.address,
+				board.createdAt,
+				board.updatedAt,
+				Expressions.constant(Collections.emptyList()), // tags는 서비스에서 채움
+				profileEntity.profile
+			))
+			.from(board)
+			.join(board.animal, animal)
+			.leftJoin(animal.animalLocation, animalLocation)
+			.leftJoin(profileEntity).on(
+				profileEntity.animal.eq(animal),
+				profileEntity.id.eq(
+					JPAExpressions.select(subProfile.id.min())
+						.from(subProfile)
+						.where(subProfile.animal.eq(animal))
+				)
+			)
+			.where(
+				board.member.id.eq(memberId),
+				cursorCondition,
+				board.isDeleted.eq(false)
+			)
+			.orderBy(orderSpecifier)
+			.limit(request.size() + 1)
+			.fetch();
+	}
+
+	@Override
+	public Long getMyBoardsCount(Long memberId) {
+		return queryFactory
+			.select(board.count())
+			.from(board)
+			.where(
+				board.member.id.eq(memberId),
+				board.isDeleted.eq(false)
+			)
+			.fetchOne();
 	}
 }

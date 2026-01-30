@@ -7,6 +7,7 @@ import tetoandeggens.seeyouagainbe.animal.entity.Sex;
 import tetoandeggens.seeyouagainbe.animal.entity.Species;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardDetailResponse;
 import tetoandeggens.seeyouagainbe.board.dto.response.BoardResponse;
+import tetoandeggens.seeyouagainbe.board.dto.response.MyBoardResponse;
 import tetoandeggens.seeyouagainbe.board.entity.Board;
 import tetoandeggens.seeyouagainbe.common.dto.CursorPageRequest;
 import tetoandeggens.seeyouagainbe.common.dto.SortDirection;
@@ -30,4 +31,12 @@ public interface BoardRepositoryCustom {
 	Board findByIdWithAnimal(Long boardId);
 
 	Board findByIdWithMember(Long boardId);
+
+	List<MyBoardResponse> getMyBoards(
+		CursorPageRequest request,
+		SortDirection sortDirection,
+		Long memberId
+	);
+
+	Long getMyBoardsCount(Long memberId);
 }
