@@ -82,7 +82,7 @@ public class ChatRoomService {
 
 		List<ChatMessageResponse> responses = new ArrayList<>();
 		for (ChatMessage message : messages) {
-			responses.add(ChatMessageResponse.from(message));
+			responses.add(ChatMessageResponse.from(message, memberId));
 		}
 
 		CursorPage<ChatMessageResponse, Long> cursorPage = CursorPage.of(responses, request.size(),

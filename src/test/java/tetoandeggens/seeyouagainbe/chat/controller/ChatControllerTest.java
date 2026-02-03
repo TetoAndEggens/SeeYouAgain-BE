@@ -135,34 +135,45 @@ class ChatControllerTest extends ControllerTest {
 			Long memberId = 1L;
 			Long chatRoomId = 1L;
 			List<ChatMessageResponse> messages = List.of(
-				ChatMessageResponse.builder()
-					.messageId(1L)
-					.senderId(1L)
-					.content("안녕하세요")
-					.isRead(true)
-					.createdAt("2025-01-20T14:30:00")
-					.build()
+					ChatMessageResponse.builder()
+							.messageId(1L)
+							.senderId(1L)
+							.content("안녕하세요")
+							.isRead(true)
+							.createdAt("2025-01-20T14:30:00")
+							.isMyChat(true)
+							.build(),
+					ChatMessageResponse.builder()
+							.messageId(2L)
+							.senderId(2L)
+							.content("반갑습니다")
+							.isRead(false)
+							.createdAt("2025-01-20T14:31:00")
+							.isMyChat(false)
+							.build()
 			);
 
 			CursorPage<ChatMessageResponse, Long> page = CursorPage.of(messages, 20, ChatMessageResponse::messageId);
 			ChatMessageListResponse response = ChatMessageListResponse.of(page);
 
 			given(chatRoomService.getChatMessages(
-				eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)
+					eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)
 			)).willReturn(response);
 
 			// when & then
 			mockMvc.perform(get("/chat/rooms/{chatRoomId}/messages", chatRoomId)
-					.param("size", "20")
-					.param("sortDirection", "LATEST")
-					.with(mockUser(memberId)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.messages.data").isArray())
-				.andExpect(jsonPath("$.messages.data[0].messageId").value(1))
-				.andExpect(jsonPath("$.messages.data[0].content").value("안녕하세요"));
+							.param("size", "20")
+							.param("sortDirection", "LATEST")
+							.with(mockUser(memberId)))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.messages.data").isArray())
+					.andExpect(jsonPath("$.messages.data[0].messageId").value(1))
+					.andExpect(jsonPath("$.messages.data[0].content").value("안녕하세요"))
+					.andExpect(jsonPath("$.messages.data[0].isMyChat").value(true))
+					.andExpect(jsonPath("$.messages.data[1].isMyChat").value(false));
 
 			verify(chatRoomService).getChatMessages(
-				eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)
+					eq(chatRoomId), eq(memberId), any(CursorPageRequest.class), eq(SortDirection.LATEST)
 			);
 		}
 	}
