@@ -27,6 +27,6 @@ public record ChatMessageDto(
 	String content,
 
 	@Schema(description = "메시지 전송 시간", example = "2025-01-15T14:30:00")
-	LocalDateTime time
+	LocalDateTime createdAt
 ) {
 }
