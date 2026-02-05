@@ -24,18 +24,21 @@ public class RedisSubscriber {
 	public void sendMessage(String publishMessage) {
 		try {
 			ChatMessageDto chatMessage = objectMapper.readValue(publishMessage, ChatMessageDto.class);
-			ChatMessageWebSocketResponse response = ChatMessageWebSocketResponse.from(chatMessage);
 
+			ChatMessageWebSocketResponse senderResponse =
+					ChatMessageWebSocketResponse.from(chatMessage, chatMessage.senderId());
 			messagingTemplate.convertAndSendToUser(
-				chatMessage.senderId().toString(),
-				"/queue/chat",
-				response
+					chatMessage.senderId().toString(),
+					"/queue/chat",
+					senderResponse
 			);
 
+			ChatMessageWebSocketResponse receiverResponse =
+					ChatMessageWebSocketResponse.from(chatMessage, chatMessage.receiverId());
 			messagingTemplate.convertAndSendToUser(
-				chatMessage.receiverId().toString(),
-				"/queue/chat",
-				response
+					chatMessage.receiverId().toString(),
+					"/queue/chat",
+					receiverResponse
 			);
 		} catch (Exception e) {
 			log.error("메시지 처리 실패: message={}", publishMessage, e);
@@ -45,12 +48,12 @@ public class RedisSubscriber {
 	public void sendReadNotification(String publishMessage) {
 		try {
 			ChatReadNotificationDto notification = objectMapper.readValue(publishMessage,
-				ChatReadNotificationDto.class);
+					ChatReadNotificationDto.class);
 
 			messagingTemplate.convertAndSendToUser(
-				notification.senderId().toString(),
-				"/queue/chat/read",
-				notification
+					notification.senderId().toString(),
+					"/queue/chat/read",
+					notification
 			);
 		} catch (Exception e) {
 			log.error("읽음 알림 처리 실패: message={}", publishMessage, e);

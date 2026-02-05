@@ -21,15 +21,19 @@ public record ChatMessageWebSocketResponse(
 	@Schema(description = "메시지 내용", example = "이거 얼마에요?")
 	String content,
 
+	@Schema(description = "내가 보낸 메시지인지 여부", example = "true")
+	Boolean isMyChat,
+
 	@Schema(description = "메시지 전송 시간", example = "2025-01-15T14:30:00")
 	LocalDateTime time
 ) {
-	public static ChatMessageWebSocketResponse from(ChatMessageDto dto) {
+	public static ChatMessageWebSocketResponse from(ChatMessageDto dto, Long currentMemberId) {
 		return ChatMessageWebSocketResponse.builder()
 			.messageId(dto.messageId())
 			.chatRoomId(dto.chatRoomId())
 			.senderUuid(dto.senderUuid())
 			.content(dto.content())
+			.isMyChat(dto.senderId().equals(currentMemberId))
 			.time(dto.time())
 			.build();
 	}
