@@ -135,7 +135,7 @@ public class ChatService {
 			.receiverId(receiverId)
 			.senderUuid(senderUuid)
 			.content(content)
-			.time(savedMessage.getCreatedAt())
+			.createdAt(savedMessage.getCreatedAt())
 			.build();
 	}
 

@@ -25,7 +25,7 @@ public record ChatMessageWebSocketResponse(
 	Boolean isMyChat,
 
 	@Schema(description = "메시지 전송 시간", example = "2025-01-15T14:30:00")
-	LocalDateTime time
+	LocalDateTime createdAt
 ) {
 	public static ChatMessageWebSocketResponse from(ChatMessageDto dto, Long currentMemberId) {
 		return ChatMessageWebSocketResponse.builder()
@@ -34,7 +34,7 @@ public record ChatMessageWebSocketResponse(
 			.senderUuid(dto.senderUuid())
 			.content(dto.content())
 			.isMyChat(dto.senderId().equals(currentMemberId))
-			.time(dto.time())
+			.createdAt(dto.createdAt())
 			.build();
 	}
 }
