@@ -122,7 +122,7 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 		}
 		return sortDirection == SortDirection.LATEST
 			? chatMessage.id.lt(cursorId)
-			: chatMessage.id.gt(cursorId);
+			: chatMessage.id.goe(cursorId);
 	}
 
 	private OrderSpecifier<Long> createOrderSpecifier(SortDirection sortDirection) {
