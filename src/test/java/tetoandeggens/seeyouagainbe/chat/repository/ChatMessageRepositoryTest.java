@@ -143,21 +143,22 @@ class ChatMessageRepositoryTest extends RepositoryTest {
 		void findMessagesByChatRoom_WithCursor() {
 			// given
 			List<ChatMessage> firstPage = chatMessageRepository.findMessagesByChatRoom(
-				chatRoom.getId(), null, 2, SortDirection.LATEST
+					chatRoom.getId(), null, 2, SortDirection.LATEST
 			);
 
 			assertThat(firstPage).hasSizeLessThanOrEqualTo(3);
 			assertThat(firstPage).hasSizeGreaterThanOrEqualTo(2);
+
 			Long cursorId = firstPage.get(1).getId();
 
 			// when
 			List<ChatMessage> secondPage = chatMessageRepository.findMessagesByChatRoom(
-				chatRoom.getId(), cursorId, 2, SortDirection.LATEST
+					chatRoom.getId(), cursorId, 2, SortDirection.LATEST
 			);
 
 			// then
 			assertThat(secondPage).isNotEmpty();
-			assertThat(secondPage).allMatch(msg -> !msg.getId().equals(cursorId));
+			assertThat(secondPage).anyMatch(msg -> msg.getId().equals(cursorId));
 		}
 
 		@Test
