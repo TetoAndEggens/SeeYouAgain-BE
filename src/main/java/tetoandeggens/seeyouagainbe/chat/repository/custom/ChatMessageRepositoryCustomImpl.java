@@ -121,7 +121,7 @@ public class ChatMessageRepositoryCustomImpl implements ChatMessageRepositoryCus
 			return null;
 		}
 		return sortDirection == SortDirection.LATEST
-			? chatMessage.id.lt(cursorId)
+			? chatMessage.id.loe(cursorId)
 			: chatMessage.id.goe(cursorId);
 	}
 
